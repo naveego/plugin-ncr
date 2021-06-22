@@ -25,7 +25,6 @@ namespace PluginHubspotTest.Plugin
                 }
                 : new Settings()
                 {
-                    
                 };
         }
 

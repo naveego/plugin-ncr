@@ -67,11 +67,7 @@ namespace PluginHubspot.API.Discover
                 return await endpoint.GetStaticSchemaAsync(apiClient, schema);
             }
 
-            
-            var query = endpoint.Id == "TransactionDocument_HistoricalFromDate"
-                // ? endpoint.PropertiesQuery.Replace("<DATE_TIME>", DateTime.Today.ToString("yyyy-MM-dd"))
-                ? endpoint.PropertiesQuery.Replace("<DATE_TIME>", await apiClient.GetStartDate() + "T00:00:00Z")
-                : endpoint.PropertiesQuery;
+            var query = endpoint.PropertiesQuery;
             
             StringContent propertiesQuery = new StringContent(query, Encoding.UTF8, "application/json");
             // invoke properties api

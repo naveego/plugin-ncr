@@ -41,8 +41,8 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
                 
                 var queryDate = startDate + "T00:00:00Z";
                 
-                var propertiesQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.PropertiesQuery);
+                var readQuery =
+                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
@@ -50,17 +50,17 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
                 {
                     queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                     currDayOffset = currDayOffset + 1;
-                    propertiesQuery.BusinessDay.DateTime = queryDate;
+                    readQuery.BusinessDay.DateTime = queryDate;
                     currPage = 0;
                     do //while hasMore
                     {
-                        propertiesQuery.PageNumber = currPage;
+                        readQuery.PageNumber = currPage;
                         
                         
                         var json = new StringContent(
                             //endpoint.PropertiesQuery.Replace("\"pageNumber\":0", $"\"pageNumber\":{currPage}"),
                             //propertiesQuery.ToString(),
-                            JsonConvert.SerializeObject(propertiesQuery),
+                            JsonConvert.SerializeObject(readQuery),
                             Encoding.UTF8,
                             "application/json"
                         );
@@ -133,8 +133,9 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
                     AllPath = "/find",
                     PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                     PropertiesQuery = 
+                        "{\"businessDay\":{\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":10,\"pageNumber\":0}",
+                    ReadQuery = 
                         "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":1000,\"pageNumber\":0}",
-                        //"{\"businessDay\":{\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":10,\"pageNumber\":0}",
                     SupportedActions = new List<EndpointActions>
                     {
                         EndpointActions.Post
@@ -157,8 +158,9 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
                     //Date should be from user settings
                     PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                     PropertiesQuery = 
+                        "{\"businessDay\":{\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":10,\"pageNumber\":0}",
+                    ReadQuery = 
                         "{\"businessDay\":{\"dateTime\": \"<DATE_TIME>\",\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":1000,\"pageNumber\":0}",
-                        //"{\"businessDay\":{\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":10,\"pageNumber\":0}",
                     SupportedActions = new List<EndpointActions>
                     {
                         EndpointActions.Post
@@ -172,31 +174,5 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
             }
         };
 
-        // public static readonly Dictionary<string, Endpoint> TransactionDocumentEndpoints_Test = new Dictionary<string, Endpoint>
-        // {
-        //     {
-        //         "TransactionDocument_Today", new TransactionDocumentEndpoint_Test
-        //         {
-        //             Id = "TransactionDocument_Today",
-        //             Name = "TransactionDocument_Today",
-        //             BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-        //             AllPath = "/find",
-        //             PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-        //             PropertiesQuery =
-        //                 "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
-        //                 "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":1000,\"pageNumber\":0}",
-        //             //"{\"businessDay\":{\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":10,\"pageNumber\":0}",
-        //             SupportedActions = new List<EndpointActions>
-        //             {
-        //                 EndpointActions.Post
-        //             },
-        //             PropertyKeys = new List<string>
-        //             {
-        //                 "tlogId"
-        //             },
-        //             Method = Method.POST
-        //         }
-        //     }
-        // };
     }
 }

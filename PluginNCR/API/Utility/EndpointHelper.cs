@@ -49,6 +49,7 @@ namespace PluginHubspot.API.Utility
         public string Name { get; set; } = "";
         public string PropertiesPath { get; set; } = "";
         public string PropertiesQuery { get; set; } = "";
+        public string ReadQuery { get; set; } = "";
         public string BasePath { get; set; } = "";
         public string AllPath { get; set; } = "";
         public Method Method { get; set; }
@@ -84,11 +85,17 @@ namespace PluginHubspot.API.Utility
             var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
             var currPage = 0;
-
+            
+            var readQuery =
+                JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+            
             do
             {
+                readQuery.PageNumber = currPage;
+                
                 var json = new StringContent(
-                    endpoint.PropertiesQuery.Replace("\"pageNumber\":0", $"\"pageNumber\":{currPage}"),
+                    //endpoint.ReadQuery.Replace("\"pageNumber\":0", $"\"pageNumber\":{currPage}"),
+                    JsonConvert.SerializeObject(readQuery),
                     Encoding.UTF8,
                     "application/json"
                 );
