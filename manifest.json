@@ -1,0 +1,90 @@
+{
+  "id": "plugin-ncr",
+  "displayName": "NCR",
+  "description": "Plugin for integrating data with NCR",
+  "apiVersion": "2",
+  "versionDescription": "Version 1",
+  "version": "1.0.0",
+  "iconFile": "icon.jpg",
+  "executable": "PluginNCR",
+  "kind": "publisher",
+  "os": "$GOOS",
+  "arch": "$GOARCH",
+  "canConfigure": true,
+  "canProduceMultipleSchemas": true,
+  "canAcceptQueryBasedSchemas": false,
+  "canUseOAuth": true,
+  "canWrite": true,
+  "configSchema": {
+    "ui": {
+      "ui:order": [
+        "ProvUsername",
+        "ProvPassword",
+        "NepApplicationKey",
+        "NepOrganization",
+        "NepCorrelationId"
+      ]
+    },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "ProvUsername" : {
+          "type": "string",
+          "title": "Username",
+          "description": "NCR tenant username."
+        }
+      },
+      "type": "object",
+      "properties": {
+        "ProvPassword" : {
+          "type": "string",
+          "title": "Password",
+          "description": "NCR tenant password."
+        }
+      },
+      "type": "object",
+      "properties": {
+        "NepApplicationKey" : {
+          "type": "string",
+          "title": "NEP Application Key",
+          "description": "Application key found within NCR documentation. Default recommended: 8a0085a66c65fb24016d11402a70002b"
+        }
+      },
+      
+      "type": "object",
+      "properties": {
+        "NepOrganization" : {
+          "type": "string",
+          "title": "NEP Organization",
+          "description": "Provided by tenant."
+        }
+      },
+      
+      "type": "object",
+      "properties": {
+        "NepCorrelationId" : {
+          "type": "string",
+          "title": "Nep Correlation ID",
+          "description": "NEP Correlation ID. Example: \"Test\"."
+        }
+      },
+      "type": "object",
+      "properties": {
+        "QueryStartDate" : {
+          "type": "string",
+          "title": "Query Start Date",
+          "description": "The date to be used as the starting point for historical data. Format example: yyyy-MM-ddT00:00:00Z"
+        }
+      },
+      
+      "required": [
+        "ProvUsername",
+        "ProvPassword",
+        "NepApplicationKey",
+        "NepOrganization",
+        "NepCorrelationId",
+        "QueryStartDate"
+      ]
+    }
+  }
+}
