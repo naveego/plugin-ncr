@@ -24,15 +24,128 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint : Endpoint
         {
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            {
+                List<string> staticSchemaProperties = new List<string>()
+                {
+                    "tlogId",
+                    "id",
+                    "productId",
+                    "productName",
+                    "regularUnitPrice",
+                    "extendedUnitPrice",
+                    "extendedAmount",
+                    "actualAmount",
+                    "quantity",
+                    "unitOfMeasurement"
+                };
+                
+                var properties = new List<Property>();
+
+                foreach (var staticProperty in staticSchemaProperties)
+                {
+                    var property = new Property();
+
+                    property.Id = staticProperty;
+                    property.Name = staticProperty;
+                    property.Type = PropertyType.String;
+
+                    switch (staticProperty)
+                    {
+                        case ("tlogId"):
+                        case ("id"):
+                        case ("productId"):
+                            property.IsKey = true;
+                            property.TypeAtSource = "string";
+                            property.IsNullable = false;
+                            break;
+                        case("regularUnitPrice"):
+                        case("extendedUnitPrice"):
+                        case("extendedAmount"):
+                        case("actualAmount"):
+                        case("quantity"):
+                            property.IsKey = false;
+                            property.TypeAtSource = "double";
+                            property.IsNullable = true;
+                            break;
+                        default:
+                            property.IsKey = false;
+                            property.TypeAtSource = "string";
+                            property.IsNullable = true;
+                            break;
+                    }
+                    properties.Add(property);
+                }
+                schema.Properties.Clear();
+                schema.Properties.AddRange(properties);
+
+                schema.DataFlowDirection = GetDataFlowDirection();
+                
+                return schema;
+            }
         }
         private class TransactionDocumentEndpoint_Historical : Endpoint
         {
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            {
+                List<string> staticSchemaProperties = new List<string>()
+                {
+                    "tlogId",
+                    "id",
+                    "productId",
+                    "productName",
+                    "regularUnitPrice",
+                    "extendedUnitPrice",
+                    "extendedAmount",
+                    "actualAmount",
+                    "quantity",
+                    "unitOfMeasurement"
+                };
+                
+                var properties = new List<Property>();
+
+                foreach (var staticProperty in staticSchemaProperties)
+                {
+                    var property = new Property();
+
+                    property.Id = staticProperty;
+                    property.Name = staticProperty;
+                    property.Type = PropertyType.String;
+
+                    switch (staticProperty)
+                    {
+                        case ("tlogId"):
+                        case ("id"):
+                        case ("productId"):
+                            property.IsKey = true;
+                            property.TypeAtSource = "string";
+                            break;
+                        case("regularUnitPrice"):
+                        case("extendedUnitPrice"):
+                        case("extendedAmount"):
+                        case("actualAmount"):
+                        case("quantity"):
+                            property.IsKey = false;
+                            property.TypeAtSource = "double";
+                            break;
+                        default:
+                            property.IsKey = false;
+                            property.TypeAtSource = "string";
+                            break;
+                    }
+                    properties.Add(property);
+                }
+                schema.Properties.Clear();
+                schema.Properties.AddRange(properties);
+
+                schema.DataFlowDirection = GetDataFlowDirection();
+                
+                return schema;
+            }
+            
             public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
             {
-                var after = "";
                 var hasMore = false;
-
-                
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
@@ -64,58 +177,198 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
                             Encoding.UTF8,
                             "application/json"
                         );
-                        var response = await apiClient.PostAsync(
+                        using (var response = await apiClient.PostAsync(
                             path
-                            , json);
-
-                        if (!response.IsSuccessStatusCode)
+                            , json))
                         {
-                            var error = JsonConvert.DeserializeObject<ApiError>(
-                                await response.Content.ReadAsStringAsync());
-                            throw new Exception(error.Message);
-                        }
-
-                        var objectResponseWrapper =
-                            JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                await response.Content.ReadAsStringAsync());
-
-                        if (objectResponseWrapper?.PageContent.Count == 0)
-                        {
-                            yield break;
-                        }
-
-                        foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                        {
-                            var recordMap = new Dictionary<string, object>();
-
-                            foreach (var objectProperty in objectResponse)
+                            if (!response.IsSuccessStatusCode)
                             {
-                                try
-                                {
-                                    recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                }
-                                catch
-                                {
-                                    recordMap[objectProperty.Key] = "";
-                                }
-
+                                var error = JsonConvert.DeserializeObject<ApiError>(
+                                    await response.Content.ReadAsStringAsync());
+                                throw new Exception(error.Message);
                             }
 
-                            yield return new Record
-                            {
-                                Action = Record.Types.Action.Upsert,
-                                DataJson = JsonConvert.SerializeObject(recordMap)
-                            };
-                        }
+                            var objectResponseWrapper =
+                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                    await response.Content.ReadAsStringAsync());
 
-                        if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                        {
-                            hasMore = false;
-                        }
-                        else
-                        {
-                            currPage++;
-                            hasMore = true;
+                            if (objectResponseWrapper?.PageContent.Count == 0)
+                            {
+                                yield break;
+                            }
+
+                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                            {
+                                var recordMap = new Dictionary<string, object>();
+
+                                foreach (var objectProperty in objectResponse)
+                                {
+                                    try
+                                    {
+                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                    }
+                                    catch
+                                    {
+                                        recordMap[objectProperty.Key] = "";
+                                    }
+
+                                }
+
+                                //here, query for item details. looks right.
+                                var thisTlogId = recordMap["tlogId"];
+
+                                //foreach item in result, return recordmap + tlogrecordmap
+
+                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                //Query for tlog details - make flat addition
+                                var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                if (!tlogResponse.IsSuccessStatusCode)
+                                {
+                                    var error = JsonConvert.DeserializeObject<ApiError>(
+                                        await tlogResponse.Content.ReadAsStringAsync());
+                                    throw new Exception(error.Message);
+                                }
+
+                                var tLogResponseWrapper =
+                                    JsonConvert.DeserializeObject<TlogWrapper>(
+                                        await tlogResponse.Content.ReadAsStringAsync());
+
+                                var tlogItemRecordMap = new Dictionary<string, object>();
+
+                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                {
+                                    try
+                                    {
+                                        tlogItemRecordMap["tlog"] = recordMap["tlogId"] ?? "";
+                                    }
+                                    catch
+                                    {
+
+                                    }
+
+                                    foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                    {
+                                        bool validItem = true;
+                                        try
+                                        {
+                                            if (item.IsItemNotOnFile == false)
+                                            {
+                                                tlogItemRecordMap["id"] =
+                                                    String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
+
+
+                                                tlogItemRecordMap["productId"] =
+                                                    String.IsNullOrWhiteSpace(item.ProductId)
+                                                        ? "null"
+                                                        : item.ProductId;
+
+                                                tlogItemRecordMap["productName"] =
+                                                    String.IsNullOrWhiteSpace(item.ProductName)
+                                                        ? "null"
+                                                        : item.ProductName.Replace("'", "''");
+                                                
+                                                if (item.RegularUnitPrice != null)
+                                                {
+                                                    tlogItemRecordMap["regularUnitPrice"] =
+                                                        String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                            ? "0"
+                                                            : item.RegularUnitPrice.Amount.ToString();
+                                                }
+                                                else
+                                                {
+                                                    tlogItemRecordMap["regularUnitPrice"] = "0";
+                                                }
+
+                                                if (item.ExtendedUnitPrice != null)
+                                                {
+                                                    tlogItemRecordMap["extendedUnitPrice"] =
+                                                        String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                            ? "0"
+                                                            : item.ExtendedUnitPrice.Amount.ToString();
+                                                }
+                                                else
+                                                {
+                                                    tlogItemRecordMap["extendedUnitPrice"] = "0";
+                                                }
+
+                                                if (item.ExtendedAmount != null)
+                                                {
+                                                    tlogItemRecordMap["extendedAmount"] =
+                                                        String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
+                                                            ? "0"
+                                                            : item.ExtendedAmount.Amount.ToString();
+                                                }
+                                                else
+                                                {
+                                                    tlogItemRecordMap["extendedAmount"] = "0";
+                                                }
+
+                                                if (item.ActualAmount != null)
+                                                {
+                                                    tlogItemRecordMap["actualAmount"] =
+                                                        String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                            ? "0"
+                                                            : item.ActualAmount.Amount;
+                                                }
+                                                else
+                                                {
+                                                    tlogItemRecordMap["actualAmount"] = "0";
+                                                }
+
+                                                if (item.Quantity != null)
+                                                {
+                                                    tlogItemRecordMap["quantity"] =
+                                                        String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                            ? "0"
+                                                            : item.Quantity.Quantity;
+                                                    
+                                                    tlogItemRecordMap["unitOfMeasurement"] =
+                                                        String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
+                                                            ? "null"
+                                                            : item.Quantity.UnitOfMeasurement;   
+                                                }
+                                                else
+                                                {
+                                                    tlogItemRecordMap["quantity"] = "0";
+                                                    tlogItemRecordMap["unitOfMeasurement"] = "null";
+                                                }
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            var debug = e.Message;
+                                            validItem = false;
+                                        }
+
+                                        if (validItem)
+                                        {
+                                            yield return new Record
+                                            {
+                                                Action = Record.Types.Action.Upsert,
+                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                            };
+                                        }
+                                    }
+                                }
+
+                                // yield return new Record
+                                // {
+                                //     Action = Record.Types.Action.Upsert,
+                                //     DataJson = JsonConvert.SerializeObject(recordMap)
+                                // };
+                            }
+
+                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            {
+                                hasMore = false;
+                            }
+                            else
+                            {
+                                currPage++;
+                                hasMore = true;
+                            }
                         }
                     } while (hasMore);
                 } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
@@ -127,6 +380,7 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
             {
                 "TransactionDocument_Today", new TransactionDocumentEndpoint
                 {
+                    ShouldGetStaticSchema = true,
                     Id = "TransactionDocument_Today",
                     Name = "TransactionDocument_Today",
                     BasePath = "/transaction-document/2.0/transaction-documents/2.0",
@@ -146,11 +400,13 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
                     },
                     Method = Method.POST
                 }
+                
             }
             , 
             {
                 "TransactionDocument_HistoricalFromDate", new TransactionDocumentEndpoint_Historical
                 {
+                    ShouldGetStaticSchema = true,
                     Id = "TransactionDocument_HistoricalFromDate",
                     Name = "TransactionDocument_HistoricalFromDate",
                     BasePath = "/transaction-document/2.0/transaction-documents/2.0",
@@ -169,7 +425,7 @@ namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
                     {
                         "tlogId"
                     },
-                    Method = Method.POST
+                    Method = Method.POST,
                 }
             }
         };

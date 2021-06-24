@@ -117,39 +117,29 @@ namespace PluginHubspot.API.Factory
       
         public async Task<HttpResponseMessage> GetAsync(string path)
         {
-            throw new NotImplementedException("todo");
-            // try
-            // {
-            //     var token = await Authenticator.GetToken();
-            //     var uriBuilder = new UriBuilder($"{Constants.BaseApiUrl.TrimEnd('/')}/{path.TrimStart('/')}");
-            //     var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-            //
-            //     if (!string.IsNullOrWhiteSpace(Settings.ApiKey))
-            //     {
-            //         query[ApiKeyParam] = Settings.ApiKey;
-            //     }
-            //     uriBuilder.Query = query.ToString();
-            //     
-            //     var uri = new Uri(uriBuilder.ToString());
-            //     
-            //     var request = new HttpRequestMessage
-            //     {
-            //         Method = HttpMethod.Get,
-            //         RequestUri = uri,
-            //     };
-            //
-            //     if (string.IsNullOrWhiteSpace(Settings.ApiKey))
-            //     {
-            //         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            //     }
-            //
-            //     return await Client.SendAsync(request);
-            // }
-            // catch (Exception e)
-            // {
-            //     Logger.Error(e, e.Message);
-            //     throw;
-            // }
+            var uriBuilder = new UriBuilder(path);
+            var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+            
+            uriBuilder.Query = query.ToString();
+                
+            var uri = new Uri(uriBuilder.ToString());
+
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = uri
+            };
+            
+            request.Headers.Add("nep-correlation-id", Settings.NepCorrelationId);
+            request.Headers.Add("nep-application-key", Settings.NepApplicationKey);
+            request.Headers.Add("nep-organization", Settings.NepOrganization);
+            request.Headers.Date = DateTimeOffset.UtcNow;
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                
+            var token = await Authenticator.GetToken();
+
+            request.Headers.Add("Authorization", $"AccessToken {token}");
+            return await Client.SendAsync(request);
         }
 
         public async Task<HttpResponseMessage> SendAsync(string path, StringContent json)

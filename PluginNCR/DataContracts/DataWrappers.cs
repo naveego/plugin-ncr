@@ -114,167 +114,88 @@ namespace PluginHubspot.DataContracts
         public DateTime ReceivedDateTimeUtc { get; set; }
     }
 
-    public partial class CanonicalTransaction
-    {
-        [JsonProperty("id")]
-        public Guid Id { get; set; }
+    
 
-        [JsonProperty("modelVersion")]
-        public long ModelVersion { get; set; }
-
-        [JsonProperty("siteInfo")]
-        public SiteInfo SiteInfo { get; set; }
-
-        [JsonProperty("transactionNumber")]
-        public long TransactionNumber { get; set; }
-
-        [JsonProperty("openDateTimeUtc")]
-        public CloseDateTimeUtc OpenDateTimeUtc { get; set; }
-
-        [JsonProperty("documentExpirationDate")]
-        public CloseDateTimeUtc DocumentExpirationDate { get; set; }
-
-        [JsonProperty("closeDateTimeUtc")]
-        public CloseDateTimeUtc CloseDateTimeUtc { get; set; }
-
-        [JsonProperty("touchPointId")]
-        public string TouchPointId { get; set; }
-
-        [JsonProperty("touchPointType")]
-        public string TouchPointType { get; set; }
-
-        [JsonProperty("touchPointGroup")]
-        public string TouchPointGroup { get; set; }
-
-        [JsonProperty("dataProviderName")]
-        public string DataProviderName { get; set; }
-
-        [JsonProperty("dataProviderVersion")]
-        public string DataProviderVersion { get; set; }
-
-        [JsonProperty("businessDay")]
-        public BusinessDay BusinessDay { get; set; }
-
-        [JsonProperty("isTrainingMode")]
-        public bool IsTrainingMode { get; set; }
-
-        [JsonProperty("linkedTransactions")]
-        public List<object> LinkedTransactions { get; set; }
-
-        [JsonProperty("tlog")]
-        public Tlog Tlog { get; set; }
-
-        [JsonProperty("transactionCategory")]
-        public string TransactionCategory { get; set; }
-
-        [JsonProperty("isUpdated")]
-        public bool IsUpdated { get; set; }
-
-        [JsonProperty("transactionVersion")]
-        public long TransactionVersion { get; set; }
-    }
-
-    public partial class BusinessDay
+    public class BusinessDay
     {
         [JsonProperty("dateTime")]
         public string DateTime { get; set; }
     }
 
-    public partial class CloseDateTimeUtc
-    {
-        [JsonProperty("dateTime")]
-        public DateTimeOffset DateTime { get; set; }
+   
 
-        [JsonProperty("originalOffset")]
-        public string OriginalOffset { get; set; }
+    public class TlogWrapper
+    {
+        [JsonProperty("transactionCategory")]
+        public string TransactionCategory { get; set; }
+        
+        [JsonProperty("isUpdated")]
+        public bool IsUpdated { get; set; }
+
+        [JsonProperty("transactionVersion")] 
+        public int TransactionVersion { get; set; }
+        
+        [JsonProperty("tlog")]
+        public TLog Tlog { get; set; }
     }
 
-    public partial class SiteInfo
+    public class TLog
     {
-        [JsonProperty("name")]
-        public string Name { get; set; }
+        
+        [JsonProperty("receiptId")]
+        public string ReceiptId { get; set; }
+        
+        [JsonProperty("items")]
+        public List<TLogItems> Items { get; set; }
+    }
 
+    public class TLogItems
+    {
+        
+        [JsonProperty("isItemNotOnFile")]
+        public bool IsItemNotOnFile { get; set; }
+        
         [JsonProperty("id")]
-        public long Id { get; set; }
-    }
-
-    public partial class Tlog
-    {
-        [JsonProperty("customProperties")]
-        public CustomProperties CustomProperties { get; set; }
-    }
-
-    public partial class CustomProperties
-    {
-        [JsonProperty("emeraldSettlementAccounts")]
-        public List<EmeraldSettlementAccount> EmeraldSettlementAccounts { get; set; }
-    }
-
-    public partial class EmeraldSettlementAccount
-    {
-        [JsonProperty("tenderTotals")]
-        public List<Total> TenderTotals { get; set; }
-
-        [JsonProperty("totals")]
-        public List<Total> Totals { get; set; }
-
-        [JsonProperty("accountTotals")]
-        public bool AccountTotals { get; set; }
-
-        [JsonProperty("period")]
-        public Period Period { get; set; }
-
-        [JsonProperty("account")]
-        public Account Account { get; set; }
-
-        [JsonProperty("approvalReason", NullValueHandling = NullValueHandling.Ignore)]
-        public string ApprovalReason { get; set; }
-    }
-
-    public partial class Account
-    {
-        [JsonProperty("id", NullValueHandling = NullValueHandling.Ignore)]
         public string Id { get; set; }
-
-        [JsonProperty("type")]
-        public string Type { get; set; }
-
-        [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
-        public string Name { get; set; }
+        
+        [JsonProperty("productName")]
+        public string ProductName { get; set; }
+        
+        [JsonProperty("productId")]
+        public string ProductId { get; set; }
+        
+        [JsonProperty("regularUnitPrice")]
+        public TLogAmount RegularUnitPrice { get; set; }
+        
+        [JsonProperty("extendedUnitPrice")]
+        public TLogAmount ExtendedUnitPrice { get; set; }
+        
+        [JsonProperty("extendedAmount")]
+        public TLogAmount ExtendedAmount { get; set; }
+        
+        [JsonProperty("actualAmount")]
+        public TLogAmount ActualAmount { get; set; }
+        
+        [JsonProperty("quantity")]
+        public TLogQuantity Quantity { get; set; }
     }
 
-    public partial class Period
+    public class TLogAmount
     {
-        [JsonProperty("id")]
-        public long Id { get; set; }
-
-        [JsonProperty("startDateTime")]
-        public BusinessDay StartDateTime { get; set; }
-
-        [JsonProperty("endDateTime")]
-        public BusinessDay EndDateTime { get; set; }
-    }
-
-    public partial class Total
-    {
-        [JsonProperty("type")]
-        public string Type { get; set; }
-
-        [JsonProperty("tenderId", NullValueHandling = NullValueHandling.Ignore)]
-        public long? TenderId { get; set; }
-
         [JsonProperty("amount")]
-        public double Amount { get; set; }
-
-        [JsonProperty("count", NullValueHandling = NullValueHandling.Ignore)]
-        public long? Count { get; set; }
+        public string Amount { get; set; }
     }
-    // public class NextResponse
-    // {
-    //     [JsonProperty("after")]
-    //     public string After { get; set; }
-    //     
-    //     [JsonProperty("link")]
-    //     public string Link { get; set; }
-    // }
+
+    public class TLogQuantity
+    {
+        [JsonProperty("quantity")]
+        public string Quantity { get; set; }
+        
+        [JsonProperty("unitOfMeasurement")]
+        public string UnitOfMeasurement { get; set; }
+        
+        [JsonProperty("entryMethod")]
+        public string EntryMethod { get; set; }
+    }
+   
 }

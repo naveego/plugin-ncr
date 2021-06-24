@@ -22,7 +22,8 @@
         "ProvPassword",
         "NepApplicationKey",
         "NepOrganization",
-        "NepCorrelationId"
+        "NepCorrelationId",
+        "QueryStartDate"
       ]
     },
     "schema": {
@@ -47,7 +48,7 @@
         "NepApplicationKey" : {
           "type": "string",
           "title": "NEP Application Key",
-          "description": "Application key found within NCR documentation. Default recommended: 8a0085a66c65fb24016d11402a70002b"
+          "description": "Application key found within NCR documentation."
         }
       },
       

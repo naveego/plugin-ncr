@@ -32,26 +32,7 @@ namespace PluginHubspotTest.Plugin
         {
             var settings = GetSettings(oAuth);
                 
-            // var oAuthConfig = oAuth
-            //     ? new OAuthConfiguration
-            //     {
-            //         ClientId = "", // add to test
-            //         ClientSecret = "", // add to test
-            //     }
-            //     : new OAuthConfiguration
-            //     {
-            //     };
-            //
-            // var oAuthState = oAuth
-            //     ? new OAuthState
-            //     {
-            //         RefreshToken = "", // add to test
-            //         Config = JsonConvert.SerializeObject(new OAuthConfig
-            //         {
-            //             RedirectUri = "" // add to test
-            //         })
-            //     }
-            //     : new OAuthState();
+           
             var oAuthConfig = new OAuthConfiguration
                 {
                 };
@@ -73,7 +54,8 @@ namespace PluginHubspotTest.Plugin
             //     : EndpointHelper.GetEndpointForId(endpointId);
 
             Endpoint endpoint = endpointId == null
-                ? EndpointHelper.GetEndpointForId("TransactionDocument_HistoricalFromDate")
+                // ? EndpointHelper.GetEndpointForId("TransactionDocument_HistoricalFromDate")
+                ? EndpointHelper.GetEndpointForId("TransactionDocument_Today")
                 : EndpointHelper.GetEndpointForId(endpointId);
 
             return new Schema
@@ -152,20 +134,20 @@ namespace PluginHubspotTest.Plugin
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Equal(2, response.Schemas.Count);
             //
-            // var schema = response.Schemas[0];
-            // Assert.Equal($"cclf1", schema.Id);
-            // Assert.Equal("cclf1", schema.Name);
+             var schema = response.Schemas[0];
+             Assert.Equal($"TransactionDocument_Today", schema.Id);
+             Assert.Equal("TransactionDocument_Today", schema.Name);
             // Assert.Equal($"", schema.Query);
-            // Assert.Equal(10, schema.Sample.Count);
-            // Assert.Equal(17, schema.Properties.Count);
+             Assert.Equal(10, schema.Sample.Count);
+             Assert.Equal(10, schema.Properties.Count);
             //
-            // var property = schema.Properties[0];
-            // Assert.Equal("field1", property.Id);
-            // Assert.Equal("field1", property.Name);
-            // Assert.Equal("", property.Description);
-            // Assert.Equal(PropertyType.String, property.Type);
-            // Assert.False(property.IsKey);
-            // Assert.True(property.IsNullable);
+             var property = schema.Properties[0];
+             Assert.Equal("tlogId", property.Id);
+             Assert.Equal("tlogId", property.Name);
+             Assert.Equal("", property.Description);
+             Assert.Equal(PropertyType.String, property.Type);
+             Assert.True(property.IsKey);
+             Assert.False(property.IsNullable);
             //
             // var schema2 = response.Schemas[1];
             // Assert.Equal($"Custom Name", schema2.Id);
@@ -211,7 +193,7 @@ namespace PluginHubspotTest.Plugin
                 SampleSize = 10,
                 ToRefresh =
                 {
-                    GetTestSchema("TransactionDocument")
+                    GetTestSchema("TransactionDocument_HistoricalFromDate")
                 }
             };
 
@@ -295,12 +277,12 @@ namespace PluginHubspotTest.Plugin
             // assert
             
             //NOTE - both endpoint queries are based on current date, assertations will be incorrect often
-            Assert.Equal(6686, records.Count);
+            Assert.Equal(1122, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);
-            Assert.Equal("False", record["isTrainingMode"]);
-            Assert.Equal("572", record["transactionNumber"]);
+             Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);
+            // Assert.Equal("False", record["isTrainingMode"]);
+            // Assert.Equal("572", record["transactionNumber"]);
             
            
             // cleanup

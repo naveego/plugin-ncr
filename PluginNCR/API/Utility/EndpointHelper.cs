@@ -78,7 +78,6 @@ namespace PluginHubspot.API.Utility
 
         public virtual async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
         {
-            var after = "";
             var hasMore = false;
             bool collectFromDate = false;
             
@@ -89,74 +88,286 @@ namespace PluginHubspot.API.Utility
             var readQuery =
                 JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
             
-            do
-            {
-                readQuery.PageNumber = currPage;
-                
-                var json = new StringContent(
-                    //endpoint.ReadQuery.Replace("\"pageNumber\":0", $"\"pageNumber\":{currPage}"),
-                    JsonConvert.SerializeObject(readQuery),
-                    Encoding.UTF8,
-                    "application/json"
-                );
-                var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
-                var response = await apiClient.PostAsync(
-                    path
-                    , json);
-
-                if (!response.IsSuccessStatusCode)
+            var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
+            
+            do //while hasMore
                 {
-                    var error = JsonConvert.DeserializeObject<ApiError>(await response.Content.ReadAsStringAsync());
-                    throw new Exception(error.Message);
-                }
-
-                var objectResponseWrapper =
-                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                        await response.Content.ReadAsStringAsync());
-
-               
-
-                if (objectResponseWrapper?.PageContent.Count == 0)
-                {
-                    yield break;
-                }
-
-                foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                {
-                    var recordMap = new Dictionary<string, object>();
-
-                    //foreach (var objectProperty in objectResponse.Properties)
-                    foreach (var objectProperty in objectResponse)
+                    readQuery.PageNumber = currPage;
+                    
+                    
+                    var json = new StringContent(
+                        //endpoint.PropertiesQuery.Replace("\"pageNumber\":0", $"\"pageNumber\":{currPage}"),
+                        //propertiesQuery.ToString(),
+                        JsonConvert.SerializeObject(readQuery),
+                        Encoding.UTF8,
+                        "application/json"
+                    );
+                    using (var response = await apiClient.PostAsync(
+                        path
+                        , json))
                     {
-                        try
+                        if (!response.IsSuccessStatusCode)
                         {
-                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                        }
-                        catch
-                        {
-                            recordMap[objectProperty.Key] = "";
+                            var error = JsonConvert.DeserializeObject<ApiError>(
+                                await response.Content.ReadAsStringAsync());
+                            throw new Exception(error.Message);
                         }
 
+                        var objectResponseWrapper =
+                            JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                await response.Content.ReadAsStringAsync());
+
+                        if (objectResponseWrapper?.PageContent.Count == 0)
+                        {
+                            yield break;
+                        }
+
+                        foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                        {
+                            var recordMap = new Dictionary<string, object>();
+
+                            foreach (var objectProperty in objectResponse)
+                            {
+                                try
+                                {
+                                    recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                }
+                                catch
+                                {
+                                    recordMap[objectProperty.Key] = "";
+                                }
+
+                            }
+
+                            //here, query for item details. looks right.
+                            var thisTlogId = recordMap["tlogId"];
+
+                            //foreach item in result, return recordmap + tlogrecordmap
+
+                            var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                            //Query for tlog details - make flat addition
+                            var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                            if (!tlogResponse.IsSuccessStatusCode)
+                            {
+                                var error = JsonConvert.DeserializeObject<ApiError>(
+                                    await tlogResponse.Content.ReadAsStringAsync());
+                                throw new Exception(error.Message);
+                            }
+
+                            var tLogResponseWrapper =
+                                JsonConvert.DeserializeObject<TlogWrapper>(
+                                    await tlogResponse.Content.ReadAsStringAsync());
+
+                            var tlogItemRecordMap = new Dictionary<string, object>();
+
+                            if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                            {
+                                try
+                                {
+                                    tlogItemRecordMap["tlog"] = recordMap["tlogId"] ?? "";
+                                }
+                                catch
+                                {
+
+                                }
+
+                                foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                {
+                                    bool validItem = true;
+                                    try
+                                    {
+                                        if (item.IsItemNotOnFile == false)
+                                        {
+                                            tlogItemRecordMap["id"] =
+                                                String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
+
+
+                                            tlogItemRecordMap["productId"] =
+                                                String.IsNullOrWhiteSpace(item.ProductId)
+                                                    ? "null"
+                                                    : item.ProductId;
+
+                                            tlogItemRecordMap["productName"] =
+                                                String.IsNullOrWhiteSpace(item.ProductName)
+                                                    ? "null"
+                                                    : item.ProductName.Replace("'", "''");
+                                            
+                                            if (item.RegularUnitPrice != null)
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice"] =
+                                                    String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.RegularUnitPrice.Amount.ToString();
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice"] = "0";
+                                            }
+
+                                            if (item.ExtendedUnitPrice != null)
+                                            {
+                                                tlogItemRecordMap["extendedUnitPrice"] =
+                                                    String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.ExtendedUnitPrice.Amount.ToString();
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["extendedUnitPrice"] = "0";
+                                            }
+
+                                            if (item.ExtendedAmount != null)
+                                            {
+                                                tlogItemRecordMap["extendedAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
+                                                        ? "0"
+                                                        : item.ExtendedAmount.Amount.ToString();
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["extendedAmount"] = "0";
+                                            }
+
+                                            if (item.ActualAmount != null)
+                                            {
+                                                tlogItemRecordMap["actualAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                        ? "0"
+                                                        : item.ActualAmount.Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["actualAmount"] = "0";
+                                            }
+
+                                            if (item.Quantity != null)
+                                            {
+                                                tlogItemRecordMap["quantity"] =
+                                                    String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                        ? "0"
+                                                        : item.Quantity.Quantity;
+                                                
+                                                tlogItemRecordMap["unitOfMeasurement"] =
+                                                    String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
+                                                        ? "null"
+                                                        : item.Quantity.UnitOfMeasurement;   
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["quantity"] = "0";
+                                                tlogItemRecordMap["unitOfMeasurement"] = "null";
+                                            }
+                                        }
+                                        else
+                                        {
+                                            var noop = "noop";
+                                        }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        var debug = e.Message;
+                                        validItem = false;
+                                    }
+
+                                    if (validItem)
+                                    {
+                                        yield return new Record
+                                        {
+                                            Action = Record.Types.Action.Upsert,
+                                            DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                        };
+                                    }
+                                }
+                            }
+
+                            // yield return new Record
+                            // {
+                            //     Action = Record.Types.Action.Upsert,
+                            //     DataJson = JsonConvert.SerializeObject(recordMap)
+                            // };
+                        }
+
+                        if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                        {
+                            hasMore = false;
+                        }
+                        else
+                        {
+                            currPage++;
+                            hasMore = true;
+                        }
                     }
-
-                    yield return new Record
-                    {
-                        Action = Record.Types.Action.Upsert,
-                        DataJson = JsonConvert.SerializeObject(recordMap)
-                    };
-                }
-
-                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                {
-                    hasMore = false;
-                }
-                else
-                {
-                    currPage++;
-                    hasMore = true;
-                }
-            } while (hasMore);
+                } while (hasMore);
+            // do
+            // {
+            //     readQuery.PageNumber = currPage;
+            //     
+            //     var json = new StringContent(
+            //         //endpoint.ReadQuery.Replace("\"pageNumber\":0", $"\"pageNumber\":{currPage}"),
+            //         JsonConvert.SerializeObject(readQuery),
+            //         Encoding.UTF8,
+            //         "application/json"
+            //     );
+            //     var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
+            //
+            //     var response = await apiClient.PostAsync(
+            //         path
+            //         , json);
+            //
+            //     if (!response.IsSuccessStatusCode)
+            //     {
+            //         var error = JsonConvert.DeserializeObject<ApiError>(await response.Content.ReadAsStringAsync());
+            //         throw new Exception(error.Message);
+            //     }
+            //
+            //     var objectResponseWrapper =
+            //         JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+            //             await response.Content.ReadAsStringAsync());
+            //
+            //    
+            //
+            //     if (objectResponseWrapper?.PageContent.Count == 0)
+            //     {
+            //         yield break;
+            //     }
+            //
+            //     foreach (var objectResponse in objectResponseWrapper?.PageContent)
+            //     {
+            //         var recordMap = new Dictionary<string, object>();
+            //
+            //         //foreach (var objectProperty in objectResponse.Properties)
+            //         foreach (var objectProperty in objectResponse)
+            //         {
+            //             try
+            //             {
+            //                 recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+            //             }
+            //             catch
+            //             {
+            //                 recordMap[objectProperty.Key] = "";
+            //             }
+            //
+            //         }
+            //
+            //         yield return new Record
+            //         {
+            //             Action = Record.Types.Action.Upsert,
+            //             DataJson = JsonConvert.SerializeObject(recordMap)
+            //         };
+            //     }
+            //
+            //     if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+            //     {
+            //         hasMore = false;
+            //     }
+            //     else
+            //     {
+            //         currPage++;
+            //         hasMore = true;
+            //     }
+            // } while (hasMore);
             
         }
 

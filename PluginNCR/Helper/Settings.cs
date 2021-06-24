@@ -6,17 +6,12 @@ namespace PluginHubspot.Helper
     {
         public string ProvUsername { get; set; }
         public string ProvPassword { get; set; }
-        public string NepApplicationKey { get; set; }
         public string NepOrganization { get; set; }
         public string QueryStartDate { get; set; }
-        //public string SecretKey { get; set; }
-       // public string SharedKey { get; set; }
-        //public string NepEnterpriseUnit { get; set; }
-        //public string NepAccessKey { get; set; }
+        public string NepApplicationKey { get; set; }
         
         public string ContentType { get; set; }
         public string NepCorrelationId { get; set; }
-        //public string Json { get; set; }
 
         /// <summary>
         /// Validates the settings input object
@@ -32,27 +27,29 @@ namespace PluginHubspot.Helper
             {
                 throw new Exception("the ProvPassword property must be set");
             }
-            // if (String.IsNullOrEmpty(NepApplicationKey))
-            // {
-            //     throw new Exception("the NepApplicationKey property must be set");
-            // }
             if (String.IsNullOrEmpty(NepOrganization))
             {
                 throw new Exception("the NepOrganization property must be set");
             }
-            // if (String.IsNullOrEmpty(SecretKey))
-            // {
-            //     throw new Exception("the SecretKey property must be set");
-            // }
-            // if (String.IsNullOrEmpty(SharedKey))
-            // {
-            //     throw new Exception("the SharedKey property must be set");
-            // }
-            // if (String.IsNullOrEmpty(NepEnterpriseUnit))
-            // {
-            //     throw new Exception("the NepEnterpriseUnit property must be set");
-            // }
-            
+            if (String.IsNullOrEmpty(NepCorrelationId))
+            {
+                throw new Exception("the NepCorrelationId property must be set");
+            }
+            if (String.IsNullOrEmpty(NepApplicationKey))
+            {
+                throw new Exception("the NepApplicationKey property must be set");
+            }
+            if (String.IsNullOrEmpty(QueryStartDate))
+            {
+                throw new Exception("the QueryStartDate property must be set");
+            }
+            else
+            {
+                if (DateTime.Parse(QueryStartDate) > DateTime.Today)
+                {
+                    throw new Exception("the QueryStartDate must be equal to or before today");
+                }
+            }
         }
     }
 }
