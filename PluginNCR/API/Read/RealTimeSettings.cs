@@ -1,4 +1,4 @@
-namespace PluginHubspot.API.Read
+namespace PluginNCR.API.Read
 {
     public class RealTimeSettings
     {

@@ -1,4 +1,4 @@
-namespace PluginHubspot.API.Utility
+namespace PluginNCR.API.Utility
 {
     public static class Constants
     {

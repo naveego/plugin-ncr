@@ -1,8 +1,8 @@
 using System;
-using PluginHubspot.Helper;
+using PluginNCR.Helper;
 using Xunit;
 
-namespace PluginHubspotTest.Helper
+namespace PluginNCRTest.Helper
 {
     public class SettingsTest
     {

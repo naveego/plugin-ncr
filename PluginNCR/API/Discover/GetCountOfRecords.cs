@@ -1,9 +1,9 @@
 using System.Threading.Tasks;
 using Naveego.Sdk.Plugins;
-using PluginHubspot.API.Factory;
-using PluginHubspot.API.Utility;
+using PluginNCR.API.Factory;
+using PluginNCR.API.Utility;
 
-namespace PluginHubspot.API.Discover
+namespace PluginNCR.API.Discover
 {
     public static partial class Discover
     {

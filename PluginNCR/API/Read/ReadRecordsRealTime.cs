@@ -4,9 +4,9 @@ using Grpc.Core;
 using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
-using PluginHubspot.API.Factory;
+using PluginNCR.API.Factory;
 
-namespace PluginHubspot.API.Read
+namespace PluginNCR.API.Read
 {
     public static partial class Read
     {

@@ -6,10 +6,10 @@ using Grpc.Core;
 using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
-using PluginHubspot.API.Factory;
-using PluginHubspot.API.Utility;
+using PluginNCR.API.Factory;
+using PluginNCR.API.Utility;
 
-namespace PluginHubspot.API.Write
+namespace PluginNCR.API.Write
 {
     public static partial class Write
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace PluginHubspot.API.Read
+namespace PluginNCR.API.Read
 {
     public class RealTimeState
     {

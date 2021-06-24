@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Naveego.Sdk.Plugins;
-using PluginHubspot.API.Factory;
-using PluginHubspot.API.Utility;
+using PluginNCR.API.Factory;
+using PluginNCR.API.Utility;
 
-namespace PluginHubspot.API.Read
+namespace PluginNCR.API.Read
 {
     public static partial class Read
     {

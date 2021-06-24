@@ -8,12 +8,12 @@ using Grpc.Core;
 using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
-using PluginHubspot.API.Factory;
-using PluginHubspot.API.Utility.EndpointHelperEndpoints;
-using PluginHubspot.DataContracts;
+using PluginNCR.API.Factory;
+using PluginNCR.API.Utility.EndpointHelperEndpoints;
+using PluginNCR.DataContracts;
 using RestSharp;
 
-namespace PluginHubspot.API.Utility
+namespace PluginNCR.API.Utility
 {
     public static class EndpointHelper
     {

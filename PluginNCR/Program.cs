@@ -4,7 +4,7 @@ using Grpc.Core;
 using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 
-namespace PluginHubspot
+namespace PluginNCR
 {
     class Program
     {

@@ -1,7 +1,7 @@
 using System.Net.Http;
-using PluginHubspot.Helper;
+using PluginNCR.Helper;
 
-namespace PluginHubspot.API.Factory
+namespace PluginNCR.API.Factory
 {
     public class ApiClientFactory: IApiClientFactory
     {

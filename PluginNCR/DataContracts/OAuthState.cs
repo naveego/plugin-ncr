@@ -1,4 +1,4 @@
-namespace PluginHubspot.DataContracts
+namespace PluginNCR.DataContracts
 {
     public class OAuthState
     {

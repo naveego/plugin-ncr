@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace PluginHubspot.API.Read
+namespace PluginNCR.API.Read
 {
     public static partial class Read
     {

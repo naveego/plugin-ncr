@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace PluginHubspot.API.Factory
+namespace PluginNCR.API.Factory
 {
     public interface IApiAuthenticator
     {

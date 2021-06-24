@@ -1,6 +1,6 @@
 using System;
 
-namespace PluginHubspot.Helper
+namespace PluginNCR.Helper
 {
     public class Settings
     {

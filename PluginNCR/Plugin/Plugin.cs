@@ -10,14 +10,14 @@ using Grpc.Core;
 using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
-using PluginHubspot.API.Discover;
-using PluginHubspot.API.Factory;
-using PluginHubspot.API.Read;
-using PluginHubspot.API.Write;
-using PluginHubspot.DataContracts;
-using PluginHubspot.Helper;
+using PluginNCR.API.Discover;
+using PluginNCR.API.Factory;
+using PluginNCR.API.Read;
+using PluginNCR.API.Write;
+using PluginNCR.DataContracts;
+using PluginNCR.Helper;
 
-namespace PluginHubspot.Plugin
+namespace PluginNCR.Plugin
 {
     public class Plugin : Publisher.PublisherBase
     {

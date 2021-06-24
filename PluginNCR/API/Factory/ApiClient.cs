@@ -12,11 +12,11 @@ using System.Threading.Tasks;
 using System.Web;
 using Naveego.Sdk.Logging;
 using Newtonsoft.Json;
-using PluginHubspot.API.Utility;
-using PluginHubspot.Helper;
+using PluginNCR.API.Utility;
+using PluginNCR.Helper;
 using RestSharp;
 
-namespace PluginHubspot.API.Factory
+namespace PluginNCR.API.Factory
 {
 
     public class PostBodyContent
@@ -288,7 +288,7 @@ namespace PluginHubspot.API.Factory
         public async Task<HttpResponseMessage> DeleteAsync(string path)
         {
             throw new NotImplementedException("Delete is not currently supported by the NCR plugin.");
-            //Reference (hubspot)
+            //Reference (NCR)
             // try
             // {
             //     var token = await Authenticator.GetToken();

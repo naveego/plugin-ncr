@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace PluginHubspot.API.Factory
+namespace PluginNCR.API.Factory
 {
     public interface IApiClient
     {

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace PluginHubspot.DataContracts
+namespace PluginNCR.DataContracts
 {
     public class UpsertObjectWrapper
     {

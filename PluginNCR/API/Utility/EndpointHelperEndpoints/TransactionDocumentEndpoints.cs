@@ -11,12 +11,12 @@ using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using PluginHubspot.API.Factory;
-using PluginHubspot.DataContracts;
-using PluginHubspot.Helper;
+using PluginNCR.API.Factory;
+using PluginNCR.DataContracts;
+using PluginNCR.Helper;
 using RestSharp;
 
-namespace PluginHubspot.API.Utility.EndpointHelperEndpoints
+namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 {
     public class TransactionDocumentEndpointHelper
     {

@@ -6,10 +6,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Naveego.Sdk.Logging;
 using Newtonsoft.Json;
-using PluginHubspot.DataContracts;
-using PluginHubspot.Helper;
+using PluginNCR.DataContracts;
+using PluginNCR.Helper;
 
-namespace PluginHubspot.API.Factory
+namespace PluginNCR.API.Factory
 {
     public class ApiAuthenticator: IApiAuthenticator
     {

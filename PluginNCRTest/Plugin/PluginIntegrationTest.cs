@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
-using PluginHubspot.API.Read;
-using PluginHubspot.API.Utility;
-using PluginHubspot.DataContracts;
-using PluginHubspot.Helper;
+using PluginNCR.API.Read;
+using PluginNCR.API.Utility;
+using PluginNCR.DataContracts;
+using PluginNCR.Helper;
 using Xunit;
 using Record = Naveego.Sdk.Plugins.Record;
 
-namespace PluginHubspotTest.Plugin
+namespace PluginNCRTest.Plugin
 {
     public class PluginIntegrationTest
     {
@@ -74,7 +74,7 @@ namespace PluginHubspotTest.Plugin
             // setup
             Server server = new Server
             {
-                Services = {Publisher.BindService(new PluginHubspot.Plugin.Plugin())},
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
                 Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
             };
             server.Start();
@@ -108,7 +108,7 @@ namespace PluginHubspotTest.Plugin
             // setup
             Server server = new Server
             {
-                Services = {Publisher.BindService(new PluginHubspot.Plugin.Plugin())},
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
                 Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
             };
             server.Start();
@@ -175,7 +175,7 @@ namespace PluginHubspotTest.Plugin
             // setup
             Server server = new Server
             {
-                Services = {Publisher.BindService(new PluginHubspot.Plugin.Plugin())},
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
                 Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
             };
             server.Start();
@@ -203,22 +203,22 @@ namespace PluginHubspotTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            // Assert.Equal(1, response.Schemas.Count);
+            Assert.Equal(1, response.Schemas.Count);
             //
-            // var schema = response.Schemas[0];
-            // Assert.Equal("test", schema.Id);
-            // Assert.Equal("test", schema.Name);
-            // Assert.Equal("", schema.Query);
-            // Assert.Equal(10, schema.Sample.Count);
-            // Assert.Equal(17, schema.Properties.Count);
+             var schema = response.Schemas[0];
+             Assert.Equal("test", schema.Id);
+             Assert.Equal("test", schema.Name);
+             Assert.Equal("", schema.Query);
+             Assert.Equal(10, schema.Sample.Count);
+             Assert.Equal(10, schema.Properties.Count);
             //
-            // var property = schema.Properties[0];
-            // Assert.Equal("field1", property.Id);
-            // Assert.Equal("field1", property.Name);
-            // Assert.Equal("", property.Description);
-            // Assert.Equal(PropertyType.String, property.Type);
-            // Assert.False(property.IsKey);
-            // Assert.True(property.IsNullable);
+             var property = schema.Properties[0];
+             Assert.Equal("tlogId", property.Id);
+             Assert.Equal("tlogId", property.Name);
+             Assert.Equal("", property.Description);
+             Assert.Equal(PropertyType.String, property.Type);
+             Assert.True(property.IsKey);
+             Assert.False(property.IsNullable);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -231,7 +231,7 @@ namespace PluginHubspotTest.Plugin
             // setup
             Server server = new Server
             {
-                Services = {Publisher.BindService(new PluginHubspot.Plugin.Plugin())},
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
                 Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
             };
             server.Start();
@@ -277,7 +277,7 @@ namespace PluginHubspotTest.Plugin
             // assert
             
             //NOTE - both endpoint queries are based on current date, assertations will be incorrect often
-            Assert.Equal(1122, records.Count);
+            Assert.Equal(11759, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
              Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);
@@ -298,7 +298,7 @@ namespace PluginHubspotTest.Plugin
             // setup
             Server server = new Server
             {
-                Services = {Publisher.BindService(new PluginHubspot.Plugin.Plugin())},
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
                 Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
             };
             server.Start();
@@ -356,7 +356,7 @@ namespace PluginHubspotTest.Plugin
             // setup
             Server server = new Server
             {
-                Services = {Publisher.BindService(new PluginHubspot.Plugin.Plugin())},
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
                 Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
             };
             server.Start();

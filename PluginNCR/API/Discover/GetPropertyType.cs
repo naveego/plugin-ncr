@@ -1,6 +1,6 @@
 using Naveego.Sdk.Plugins;
 
-namespace PluginHubspot.API.Discover
+namespace PluginNCR.API.Discover
 {
     public static partial class Discover
     {

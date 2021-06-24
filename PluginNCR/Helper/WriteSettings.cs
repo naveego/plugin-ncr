@@ -1,6 +1,6 @@
 using Naveego.Sdk.Plugins;
 
-namespace PluginHubspot.Helper
+namespace PluginNCR.Helper
 {
     public class WriteSettings
     {
