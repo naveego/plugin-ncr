@@ -262,7 +262,7 @@ namespace PluginNCR.API.Utility
                                         }
                                         else
                                         {
-                                            var noop = "noop";
+                                            validItem = false;
                                         }
                                     }
                                     catch (Exception e)
