@@ -398,7 +398,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         "tlogId"
                     },
-                    Method = Method.POST
+                    Method = Method.GET
                 }
                 
             }
@@ -425,7 +425,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         "tlogId"
                     },
-                    Method = Method.POST,
+                    Method = Method.GET
                 }
             }
         };
