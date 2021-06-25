@@ -392,7 +392,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":1000,\"pageNumber\":0}",
                     SupportedActions = new List<EndpointActions>
                     {
-                        EndpointActions.Post
+                        EndpointActions.Get
                     },
                     PropertyKeys = new List<string>
                     {
@@ -419,7 +419,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         "{\"businessDay\":{\"dateTime\": \"<DATE_TIME>\",\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":1000,\"pageNumber\":0}",
                     SupportedActions = new List<EndpointActions>
                     {
-                        EndpointActions.Post
+                        EndpointActions.Get
                     },
                     PropertyKeys = new List<string>
                     {

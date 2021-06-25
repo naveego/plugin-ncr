@@ -489,20 +489,20 @@ namespace PluginNCR.API.Utility
 
         public Schema.Types.DataFlowDirection GetDataFlowDirection()
         {
-            if (CanRead() && CanWrite())
-            {
-                return Schema.Types.DataFlowDirection.ReadWrite;
-            }
-
-            if (CanRead() && !CanWrite())
-            {
-                return Schema.Types.DataFlowDirection.Read;
-            }
-
-            if (!CanRead() && CanWrite())
-            {
-                return Schema.Types.DataFlowDirection.Write;
-            }
+            // if (CanRead() && CanWrite())
+            // {
+            //     return Schema.Types.DataFlowDirection.ReadWrite;
+            // }
+            //
+            // if (CanRead() && !CanWrite())
+            // {
+            //     return Schema.Types.DataFlowDirection.Read;
+            // }
+            //
+            // if (!CanRead() && CanWrite())
+            // {
+            //     return Schema.Types.DataFlowDirection.Write;
+            // }
 
             return Schema.Types.DataFlowDirection.Read;
         }
