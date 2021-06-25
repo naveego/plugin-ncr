@@ -33,51 +33,34 @@
           "type": "string",
           "title": "Username",
           "description": "NCR tenant username."
-        }
-      },
-      "type": "object",
-      "properties": {
+        },
         "ProvPassword" : {
           "type": "string",
           "title": "Password",
           "description": "NCR tenant password."
-        }
-      },
-      "type": "object",
-      "properties": {
+        },
         "NepApplicationKey" : {
           "type": "string",
           "title": "NEP Application Key",
           "description": "Application key found within NCR documentation."
-        }
-      },
-      
-      "type": "object",
-      "properties": {
+        },
         "NepOrganization" : {
           "type": "string",
           "title": "NEP Organization",
           "description": "Provided by tenant."
-        }
-      },
-      
-      "type": "object",
-      "properties": {
+        },
         "NepCorrelationId" : {
           "type": "string",
           "title": "Nep Correlation ID",
           "description": "NEP Correlation ID. Example: \"Test\"."
-        }
-      },
-      "type": "object",
-      "properties": {
+        },
         "QueryStartDate" : {
           "type": "string",
           "title": "Query Start Date",
           "description": "The date to be used as the starting point for historical data. Format example: yyyy-MM-ddT00:00:00Z"
         }
       },
-      
+
       "required": [
         "ProvUsername",
         "ProvPassword",
