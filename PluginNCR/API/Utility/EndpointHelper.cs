@@ -166,7 +166,7 @@ namespace PluginNCR.API.Utility
                             {
                                 try
                                 {
-                                    tlogItemRecordMap["tlog"] = recordMap["tlogId"] ?? "";
+                                    tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                 }
                                 catch
                                 {
@@ -273,6 +273,12 @@ namespace PluginNCR.API.Utility
 
                                     if (validItem)
                                     {
+                                        if (string.IsNullOrWhiteSpace(tlogItemRecordMap["id"].ToString()) ||
+                                            string.IsNullOrWhiteSpace(tlogItemRecordMap["productId"].ToString()) ||
+                                            string.IsNullOrWhiteSpace(recordMap["tlogId"].ToString()))
+                                        {
+                                            var noop = tlogItemRecordMap;
+                                        }
                                         yield return new Record
                                         {
                                             Action = Record.Types.Action.Upsert,

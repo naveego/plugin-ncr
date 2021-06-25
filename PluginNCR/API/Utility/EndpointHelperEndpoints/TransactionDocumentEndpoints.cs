@@ -241,7 +241,16 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     try
                                     {
-                                        tlogItemRecordMap["tlog"] = recordMap["tlogId"] ?? "";
+                                        tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                        // if (string.IsNullOrWhiteSpace(recordMap["tlogId"].ToString()))
+                                        // {
+                                        //     var noop = recordMap;
+                                        // }
+                                        // else
+                                        // {
+                                        //     tlogItemRecordMap["tlog"] = recordMap["tlogId"];
+                                        //     
+                                        // }
                                     }
                                     catch
                                     {
@@ -359,12 +368,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                         if (validItem)
                                         {
-                                            // if (string.IsNullOrWhiteSpace(tlogItemRecordMap["id"].ToString()) ||
-                                            //     string.IsNullOrWhiteSpace(tlogItemRecordMap["productId"].ToString()) ||
-                                            //     string.IsNullOrWhiteSpace(tlogItemRecordMap["tlogId"].ToString()))
-                                            // {
-                                            //     var noop = tlogItemRecordMap;
-                                            // }
+                                            if (string.IsNullOrWhiteSpace(tlogItemRecordMap["id"].ToString()) ||
+                                                string.IsNullOrWhiteSpace(tlogItemRecordMap["productId"].ToString()) ||
+                                                string.IsNullOrWhiteSpace(recordMap["tlogId"].ToString()))
+                                            {
+                                                var noop = tlogItemRecordMap;
+                                            }
                                             yield return new Record
                                             {
                                                 Action = Record.Types.Action.Upsert,
