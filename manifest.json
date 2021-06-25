@@ -13,8 +13,8 @@
   "canConfigure": true,
   "canProduceMultipleSchemas": true,
   "canAcceptQueryBasedSchemas": false,
-  "canUseOAuth": true,
-  "canWrite": true,
+  "canUseOAuth": false,
+  "canWrite": false,
   "configSchema": {
     "ui": {
       "ui:order": [
