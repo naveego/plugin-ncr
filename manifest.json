@@ -24,7 +24,11 @@
         "NepOrganization",
         "NepCorrelationId",
         "QueryStartDate"
-      ]
+      ],
+      "ProvPassword": 
+      {
+        "ui:widget": "password"
+      }
     },
     "schema": {
       "type": "object",
@@ -57,7 +61,7 @@
         "QueryStartDate" : {
           "type": "string",
           "title": "Query Start Date",
-          "description": "The date to be used as the starting point for historical data. Format example: yyyy-MM-ddT00:00:00Z"
+          "description": "The date to be used as the starting point for historical data. Format example: yyyy-MM-dd"
         }
       },
 
