@@ -5,7 +5,7 @@ using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json.Linq;
 
-namespace PluginHubspot.API.Discover
+namespace PluginNCR.API.Discover
 {
     public static partial class Discover
     {

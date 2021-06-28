@@ -96,8 +96,6 @@ namespace PluginNCR.API.Utility
                     
                     
                     var json = new StringContent(
-                        //endpoint.PropertiesQuery.Replace("\"pageNumber\":0", $"\"pageNumber\":{currPage}"),
-                        //propertiesQuery.ToString(),
                         JsonConvert.SerializeObject(readQuery),
                         Encoding.UTF8,
                         "application/json"
@@ -136,14 +134,8 @@ namespace PluginNCR.API.Utility
                                 {
                                     recordMap[objectProperty.Key] = "";
                                 }
-
                             }
-
-                            //here, query for item details. looks right.
                             var thisTlogId = recordMap["tlogId"];
-
-                            //foreach item in result, return recordmap + tlogrecordmap
-
                             var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
 
                             //Query for tlog details - make flat addition
@@ -181,8 +173,9 @@ namespace PluginNCR.API.Utility
                                         if (item.IsItemNotOnFile == false)
                                         {
                                             tlogItemRecordMap["id"] =
-                                                String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
-
+                                                String.IsNullOrWhiteSpace(item.Id) 
+                                                    ? "null" 
+                                                    : item.Id;
 
                                             tlogItemRecordMap["productId"] =
                                                 String.IsNullOrWhiteSpace(item.ProductId)
@@ -199,7 +192,7 @@ namespace PluginNCR.API.Utility
                                                 tlogItemRecordMap["regularUnitPrice"] =
                                                     String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
                                                         ? "0"
-                                                        : item.RegularUnitPrice.Amount.ToString();
+                                                        : item.RegularUnitPrice.Amount;
                                             }
                                             else
                                             {
@@ -211,7 +204,7 @@ namespace PluginNCR.API.Utility
                                                 tlogItemRecordMap["extendedUnitPrice"] =
                                                     String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
                                                         ? "0"
-                                                        : item.ExtendedUnitPrice.Amount.ToString();
+                                                        : item.ExtendedUnitPrice.Amount;
                                             }
                                             else
                                             {
@@ -223,7 +216,7 @@ namespace PluginNCR.API.Utility
                                                 tlogItemRecordMap["extendedAmount"] =
                                                     String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
                                                         ? "0"
-                                                        : item.ExtendedAmount.Amount.ToString();
+                                                        : item.ExtendedAmount.Amount;
                                             }
                                             else
                                             {
@@ -267,18 +260,11 @@ namespace PluginNCR.API.Utility
                                     }
                                     catch (Exception e)
                                     {
-                                        var debug = e.Message;
                                         validItem = false;
                                     }
 
                                     if (validItem)
                                     {
-                                        if (string.IsNullOrWhiteSpace(tlogItemRecordMap["id"].ToString()) ||
-                                            string.IsNullOrWhiteSpace(tlogItemRecordMap["productId"].ToString()) ||
-                                            string.IsNullOrWhiteSpace(recordMap["tlogId"].ToString()))
-                                        {
-                                            var noop = tlogItemRecordMap;
-                                        }
                                         yield return new Record
                                         {
                                             Action = Record.Types.Action.Upsert,
@@ -287,12 +273,6 @@ namespace PluginNCR.API.Utility
                                     }
                                 }
                             }
-
-                            // yield return new Record
-                            // {
-                            //     Action = Record.Types.Action.Upsert,
-                            //     DataJson = JsonConvert.SerializeObject(recordMap)
-                            // };
                         }
 
                         if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -306,75 +286,6 @@ namespace PluginNCR.API.Utility
                         }
                     }
                 } while (hasMore);
-            // do
-            // {
-            //     readQuery.PageNumber = currPage;
-            //     
-            //     var json = new StringContent(
-            //         //endpoint.ReadQuery.Replace("\"pageNumber\":0", $"\"pageNumber\":{currPage}"),
-            //         JsonConvert.SerializeObject(readQuery),
-            //         Encoding.UTF8,
-            //         "application/json"
-            //     );
-            //     var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-            //
-            //     var response = await apiClient.PostAsync(
-            //         path
-            //         , json);
-            //
-            //     if (!response.IsSuccessStatusCode)
-            //     {
-            //         var error = JsonConvert.DeserializeObject<ApiError>(await response.Content.ReadAsStringAsync());
-            //         throw new Exception(error.Message);
-            //     }
-            //
-            //     var objectResponseWrapper =
-            //         JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-            //             await response.Content.ReadAsStringAsync());
-            //
-            //    
-            //
-            //     if (objectResponseWrapper?.PageContent.Count == 0)
-            //     {
-            //         yield break;
-            //     }
-            //
-            //     foreach (var objectResponse in objectResponseWrapper?.PageContent)
-            //     {
-            //         var recordMap = new Dictionary<string, object>();
-            //
-            //         //foreach (var objectProperty in objectResponse.Properties)
-            //         foreach (var objectProperty in objectResponse)
-            //         {
-            //             try
-            //             {
-            //                 recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-            //             }
-            //             catch
-            //             {
-            //                 recordMap[objectProperty.Key] = "";
-            //             }
-            //
-            //         }
-            //
-            //         yield return new Record
-            //         {
-            //             Action = Record.Types.Action.Upsert,
-            //             DataJson = JsonConvert.SerializeObject(recordMap)
-            //         };
-            //     }
-            //
-            //     if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-            //     {
-            //         hasMore = false;
-            //     }
-            //     else
-            //     {
-            //         currPage++;
-            //         hasMore = true;
-            //     }
-            // } while (hasMore);
-            
         }
 
         public virtual async Task<string> WriteRecordAsync(IApiClient apiClient, Schema schema, Record record,

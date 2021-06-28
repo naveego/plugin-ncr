@@ -19,11 +19,7 @@ namespace PluginNCRTest.Plugin
     {
         private Settings GetSettings(bool oAuth = false)
         {
-            return oAuth
-                ? new Settings
-                {
-                }
-                : new Settings()
+            return new Settings()
                 {
                 };
         }
@@ -31,31 +27,17 @@ namespace PluginNCRTest.Plugin
         private ConnectRequest GetConnectSettings(bool oAuth = false)
         {
             var settings = GetSettings(oAuth);
-                
-           
-            var oAuthConfig = new OAuthConfiguration
-                {
-                };
-            
-            var oAuthState = new OAuthState();
             
             return new ConnectRequest
             {
-                SettingsJson = JsonConvert.SerializeObject(settings),
-                OauthConfiguration = oAuthConfig,
-                OauthStateJson = JsonConvert.SerializeObject(oAuthState)
+                SettingsJson = JsonConvert.SerializeObject(settings)
             };
         }
 
         private Schema GetTestSchema(string endpointId = null, string id = "test", string name = "test")
         {
-            // Endpoint endpoint = endpointId == null
-            //     ? EndpointHelper.GetEndpointForId("AllContacts")
-            //     : EndpointHelper.GetEndpointForId(endpointId);
-
-            Endpoint endpoint = endpointId == null
-                // ? EndpointHelper.GetEndpointForId("TransactionDocument_HistoricalFromDate")
-                ? EndpointHelper.GetEndpointForId("TransactionDocument_Today")
+            // Endpoint endpoint = endpointId == null? EndpointHelper.GetEndpointForId("TransactionDocument_Today")
+            Endpoint endpoint = endpointId == null? EndpointHelper.GetEndpointForId("TransactionDocument_Yesterday")
                 : EndpointHelper.GetEndpointForId(endpointId);
 
             return new Schema
@@ -132,11 +114,11 @@ namespace PluginNCRTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(2, response.Schemas.Count);
+            Assert.Equal(3, response.Schemas.Count);
             //
              var schema = response.Schemas[0];
-             Assert.Equal($"TransactionDocument_Today", schema.Id);
-             Assert.Equal("TransactionDocument_Today", schema.Name);
+             Assert.Equal($"TransactionDocument_Yesterday", schema.Id);
+             Assert.Equal("TransactionDocument_Yesterday", schema.Name);
             // Assert.Equal($"", schema.Query);
              Assert.Equal(10, schema.Sample.Count);
              Assert.Equal(10, schema.Properties.Count);
@@ -193,7 +175,7 @@ namespace PluginNCRTest.Plugin
                 SampleSize = 10,
                 ToRefresh =
                 {
-                    GetTestSchema("TransactionDocument_HistoricalFromDate")
+                    GetTestSchema("TransactionDocument_Yesterday")
                 }
             };
 
@@ -276,8 +258,9 @@ namespace PluginNCRTest.Plugin
 
             // assert
             
-            //NOTE - both endpoint queries are based on current date, assertations will be incorrect often
-            Assert.Equal(11759, records.Count);
+            //NOTE - endpoint queries are based on live data and current date.
+            //  Assertations will be incorrect often
+            Assert.Equal(30289, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
              Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);

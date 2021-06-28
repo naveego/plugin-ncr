@@ -20,10 +20,6 @@ namespace PluginNCR.DataContracts
             
         [JsonProperty("pageContent")]
         public List<Dictionary<string, object>> PageContent { get; set; }
-        //public List<ObjectResponse> PageContent { get; set; }
-        
-        // [JsonProperty("paging")]
-        // public PagingResponse Paging { get; set; }
     }
 
     public class PostBody

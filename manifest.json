@@ -61,7 +61,7 @@
         "QueryStartDate" : {
           "type": "string",
           "title": "Query Start Date",
-          "description": "The date to be used as the starting point for historical data. Format example: yyyy-MM-dd"
+          "description": "The date to be used as the starting point for historical data. Do not add T00:00:00Z as instructed by API.Format examples: yyyy-MM-dd or 1993-05-10"
         }
       },
 

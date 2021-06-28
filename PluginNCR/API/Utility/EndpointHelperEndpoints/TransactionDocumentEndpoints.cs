@@ -84,6 +84,69 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
         }
+
+        private class TransactionDocumentEndpoint_Yesterday : Endpoint
+        {
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            {
+                List<string> staticSchemaProperties = new List<string>()
+                {
+                    "tlogId",
+                    "id",
+                    "productId",
+                    "productName",
+                    "regularUnitPrice",
+                    "extendedUnitPrice",
+                    "extendedAmount",
+                    "actualAmount",
+                    "quantity",
+                    "unitOfMeasurement"
+                };
+                
+                var properties = new List<Property>();
+
+                foreach (var staticProperty in staticSchemaProperties)
+                {
+                    var property = new Property();
+
+                    property.Id = staticProperty;
+                    property.Name = staticProperty;
+                    property.Type = PropertyType.String;
+
+                    switch (staticProperty)
+                    {
+                        case ("tlogId"):
+                        case ("id"):
+                        case ("productId"):
+                            property.IsKey = true;
+                            property.TypeAtSource = "string";
+                            property.IsNullable = false;
+                            break;
+                        case("regularUnitPrice"):
+                        case("extendedUnitPrice"):
+                        case("extendedAmount"):
+                        case("actualAmount"):
+                        case("quantity"):
+                            property.IsKey = false;
+                            property.TypeAtSource = "double";
+                            property.IsNullable = true;
+                            break;
+                        default:
+                            property.IsKey = false;
+                            property.TypeAtSource = "string";
+                            property.IsNullable = true;
+                            break;
+                    }
+                    properties.Add(property);
+                }
+                schema.Properties.Clear();
+                schema.Properties.AddRange(properties);
+
+                schema.DataFlowDirection = GetDataFlowDirection();
+                
+                return schema;
+            }
+        }
         private class TransactionDocumentEndpoint_Historical : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -422,6 +485,33 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":1000,\"pageNumber\":0}",
                     SupportedActions = new List<EndpointActions>
                     {
+                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                        EndpointActions.Get
+                    },
+                    PropertyKeys = new List<string>
+                    {
+                        "tlogId"
+                    },
+                    Method = Method.GET
+                }
+                
+            }
+            ,{
+                "TransactionDocument_Yesterday", new TransactionDocumentEndpoint_Yesterday
+                {
+                    ShouldGetStaticSchema = true,
+                    Id = "TransactionDocument_Yesterday",
+                    Name = "TransactionDocument_Yesterday",
+                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                    AllPath = "/find",
+                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                    PropertiesQuery = 
+                        "{\"businessDay\":{\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":10,\"pageNumber\":0}",
+                    ReadQuery = 
+                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":1000,\"pageNumber\":0}",
+                    SupportedActions = new List<EndpointActions>
+                    {
+                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
                         EndpointActions.Get
                     },
                     PropertyKeys = new List<string>
@@ -449,6 +539,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         "{\"businessDay\":{\"dateTime\": \"<DATE_TIME>\",\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":1000,\"pageNumber\":0}",
                     SupportedActions = new List<EndpointActions>
                     {
+                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
                         EndpointActions.Get
                     },
                     PropertyKeys = new List<string>

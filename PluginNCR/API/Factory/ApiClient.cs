@@ -72,7 +72,6 @@ namespace PluginNCR.API.Factory
         {
             try
             {
-                
                 var uriBuilder = new UriBuilder($"{Constants.BaseApiUrl.TrimEnd('/')}/{Utility.Constants.TestConnectionPath.TrimStart('/')}");
                 var query = HttpUtility.ParseQueryString(uriBuilder.Query);
                 
@@ -102,7 +101,6 @@ namespace PluginNCR.API.Factory
                 // send request
                 var client = new HttpClient();
                 var response = await client.SendAsync(request);
-
 
                 response.EnsureSuccessStatusCode();
 
@@ -177,10 +175,6 @@ namespace PluginNCR.API.Factory
                 var uriBuilder = new UriBuilder($"{Constants.BaseApiUrl.TrimEnd('/')}/{path.TrimStart('/')}");
                 var query = HttpUtility.ParseQueryString(uriBuilder.Query);
 
-                // if (!string.IsNullOrWhiteSpace(Settings.ApiKey))
-                // {
-                //     query[ApiKeyParam] = Settings.ApiKey;
-                // }
                 uriBuilder.Query = query.ToString();
                 
                 var uri = new Uri(uriBuilder.ToString());
@@ -213,39 +207,6 @@ namespace PluginNCR.API.Factory
         public async Task<HttpResponseMessage> PutAsync(string path, StringContent json)
         {
             throw new NotImplementedException("Put is not currently supported by the NCR plugin.");
-            // try
-            // {
-            //     var token = await Authenticator.GetToken();
-            //     var uriBuilder = new UriBuilder($"{Constants.BaseApiUrl.TrimEnd('/')}/{path.TrimStart('/')}");
-            //     var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-            //
-            //     if (!string.IsNullOrWhiteSpace(Settings.ApiKey))
-            //     {
-            //         query[ApiKeyParam] = Settings.ApiKey;
-            //     }
-            //     uriBuilder.Query = query.ToString();
-            //     
-            //     var uri = new Uri(uriBuilder.ToString());
-            //     
-            //     var request = new HttpRequestMessage
-            //     {
-            //         Method = HttpMethod.Put,
-            //         RequestUri = uri,
-            //         Content = json
-            //     };
-            //
-            //     if (string.IsNullOrWhiteSpace(Settings.ApiKey))
-            //     {
-            //         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            //     }
-            //
-            //     return await Client.SendAsync(request);
-            // }
-            // catch (Exception e)
-            // {
-            //     Logger.Error(e, e.Message);
-            //     throw;
-            // }
         }
 
         public async Task<HttpResponseMessage> PatchAsync(string path, StringContent json)
@@ -256,10 +217,6 @@ namespace PluginNCR.API.Factory
                 var uriBuilder = new UriBuilder($"{Constants.BaseApiUrl.TrimEnd('/')}/{path.TrimStart('/')}");
                 var query = HttpUtility.ParseQueryString(uriBuilder.Query);
 
-                // if (!string.IsNullOrWhiteSpace(Settings.ApiKey))
-                // {
-                //     query[ApiKeyParam] = Settings.ApiKey;
-                // }
                 uriBuilder.Query = query.ToString();
                 
                 var uri = new Uri(uriBuilder.ToString());
@@ -270,12 +227,6 @@ namespace PluginNCR.API.Factory
                     RequestUri = uri,
                     Content = json
                 };
-
-                // if (string.IsNullOrWhiteSpace(Settings.ApiKey))
-                // {
-                //     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                // }
-
                 return await Client.SendAsync(request);
             }
             catch (Exception e)
@@ -288,39 +239,7 @@ namespace PluginNCR.API.Factory
         public async Task<HttpResponseMessage> DeleteAsync(string path)
         {
             throw new NotImplementedException("Delete is not currently supported by the NCR plugin.");
-            //Reference (NCR)
-            // try
-            // {
-            //     var token = await Authenticator.GetToken();
-            //     var uriBuilder = new UriBuilder($"{Constants.BaseApiUrl.TrimEnd('/')}/{path.TrimStart('/')}");
-            //     var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-            //
-            //     if (!string.IsNullOrWhiteSpace(Settings.ApiKey))
-            //     {
-            //         query[ApiKeyParam] = Settings.ApiKey;
-            //     }
-            //     uriBuilder.Query = query.ToString();
-            //     
-            //     var uri = new Uri(uriBuilder.ToString());
-            //     
-            //     var request = new HttpRequestMessage
-            //     {
-            //         Method = HttpMethod.Delete,
-            //         RequestUri = uri
-            //     };
-            //
-            //     if (string.IsNullOrWhiteSpace(Settings.ApiKey))
-            //     {
-            //         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            //     }
-            //
-            //     return await Client.SendAsync(request);
-            // }
-            // catch (Exception e)
-            // {
-            //     Logger.Error(e, e.Message);
-            //     throw;
-            // }
+           
         }
     }
 }

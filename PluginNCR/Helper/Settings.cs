@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 
 namespace PluginNCR.Helper
 {
@@ -43,12 +44,16 @@ namespace PluginNCR.Helper
             {
                 throw new Exception("the QueryStartDate property must be set");
             }
-            else
+            
+            Regex dateValidationRgx = new Regex(@"^(19|20)\d\d-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$");
+
+            if (!dateValidationRgx.IsMatch(QueryStartDate))
             {
-                if (DateTime.Parse(QueryStartDate) > DateTime.Today)
-                {
-                    throw new Exception("the QueryStartDate must be equal to or before today");
-                }
+                throw new Exception("the QueryStartDate property must match yyyy-MM-dd format");
+            }
+            if (DateTime.Parse(QueryStartDate) > DateTime.Today)
+            {
+                throw new Exception("the QueryStartDate must be equal to or before today");
             }
         }
     }

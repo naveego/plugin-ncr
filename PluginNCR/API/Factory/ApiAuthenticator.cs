@@ -18,8 +18,6 @@ namespace PluginNCR.API.Factory
         private string Token { get; set; }
         private DateTime ExpiresAt { get; set; }
         
-        private const string AuthUrl = "https://gateway.ncrplatform.com/security/authentication/login";
-        
         public ApiAuthenticator(HttpClient client, Settings settings)
         {
             Client = client;
@@ -30,11 +28,6 @@ namespace PluginNCR.API.Factory
 
         public async Task<string> GetToken()
         {
-             // if (!string.IsNullOrWhiteSpace(Settings.ApiKey))
-             // {
-             //     return Token;
-             // }
-            
              // check if token is expired or will expire in 5 minutes or less
              if (DateTime.Compare(DateTime.Now.AddMinutes(5), ExpiresAt) >= 0)
              {
