@@ -26,7 +26,7 @@ namespace PluginNCRTest.Plugin
                     NepApplicationKey = @"",
                     NepOrganization = @"",
                     NepCorrelationId = @"",
-                    QueryStartDate = "2021-08-29"
+                    QueryStartDate = ""
                 };
         }
 
@@ -42,7 +42,6 @@ namespace PluginNCRTest.Plugin
 
         private Schema GetTestSchema(string endpointId = null, string id = "test", string name = "test")
         {
-            // Endpoint endpoint = endpointId == null? EndpointHelper.GetEndpointForId("TransactionDocument_Today")
             Endpoint endpoint = endpointId == null? EndpointHelper.GetEndpointForId("TransactionDocument_HistoricalFromDate")
                 : EndpointHelper.GetEndpointForId(endpointId);
 
@@ -120,7 +119,7 @@ namespace PluginNCRTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(5, response.Schemas.Count);
+            Assert.Equal(9, response.Schemas.Count);
             //
              var schema = response.Schemas[0];
              Assert.Equal($"TransactionDocument_Today", schema.Id);
