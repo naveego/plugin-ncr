@@ -36,32 +36,32 @@
         "ProvUsername" : {
           "type": "string",
           "title": "Username",
-          "description": "NCR tenant username."
+          "description": "NCR tenant username"
         },
         "ProvPassword" : {
           "type": "string",
           "title": "Password",
-          "description": "NCR tenant password."
+          "description": "NCR tenant password"
         },
         "NepApplicationKey" : {
           "type": "string",
           "title": "NEP Application Key",
-          "description": "Application key found within NCR documentation."
+          "description": "Application key found within NCR documentation"
         },
         "NepOrganization" : {
           "type": "string",
           "title": "NEP Organization",
-          "description": "Provided by tenant."
+          "description": "Provided by tenant"
         },
         "NepCorrelationId" : {
           "type": "string",
           "title": "Nep Correlation ID",
-          "description": "NEP Correlation ID. Example: \"Test\"."
+          "description": "NEP Correlation ID"
         },
         "QueryStartDate" : {
           "type": "string",
           "title": "Query Start Date",
-          "description": "The date to be used as the starting point for historical data. Do not add T00:00:00Z as instructed by API.Format examples: yyyy-MM-dd or 1993-05-10"
+          "description": "The date to be used as the starting point for historical data. Do not add T00:00:00Z as instructed by API. Format examples: yyyy-MM-dd or \"1993-05-10\""
         }
       },
 

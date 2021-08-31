@@ -79,21 +79,23 @@ namespace PluginNCR.API.Utility
         public virtual async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
         {
             var hasMore = false;
-            bool collectFromDate = false;
-            
             var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
             var currPage = 0;
+            var startDate = await apiClient.GetStartDate();
+            var queryDate = startDate + "T00:00:00Z";
             
             var readQuery =
                 JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
             
             var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
             
-            do //while hasMore
+            do
+            {
+                
+                do //while hasMore
                 {
                     readQuery.PageNumber = currPage;
-                    
                     
                     var json = new StringContent(
                         JsonConvert.SerializeObject(readQuery),
@@ -148,23 +150,63 @@ namespace PluginNCR.API.Utility
                                 throw new Exception(error.Message);
                             }
 
-                            var tLogResponseWrapper =
-                                JsonConvert.DeserializeObject<TlogWrapper>(
-                                    await tlogResponse.Content.ReadAsStringAsync());
-
+                            var tLogResponseWrapper = new TlogWrapper();
+                            try
+                            {
+                                tLogResponseWrapper =
+                                    JsonConvert.DeserializeObject<TlogWrapper>(
+                                        await tlogResponse.Content.ReadAsStringAsync());
+                            }
+                            catch(Exception e)
+                            {
+                                var debug = e.Message;
+                            }
                             var tlogItemRecordMap = new Dictionary<string, object>();
 
+                            
                             if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
                             {
                                 try
                                 {
                                     tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+
+                                    tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+
+                                    tlogItemRecordMap["businessDayDateTime"] =
+                                        tLogResponseWrapper.BusinessDay.DateTime ?? "";
+
+                                    tlogItemRecordMap["employeeNames"] = string.Join(',', tLogResponseWrapper.Tlog.Employees);
+
+                                    tlogItemRecordMap["touchPointGroup"] =
+                                        tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
+
+                                    tlogItemRecordMap["transactionNumber"] =
+                                        tLogResponseWrapper.Tlog.TransactionNumber ?? "";
+
+                                    tlogItemRecordMap["itemCount"] = tLogResponseWrapper.Tlog.Items.Count;
+
+                                    var totalTaxAmount = 0.0;
+
+                                    foreach (var taxAmountContainer in tLogResponseWrapper.Tlog.TotalTaxes)
+                                    {
+                                        totalTaxAmount += float.Parse(taxAmountContainer.Amount.Amount);
+                                    }
+                                    
+                                    tlogItemRecordMap["totalTaxesAmount"] = totalTaxAmount;
+
+                                    tlogItemRecordMap["totalsDiscountAmount"] =
+                                        tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount ?? "";
+
+                                    tlogItemRecordMap["totalsGrandAmount"] =
+                                        tLogResponseWrapper.Tlog.TLogTotals.GrandAmount.Amount ?? "";
                                 }
                                 catch
                                 {
 
                                 }
-
+                                
+                                
+                                
                                 foreach (var item in tLogResponseWrapper.Tlog.Items)
                                 {
                                     bool validItem = true;
@@ -172,7 +214,8 @@ namespace PluginNCR.API.Utility
                                     {
                                         if (item.IsItemNotOnFile == false)
                                         {
-                                            tlogItemRecordMap["id"] =
+                                            
+                                            tlogItemRecordMap["itemId"] =
                                                 String.IsNullOrWhiteSpace(item.Id) 
                                                     ? "null" 
                                                     : item.Id;
@@ -186,6 +229,45 @@ namespace PluginNCR.API.Utility
                                                 String.IsNullOrWhiteSpace(item.ProductName)
                                                     ? "null"
                                                     : item.ProductName.Replace("'", "''");
+
+                                            tlogItemRecordMap["departmentId"] =
+                                                item.DepartmentId;
+
+                                            try
+                                            {
+                                                tlogItemRecordMap["isReturn"] = item.IsReturn;
+                                            }
+                                            catch
+                                            {
+                                                tlogItemRecordMap["isReturn"] = false;
+                                            }
+
+                                            try
+                                            {
+                                                tlogItemRecordMap["isVoided"] = item.IsVoided;
+                                            }
+                                            catch
+                                            {
+                                                tlogItemRecordMap["isVoided"] = false;
+                                            }
+
+                                            try
+                                            {
+                                                tlogItemRecordMap["isOverridden"] = item.IsOverridden;
+                                            }
+                                            catch
+                                            {
+                                                tlogItemRecordMap["isOverridden"] = false;
+                                            }
+                                            
+                                            try
+                                            {
+                                                tlogItemRecordMap["isNonSaleItem"] = item.IsNonSaleItem;
+                                            }
+                                            catch
+                                            {
+                                                tlogItemRecordMap["isNonSaleItem"] = false;
+                                            }
                                             
                                             if (item.RegularUnitPrice != null)
                                             {
@@ -198,6 +280,7 @@ namespace PluginNCR.API.Utility
                                             {
                                                 tlogItemRecordMap["regularUnitPrice"] = "0";
                                             }
+                                            
 
                                             if (item.ExtendedUnitPrice != null)
                                             {
@@ -252,6 +335,10 @@ namespace PluginNCR.API.Utility
                                                 tlogItemRecordMap["quantity"] = "0";
                                                 tlogItemRecordMap["unitOfMeasurement"] = "null";
                                             }
+
+                                            tlogItemRecordMap["itemDiscountFlag"] =
+                                                item.ItemDiscounts.Count > 0;
+
                                         }
                                         else
                                         {
@@ -286,6 +373,7 @@ namespace PluginNCR.API.Utility
                         }
                     }
                 } while (hasMore);
+            } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
         }
 
         public virtual async Task<string> WriteRecordAsync(IApiClient apiClient, Schema schema, Record record,

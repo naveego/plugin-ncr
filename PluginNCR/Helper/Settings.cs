@@ -51,7 +51,7 @@ namespace PluginNCR.Helper
             {
                 throw new Exception("the QueryStartDate property must match yyyy-MM-dd format");
             }
-            if (DateTime.Parse(QueryStartDate) > DateTime.Today)
+            if (DateTime.Compare(DateTime.Parse(QueryStartDate), DateTime.Today) > 0)
             {
                 throw new Exception("the QueryStartDate must be equal to or before today");
             }

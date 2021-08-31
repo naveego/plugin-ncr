@@ -56,7 +56,7 @@ namespace PluginNCR.API.Factory
                     //Content = new StringContent(json, Encoding.UTF8, "application/json")
                 };
 
-                request.Headers.Add("nep-correlation-id", "Test");
+                request.Headers.Add("nep-correlation-id", Settings.NepCorrelationId);
                 request.Headers.Add("nep-application-key", Settings.NepApplicationKey);
                 request.Headers.Add("nep-organization", Settings.NepOrganization);
                 request.Headers.Date = DateTimeOffset.UtcNow;
