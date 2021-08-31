@@ -2637,8 +2637,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 "TransactionDocument_Tenders_HistoricalFromDate", new TransactionDocumentEndpoint_Tenders_Historical
                 {
                     ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Tenders",
-                    Name = "TransactionDocument_Tenders",
+                    Id = "TransactionDocument_Tenders_HistoricalFromDate",
+                    Name = "TransactionDocument_Tenders_HistoricalFromDate",
                     BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                     AllPath = "/find",
                     PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
@@ -2662,8 +2662,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 "TransactionDocument_Tenders_Yesterday", new TransactionDocumentEndpoint_Tenders_Yesterday
                 {
                     ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Tenders",
-                    Name = "TransactionDocument_Tenders",
+                    Id = "TransactionDocument_Tenders_Yesterday",
+                    Name = "TransactionDocument_Tenders_Yesterday",
                     BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                     AllPath = "/find",
                     PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
@@ -2687,8 +2687,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 "TransactionDocument_Tenders_Today", new TransactionDocumentEndpoint_Tenders_Today
                 {
                     ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Tenders",
-                    Name = "TransactionDocument_Tenders",
+                    Id = "TransactionDocument_Tenders_Today",
+                    Name = "TransactionDocument_Tenders_Today",
                     BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                     AllPath = "/find",
                     PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
@@ -2712,8 +2712,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 "TransactionDocument_OrderPromos_HistoricalFromDate", new TransactionDocumentEndpoint_OrderPromos_Historical
                 {
                     ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_OrderPromos",
-                    Name = "TransactionDocument_OrderPromos",
+                    Id = "TransactionDocument_OrderPromos_HistoricalFromDate",
+                    Name = "TransactionDocument_OrderPromos_HistoricalFromDate",
                     BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                     AllPath = "/find",
                     PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
@@ -2737,8 +2737,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 "TransactionDocument_OrderPromos_Today", new TransactionDocumentEndpoint_OrderPromos_Today
                 {
                     ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_OrderPromos",
-                    Name = "TransactionDocument_OrderPromos",
+                    Id = "TransactionDocument_OrderPromos_Today",
+                    Name = "TransactionDocument_OrderPromos_Today",
                     BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                     AllPath = "/find",
                     PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
@@ -2762,8 +2762,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 "TransactionDocument_OrderPromos_Yesterday", new TransactionDocumentEndpoint_OrderPromos_Yesterday
                 {
                     ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_OrderPromos",
-                    Name = "TransactionDocument_OrderPromos",
+                    Id = "TransactionDocument_OrderPromos_Yesterday",
+                    Name = "TransactionDocument_OrderPromos_Yesterday",
                     BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                     AllPath = "/find",
                     PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
