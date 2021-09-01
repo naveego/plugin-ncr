@@ -58,15 +58,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
                             break;
-                        case("regularUnitPrice"):
-                        case("extendedUnitPrice"):
-                        case("extendedAmount"):
-                        case("actualAmount"):
-                        case("quantity"):
-                            property.IsKey = false;
-                            property.Type = PropertyType.Float;
-                            property.TypeAtSource = "double";
-                            break;
                         default:
                             property.IsKey = false;
                             property.Type = PropertyType.String;
@@ -344,15 +335,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
                             break;
-                        case("regularUnitPrice"):
-                        case("extendedUnitPrice"):
-                        case("extendedAmount"):
-                        case("actualAmount"):
-                        case("quantity"):
-                            property.IsKey = false;
-                            property.Type = PropertyType.Float;
-                            property.TypeAtSource = "double";
-                            break;
                         default:
                             property.IsKey = false;
                             property.Type = PropertyType.String;
@@ -628,15 +610,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.IsKey = true;
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
-                            break;
-                        case("regularUnitPrice"):
-                        case("extendedUnitPrice"):
-                        case("extendedAmount"):
-                        case("actualAmount"):
-                        case("quantity"):
-                            property.IsKey = false;
-                            property.Type = PropertyType.Float;
-                            property.TypeAtSource = "double";
                             break;
                         default:
                             property.IsKey = false;
