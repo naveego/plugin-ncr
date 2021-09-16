@@ -228,7 +228,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_OrderPromos");
+            var schema = GetTestSchema("TransactionDocument_Today");
 
             var connectRequest = GetConnectSettings();
 
@@ -265,7 +265,7 @@ namespace PluginNCRTest.Plugin
             
             //NOTE - endpoint queries are based on live data and current date.
             //  Assertations will be incorrect often
-            Assert.Equal(53787, records.Count);
+            Assert.Equal(31133, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
             //Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);

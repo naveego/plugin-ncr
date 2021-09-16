@@ -80,7 +80,7 @@ namespace PluginNCR.API.Factory
                 var uri = new Uri(uriBuilder.ToString());
                 
                 var json =
-                    "{\"businessDay\":{\"originalOffset\":0},\"siteInfoIds\":[\"2315\"],\"pageSize\":10,\"pageNumber\":0}";
+                    "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}";
 
                 var request = new HttpRequestMessage
                 {
