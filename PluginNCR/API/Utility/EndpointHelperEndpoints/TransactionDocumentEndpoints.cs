@@ -1135,6 +1135,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 List<string> staticSchemaProperties = new List<string>()
                 {
                     "tlogId",
+                    "id",
                     "siteInfoId",
                     "receiptId",
                     "touchPointGroup",
@@ -1347,6 +1348,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             if (item.IsItemNotOnFile == false)
                                             {
+                                                tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                                    ? "null"
+                                                    : item.Id;
+                                                
                                                 tlogItemRecordMap["productId"] =
                                                     String.IsNullOrWhiteSpace(item.ProductId)
                                                         ? "null"
@@ -1497,6 +1502,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 List<string> staticSchemaProperties = new List<string>()
                 {
                     "tlogId",
+                    "id",
                     "siteInfoId",
                     "receiptId",
                     "touchPointGroup",
@@ -1709,6 +1715,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             if (item.IsItemNotOnFile == false)
                                             {
+                                                tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                                    ? "null"
+                                                    : item.Id;
+                                                
                                                 tlogItemRecordMap["productId"] =
                                                     String.IsNullOrWhiteSpace(item.ProductId)
                                                         ? "null"
@@ -1859,6 +1869,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 List<string> staticSchemaProperties = new List<string>()
                 {
                     "tlogId",
+                    "id",
                     "siteInfoId",
                     "receiptId",
                     "touchPointGroup",
@@ -2071,6 +2082,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             if (item.IsItemNotOnFile == false)
                                             {
+                                                tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                                    ? "null"
+                                                    : item.Id;
+                                                
                                                 tlogItemRecordMap["productId"] =
                                                     String.IsNullOrWhiteSpace(item.ProductId)
                                                         ? "null"
@@ -2221,6 +2236,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 List<string> staticSchemaProperties = new List<string>()
                 {
                     "tlogId",
+                    "id",
                     "siteInfoId",
                     "receiptId",
                     "touchPointGroup",
@@ -2433,6 +2449,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             if (item.IsItemNotOnFile == false)
                                             {
+                                                tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                                    ? "null"
+                                                    : item.Id;
+                                                
                                                 tlogItemRecordMap["productId"] =
                                                     String.IsNullOrWhiteSpace(item.ProductId)
                                                         ? "null"
