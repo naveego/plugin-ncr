@@ -185,6 +185,24 @@ namespace PluginNCR.DataContracts
         
         [JsonProperty("coupons")]
         public List<object> Coupons { get; set; }
+        
+        [JsonProperty("customer")]
+        public Customer Customer { get; set; }
+    }
+
+    public class Customer
+    {
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        
+        [JsonProperty("entryMethod")]
+        public string EntryMethod { get; set; }
+        
+        [JsonProperty("identifierData")]
+        public string IdentifierData { get; set; }
+        
+        [JsonProperty("infoValidationMeans")]
+        public string InfoValidationMeans { get; set; }
     }
 
     public class TLogTenders

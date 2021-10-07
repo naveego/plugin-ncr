@@ -38,7 +38,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "extendedAmount",
                     "actualAmount",
                     "quantity",
-                    "unitOfMeasurement"
+                    "unitOfMeasurement",
+                    "customerId",
+                    "customerEntryMethod",
+                    "customerIdentifierData",
+                    "customerInfoValidationMeans"
                 };
                 
                 var properties = new List<Property>();
@@ -173,6 +177,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                     tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                    if(tLogResponseWrapper.Tlog.Customer != null)
+                                    {
+                                        tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                    }
                                 }
                                 catch
                                 {
@@ -311,7 +322,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "extendedAmount",
                     "actualAmount",
                     "quantity",
-                    "unitOfMeasurement"
+                    "unitOfMeasurement",
+                    "customerId",
+                    "customerEntryMethod",
+                    "customerIdentifierData",
+                    "customerInfoValidationMeans"
                 };
                 
                 var properties = new List<Property>();
@@ -441,120 +456,125 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 var tlogItemRecordMap = new Dictionary<string, object>();
 
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                try
                                 {
-                                    try
+                                    tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                    tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                    if(tLogResponseWrapper.Tlog.Customer != null)
                                     {
-                                        tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                        tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                    }
-                                    catch
-                                    {
-
-                                    }
-
-                                    foreach (var item in tLogResponseWrapper.Tlog.Items)
-                                    {
-                                        bool validItem = true;
-                                        try
-                                        {
-                                            tlogItemRecordMap["id"] =
-                                                String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
-
-                                            tlogItemRecordMap["isItemNotOnFile"] =
-                                                item.IsItemNotOnFile.ToString();
-                                            
-                                            tlogItemRecordMap["productId"] =
-                                                String.IsNullOrWhiteSpace(item.ProductId)
-                                                    ? "null"
-                                                    : item.ProductId;
-
-                                            tlogItemRecordMap["productName"] =
-                                                String.IsNullOrWhiteSpace(item.ProductName)
-                                                    ? "null"
-                                                    : item.ProductName.Replace("'", "''");
-
-                                            if (item.RegularUnitPrice != null)
-                                            {
-                                                tlogItemRecordMap["regularUnitPrice"] =
-                                                    String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
-                                                        ? "0"
-                                                        : item.RegularUnitPrice.Amount.ToString();
-                                            }
-                                            else
-                                            {
-                                                tlogItemRecordMap["regularUnitPrice"] = "0";
-                                            }
-
-                                            if (item.ExtendedUnitPrice != null)
-                                            {
-                                                tlogItemRecordMap["extendedUnitPrice"] =
-                                                    String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
-                                                        ? "0"
-                                                        : item.ExtendedUnitPrice.Amount.ToString();
-                                            }
-                                            else
-                                            {
-                                                tlogItemRecordMap["extendedUnitPrice"] = "0";
-                                            }
-
-                                            if (item.ExtendedAmount != null)
-                                            {
-                                                tlogItemRecordMap["extendedAmount"] =
-                                                    String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
-                                                        ? "0"
-                                                        : item.ExtendedAmount.Amount.ToString();
-                                            }
-                                            else
-                                            {
-                                                tlogItemRecordMap["extendedAmount"] = "0";
-                                            }
-
-                                            if (item.ActualAmount != null)
-                                            {
-                                                tlogItemRecordMap["actualAmount"] =
-                                                    String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
-                                                        ? "0"
-                                                        : item.ActualAmount.Amount;
-                                            }
-                                            else
-                                            {
-                                                tlogItemRecordMap["actualAmount"] = "0";
-                                            }
-
-                                            if (item.Quantity != null)
-                                            {
-                                                tlogItemRecordMap["quantity"] =
-                                                    String.IsNullOrWhiteSpace(item.Quantity.Quantity)
-                                                        ? "0"
-                                                        : item.Quantity.Quantity;
-
-                                                tlogItemRecordMap["unitOfMeasurement"] =
-                                                    String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
-                                                        ? "null"
-                                                        : item.Quantity.UnitOfMeasurement;
-                                            }
-                                            else
-                                            {
-                                                tlogItemRecordMap["quantity"] = "0";
-                                                tlogItemRecordMap["unitOfMeasurement"] = "null";
-                                            }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            validItem = false;
-                                        }
-
-                                        if (validItem)
-                                        {
-                                            yield return new Record
-                                            {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                            };
-                                        }
+                                        tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                     }
                                 }
+                                catch
+                                {
+
+                                }
+
+                                foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                {
+                                    bool validItem = true;
+                                    try
+                                    {
+                                        tlogItemRecordMap["id"] =
+                                            String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
+
+                                        tlogItemRecordMap["isItemNotOnFile"] =
+                                            item.IsItemNotOnFile.ToString();
+                                        
+                                        tlogItemRecordMap["productId"] =
+                                            String.IsNullOrWhiteSpace(item.ProductId)
+                                                ? "null"
+                                                : item.ProductId;
+
+                                        tlogItemRecordMap["productName"] =
+                                            String.IsNullOrWhiteSpace(item.ProductName)
+                                                ? "null"
+                                                : item.ProductName.Replace("'", "''");
+
+                                        if (item.RegularUnitPrice != null)
+                                        {
+                                            tlogItemRecordMap["regularUnitPrice"] =
+                                                String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                    ? "0"
+                                                    : item.RegularUnitPrice.Amount.ToString();
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["regularUnitPrice"] = "0";
+                                        }
+
+                                        if (item.ExtendedUnitPrice != null)
+                                        {
+                                            tlogItemRecordMap["extendedUnitPrice"] =
+                                                String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                    ? "0"
+                                                    : item.ExtendedUnitPrice.Amount.ToString();
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["extendedUnitPrice"] = "0";
+                                        }
+
+                                        if (item.ExtendedAmount != null)
+                                        {
+                                            tlogItemRecordMap["extendedAmount"] =
+                                                String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
+                                                    ? "0"
+                                                    : item.ExtendedAmount.Amount.ToString();
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["extendedAmount"] = "0";
+                                        }
+
+                                        if (item.ActualAmount != null)
+                                        {
+                                            tlogItemRecordMap["actualAmount"] =
+                                                String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                    ? "0"
+                                                    : item.ActualAmount.Amount;
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["actualAmount"] = "0";
+                                        }
+
+                                        if (item.Quantity != null)
+                                        {
+                                            tlogItemRecordMap["quantity"] =
+                                                String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                    ? "0"
+                                                    : item.Quantity.Quantity;
+
+                                            tlogItemRecordMap["unitOfMeasurement"] =
+                                                String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
+                                                    ? "null"
+                                                    : item.Quantity.UnitOfMeasurement;
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["quantity"] = "0";
+                                            tlogItemRecordMap["unitOfMeasurement"] = "null";
+                                        }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        validItem = false;
+                                    }
+
+                                    if (validItem)
+                                    {
+                                        yield return new Record
+                                        {
+                                            Action = Record.Types.Action.Upsert,
+                                            DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                        };
+                                    }
+                                }
+                                
                             }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -587,7 +607,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "extendedAmount",
                     "actualAmount",
                     "quantity",
-                    "unitOfMeasurement"
+                    "unitOfMeasurement",
+                    "customerId",
+                    "customerEntryMethod",
+                    "customerIdentifierData",
+                    "customerInfoValidationMeans"
                 };
                 
                 var properties = new List<Property>();
@@ -727,6 +751,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                         tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                        if(tLogResponseWrapper.Tlog.Customer != null)
+                                        {
+                                            tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        }
                                     }
                                     catch
                                     {
@@ -868,7 +899,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "extendedAmount",
                     "actualAmount",
                     "quantity",
-                    "unitOfMeasurement"
+                    "unitOfMeasurement",
+                    "customerId",
+                    "customerEntryMethod",
+                    "customerIdentifierData",
+                    "customerInfoValidationMeans"
                 };
                 
                 var properties = new List<Property>();
@@ -1014,6 +1049,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                             tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                            if(tLogResponseWrapper.Tlog.Customer != null)
+                                            {
+                                                tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                                tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                                tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                                tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                            }
                                         }
                                         catch
                                         {
@@ -1148,6 +1190,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "siteInfoId",
+                    "customerId",
+                    "customerEntryMethod",
+                    "customerIdentifierData",
+                    "customerInfoValidationMeans",
                     "receiptId",
                     "touchPointGroup",
                     "ticketdate",
@@ -1356,6 +1402,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                         tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
                                         tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
+                                        
+                                        if(tLogResponseWrapper.Tlog.Customer != null)
+                                        {
+                                            tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        }
                                     }
                                     catch
                                     {
@@ -1524,6 +1578,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "siteInfoId",
+                    "customerId",
+                    "customerEntryMethod",
+                    "customerIdentifierData",
+                    "customerInfoValidationMeans",
                     "receiptId",
                     "touchPointGroup",
                     "ticketdate",
@@ -1727,6 +1785,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                     tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
                                     tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
+                                    
+                                    if(tLogResponseWrapper.Tlog.Customer != null)
+                                    {
+                                        tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                    }
                                 }
                                 catch
                                 {
@@ -1899,6 +1965,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "siteInfoId",
+                    "customerId",
+                    "customerEntryMethod",
+                    "customerIdentifierData",
+                    "customerInfoValidationMeans",
                     "receiptId",
                     "touchPointGroup",
                     "ticketdate",
@@ -2106,6 +2176,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                         tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
                                         tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
+                                        
+                                        if(tLogResponseWrapper.Tlog.Customer != null)
+                                        {
+                                            tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        }
                                     }
                                     catch
                                     {
@@ -2274,6 +2352,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "siteInfoId",
+                    "customerId",
+                    "customerEntryMethod",
+                    "customerIdentifierData",
+                    "customerInfoValidationMeans",
                     "receiptId",
                     "touchPointGroup",
                     "ticketdate",
@@ -2474,6 +2556,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                     tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
                                     tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
+                                    
+                                    if(tLogResponseWrapper.Tlog.Customer != null)
+                                    {
+                                        tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                    }
                                 }
                                 catch
                                 {

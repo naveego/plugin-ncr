@@ -229,7 +229,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_Today");
+            var schema = GetTestSchema("TransactionDocument_OrderPromos_7Days");
 
             var connectRequest = GetConnectSettings();
 
@@ -267,13 +267,6 @@ namespace PluginNCRTest.Plugin
             //NOTE - endpoint queries are based on live data and current date.
             //  Assertations will be incorrect often
 
-            decimal DEBUG_testsum = 0;
-            
-            foreach (var record in records)
-            {
-                var thisRecord = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
-                DEBUG_testsum += decimal.Parse(thisRecord["actualAmount"].ToString());
-            }
             Assert.Equal(31133, records.Count);
 
             //var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
