@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace PluginNCR.Helper
@@ -47,6 +48,21 @@ namespace PluginNCR.Helper
             if (String.IsNullOrEmpty(SiteIDs))
             {
                 throw new Exception("the SiteIDs property must be set");
+            }
+
+            string[] siteIds;
+            try
+            {
+                siteIds = SiteIDs.Replace(" ", "").Split(',');
+            }
+            catch(Exception e)
+            {
+                throw new Exception("Error forming CSV of Site IDs. Error: " + e.Message);
+            }
+
+            if (siteIds.Length <= 0)
+            {
+                throw new Exception("Error: empty csv of site IDs found. Example value: 2304, 2315, 2340");
             }
             
             Regex dateValidationRgx = new Regex(@"^(19|20)\d\d-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$");
