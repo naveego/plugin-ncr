@@ -26,7 +26,8 @@ namespace PluginNCRTest.Plugin
                     NepApplicationKey = @"",
                     NepOrganization = @"",
                     NepCorrelationId = @"",
-                    QueryStartDate = ""
+                    QueryStartDate = "",
+                    SiteIDs = ""
                 };
         }
 
@@ -228,7 +229,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_Yesterday");
+            var schema = GetTestSchema("TransactionDocument_Today");
 
             var connectRequest = GetConnectSettings();
 
@@ -265,9 +266,17 @@ namespace PluginNCRTest.Plugin
             
             //NOTE - endpoint queries are based on live data and current date.
             //  Assertations will be incorrect often
+
+            decimal DEBUG_testsum = 0;
+            
+            foreach (var record in records)
+            {
+                var thisRecord = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
+                DEBUG_testsum += decimal.Parse(thisRecord["actualAmount"].ToString());
+            }
             Assert.Equal(31133, records.Count);
 
-            var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
+            //var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
             //Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);
             // Assert.Equal("False", record["isTrainingMode"]);
             // Assert.Equal("572", record["transactionNumber"]);

@@ -67,6 +67,11 @@ namespace PluginNCR.API.Factory
         {
             return Settings.QueryStartDate;
         }
+
+        public async Task<string> GetSiteIds()
+        {
+            return Settings.SiteIDs;
+        }
         
         public async Task TestConnection()
         {

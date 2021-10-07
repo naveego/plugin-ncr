@@ -23,7 +23,8 @@
         "NepApplicationKey",
         "NepOrganization",
         "NepCorrelationId",
-        "QueryStartDate"
+        "QueryStartDate",
+        "SiteIDs"
       ],
       "ProvPassword": 
       {
@@ -62,6 +63,11 @@
           "type": "string",
           "title": "Query Start Date",
           "description": "The date to be used as the starting point for historical data. Do not add T00:00:00Z as instructed by API. Format examples: yyyy-MM-dd or \"1993-05-10\""
+        },
+        "SiteIDs" : {
+          "type": "string",
+          "title": "Site IDs",
+          "description": "Use CSV format. Format examples: \"#,#\" or \"2315, 2304, 2430\""
         }
       },
 
@@ -71,7 +77,8 @@
         "NepApplicationKey",
         "NepOrganization",
         "NepCorrelationId",
-        "QueryStartDate"
+        "QueryStartDate",
+        "SiteIDs"
       ]
     }
   }

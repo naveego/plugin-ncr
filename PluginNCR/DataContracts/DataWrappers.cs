@@ -35,6 +35,9 @@ namespace PluginNCR.DataContracts
         
         [JsonProperty("pageNumber")]
         public int PageNumber { get; set; }
+        
+        [JsonProperty("transactionCategories")]
+        public List<string> TransactionCategories { get; set; }
     }
 
     public class ObjectResponse

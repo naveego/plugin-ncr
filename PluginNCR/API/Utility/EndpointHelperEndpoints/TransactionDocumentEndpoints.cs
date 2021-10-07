@@ -31,6 +31,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "productId",
+                    "isItemNotOnFile",
                     "productName",
                     "regularUnitPrice",
                     "extendedUnitPrice",
@@ -79,7 +80,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
-                var currDayOffset = 0;
                 var startDate = DateTime.Now.ToString("yyyy-MM-dd");
                 
                 var queryDate = startDate + "T00:00:00Z";
@@ -88,19 +88,28 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
+                
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                queryDate = DateTime.Parse(startDate).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z";
 
-                do //while queryDate != today
+                queryDate = "2021-10-06T00:00:00Z";
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
+                    readQuery.SiteInfoIds = new List<string>() {site};
                     readQuery.BusinessDay.DateTime = queryDate;
                     currPage = 0;
-                    
+
                     do //while hasMore
                     {
                         readQuery.PageNumber = currPage;
-                        
-                        
+
+
                         var json = new StringContent(
                             JsonConvert.SerializeObject(readQuery),
                             Encoding.UTF8,
@@ -163,127 +172,117 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 var tlogItemRecordMap = new Dictionary<string, object>();
 
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                try
+                                {
+                                    tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                    tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                }
+                                catch
+                                {
+                                    //noop
+                                }
+
+                                foreach (var item in tLogResponseWrapper.Tlog.Items)
                                 {
                                     try
                                     {
-                                        tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                        tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                        tlogItemRecordMap["id"] =
+                                            String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
+
+
+                                        tlogItemRecordMap["productId"] =
+                                            String.IsNullOrWhiteSpace(item.ProductId)
+                                                ? "null"
+                                                : item.ProductId;
+
+                                        tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
+
+                                        tlogItemRecordMap["productName"] =
+                                            String.IsNullOrWhiteSpace(item.ProductName)
+                                                ? "null"
+                                                : item.ProductName.Replace("'", "''");
+
+                                        if (item.RegularUnitPrice != null)
+                                        {
+                                            tlogItemRecordMap["regularUnitPrice"] =
+                                                String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                    ? "0"
+                                                    : item.RegularUnitPrice.Amount.ToString();
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["regularUnitPrice"] = "0";
+                                        }
+
+                                        if (item.ExtendedUnitPrice != null)
+                                        {
+                                            tlogItemRecordMap["extendedUnitPrice"] =
+                                                String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                    ? "0"
+                                                    : item.ExtendedUnitPrice.Amount.ToString();
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["extendedUnitPrice"] = "0";
+                                        }
+
+                                        if (item.ExtendedAmount != null)
+                                        {
+                                            tlogItemRecordMap["extendedAmount"] =
+                                                String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
+                                                    ? "0"
+                                                    : item.ExtendedAmount.Amount.ToString();
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["extendedAmount"] = "0";
+                                        }
+
+                                        if (item.ActualAmount != null)
+                                        {
+                                            tlogItemRecordMap["actualAmount"] =
+                                                String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                    ? "0"
+                                                    : item.ActualAmount.Amount;
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["actualAmount"] = "0";
+                                        }
+
+                                        if (item.Quantity != null)
+                                        {
+                                            tlogItemRecordMap["quantity"] =
+                                                String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                    ? "0"
+                                                    : item.Quantity.Quantity;
+
+                                            tlogItemRecordMap["unitOfMeasurement"] =
+                                                String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
+                                                    ? "null"
+                                                    : item.Quantity.UnitOfMeasurement;
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["quantity"] = "0";
+                                            tlogItemRecordMap["unitOfMeasurement"] = "null";
+                                        }
                                     }
-                                    catch
+                                    catch (Exception e)
                                     {
-                                        
+                                        continue;
                                     }
 
-                                    foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                    yield return new Record
                                     {
-                                        bool validItem = true;
-                                        try
-                                        {
-                                            if (item.IsItemNotOnFile == false)
-                                            {
-                                                tlogItemRecordMap["id"] =
-                                                    String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
-                                                
-                                                
-                                                tlogItemRecordMap["productId"] =
-                                                    String.IsNullOrWhiteSpace(item.ProductId)
-                                                        ? "null"
-                                                        : item.ProductId;
-
-                                                tlogItemRecordMap["productName"] =
-                                                    String.IsNullOrWhiteSpace(item.ProductName)
-                                                        ? "null"
-                                                        : item.ProductName.Replace("'", "''");
-
-                                                if (item.RegularUnitPrice != null)
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] =
-                                                        String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
-                                                            ? "0"
-                                                            : item.RegularUnitPrice.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] = "0";
-                                                }
-
-                                                if (item.ExtendedUnitPrice != null)
-                                                {
-                                                    tlogItemRecordMap["extendedUnitPrice"] =
-                                                        String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
-                                                            ? "0"
-                                                            : item.ExtendedUnitPrice.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["extendedUnitPrice"] = "0";
-                                                }
-
-                                                if (item.ExtendedAmount != null)
-                                                {
-                                                    tlogItemRecordMap["extendedAmount"] =
-                                                        String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
-                                                            ? "0"
-                                                            : item.ExtendedAmount.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["extendedAmount"] = "0";
-                                                }
-
-                                                if (item.ActualAmount != null)
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] =
-                                                        String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
-                                                            ? "0"
-                                                            : item.ActualAmount.Amount;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] = "0";
-                                                }
-
-                                                if (item.Quantity != null)
-                                                {
-                                                    tlogItemRecordMap["quantity"] =
-                                                        String.IsNullOrWhiteSpace(item.Quantity.Quantity)
-                                                            ? "0"
-                                                            : item.Quantity.Quantity;
-
-                                                    tlogItemRecordMap["unitOfMeasurement"] =
-                                                        String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
-                                                            ? "null"
-                                                            : item.Quantity.UnitOfMeasurement;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["quantity"] = "0";
-                                                    tlogItemRecordMap["unitOfMeasurement"] = "null";
-                                                }
-                                            }
-                                            else
-                                            {
-                                                validItem = false;
-                                            }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            validItem = false;
-                                        }
-
-                                        if (validItem)
-                                        {
-                                            yield return new Record
-                                            {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                            };
-                                        }
-                                    }
+                                        Action = Record.Types.Action.Upsert,
+                                        DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                    };
+                                    
                                 }
+
                             }
-                            
+
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
@@ -295,7 +294,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             }
                         }
                     } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
 
@@ -308,6 +307,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "productId",
+                    "isItemNotOnFile",
                     "productName",
                     "regularUnitPrice",
                     "extendedUnitPrice",
@@ -366,102 +366,111 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
-                do //while queryDate != today
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                // yield break;
-                                continue;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    try
-                                    {
-                                        tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                        tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                    }
-                                    catch
-                                    {
-                                        
-                                    }
+                                    // yield break;
+                                    continue;
+                                }
 
-                                    foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
                                     {
-                                        bool validItem = true;
                                         try
                                         {
-                                            if (item.IsItemNotOnFile == false)
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogItemRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                    {
+                                        try
+                                        {
+                                            tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                            tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                        }
+                                        catch
+                                        {
+
+                                        }
+
+                                        foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                        {
+                                            bool validItem = true;
+                                            try
                                             {
                                                 tlogItemRecordMap["id"] =
                                                     String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
-                                                
+
+                                                tlogItemRecordMap["isItemNotOnFile"] =
+                                                    item.IsItemNotOnFile.ToString();
                                                 
                                                 tlogItemRecordMap["productId"] =
                                                     String.IsNullOrWhiteSpace(item.ProductId)
@@ -539,40 +548,36 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                     tlogItemRecordMap["unitOfMeasurement"] = "null";
                                                 }
                                             }
-                                            else
+                                            catch (Exception e)
                                             {
                                                 validItem = false;
                                             }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            validItem = false;
-                                        }
 
-                                        if (validItem)
-                                        {
-                                            yield return new Record
+                                            if (validItem)
                                             {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                            };
+                                                yield return new Record
+                                                {
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                                };
+                                            }
                                         }
                                     }
                                 }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
+                                }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_7Days : Endpoint
@@ -584,6 +589,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "productId",
+                    "isItemNotOnFile",
                     "productName",
                     "regularUnitPrice",
                     "extendedUnitPrice",
@@ -641,83 +647,90 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
-                do //while queryDate != today
+                
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                // yield break;
-                                continue;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
+                                    // yield break;
+                                    continue;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogItemRecordMap = new Dictionary<string, object>();
+
                                     try
                                     {
                                         tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
@@ -725,7 +738,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     }
                                     catch
                                     {
-                                        
+
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -733,91 +746,86 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         bool validItem = true;
                                         try
                                         {
-                                            if (item.IsItemNotOnFile == false)
+                                            tlogItemRecordMap["id"] =
+                                                String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
+
+
+                                            tlogItemRecordMap["productId"] =
+                                                String.IsNullOrWhiteSpace(item.ProductId)
+                                                    ? "null"
+                                                    : item.ProductId;
+
+                                            tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
+                                            
+                                            tlogItemRecordMap["productName"] =
+                                                String.IsNullOrWhiteSpace(item.ProductName)
+                                                    ? "null"
+                                                    : item.ProductName.Replace("'", "''");
+
+                                            if (item.RegularUnitPrice != null)
                                             {
-                                                tlogItemRecordMap["id"] =
-                                                    String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
-                                                
-                                                
-                                                tlogItemRecordMap["productId"] =
-                                                    String.IsNullOrWhiteSpace(item.ProductId)
-                                                        ? "null"
-                                                        : item.ProductId;
-
-                                                tlogItemRecordMap["productName"] =
-                                                    String.IsNullOrWhiteSpace(item.ProductName)
-                                                        ? "null"
-                                                        : item.ProductName.Replace("'", "''");
-
-                                                if (item.RegularUnitPrice != null)
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] =
-                                                        String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
-                                                            ? "0"
-                                                            : item.RegularUnitPrice.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] = "0";
-                                                }
-
-                                                if (item.ExtendedUnitPrice != null)
-                                                {
-                                                    tlogItemRecordMap["extendedUnitPrice"] =
-                                                        String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
-                                                            ? "0"
-                                                            : item.ExtendedUnitPrice.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["extendedUnitPrice"] = "0";
-                                                }
-
-                                                if (item.ExtendedAmount != null)
-                                                {
-                                                    tlogItemRecordMap["extendedAmount"] =
-                                                        String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
-                                                            ? "0"
-                                                            : item.ExtendedAmount.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["extendedAmount"] = "0";
-                                                }
-
-                                                if (item.ActualAmount != null)
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] =
-                                                        String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
-                                                            ? "0"
-                                                            : item.ActualAmount.Amount;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] = "0";
-                                                }
-
-                                                if (item.Quantity != null)
-                                                {
-                                                    tlogItemRecordMap["quantity"] =
-                                                        String.IsNullOrWhiteSpace(item.Quantity.Quantity)
-                                                            ? "0"
-                                                            : item.Quantity.Quantity;
-
-                                                    tlogItemRecordMap["unitOfMeasurement"] =
-                                                        String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
-                                                            ? "null"
-                                                            : item.Quantity.UnitOfMeasurement;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["quantity"] = "0";
-                                                    tlogItemRecordMap["unitOfMeasurement"] = "null";
-                                                }
+                                                tlogItemRecordMap["regularUnitPrice"] =
+                                                    String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.RegularUnitPrice.Amount.ToString();
                                             }
                                             else
                                             {
-                                                validItem = false;
+                                                tlogItemRecordMap["regularUnitPrice"] = "0";
+                                            }
+
+                                            if (item.ExtendedUnitPrice != null)
+                                            {
+                                                tlogItemRecordMap["extendedUnitPrice"] =
+                                                    String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.ExtendedUnitPrice.Amount.ToString();
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["extendedUnitPrice"] = "0";
+                                            }
+
+                                            if (item.ExtendedAmount != null)
+                                            {
+                                                tlogItemRecordMap["extendedAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
+                                                        ? "0"
+                                                        : item.ExtendedAmount.Amount.ToString();
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["extendedAmount"] = "0";
+                                            }
+
+                                            if (item.ActualAmount != null)
+                                            {
+                                                tlogItemRecordMap["actualAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                        ? "0"
+                                                        : item.ActualAmount.Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["actualAmount"] = "0";
+                                            }
+
+                                            if (item.Quantity != null)
+                                            {
+                                                tlogItemRecordMap["quantity"] =
+                                                    String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                        ? "0"
+                                                        : item.Quantity.Quantity;
+
+                                                tlogItemRecordMap["unitOfMeasurement"] =
+                                                    String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
+                                                        ? "null"
+                                                        : item.Quantity.UnitOfMeasurement;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["quantity"] = "0";
+                                                tlogItemRecordMap["unitOfMeasurement"] = "null";
                                             }
                                         }
                                         catch (Exception e)
@@ -834,21 +842,22 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             };
                                         }
                                     }
+                                    
+                                }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
                                 }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_Historical : Endpoint
@@ -860,6 +869,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "productId",
+                    "isItemNotOnFile",
                     "productName",
                     "regularUnitPrice",
                     "extendedUnitPrice",
@@ -919,103 +929,116 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
-                do //while queryDate != today
+                var tempSiteList = await apiClient.GetSiteIds();
+
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+
+
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
                         
                         
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        readQuery.SiteInfoIds = new List<string>(){site};
+                        
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                // yield break;
-                                continue;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    try
-                                    {
-                                        tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                        tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                    }
-                                    catch
-                                    {
-                                        
-                                    }
+                                    continue;
+                                }
 
-                                    foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
                                     {
-                                        bool validItem = true;
                                         try
                                         {
-                                            if (item.IsItemNotOnFile == false)
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogItemRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                    {
+                                        try
+                                        {
+                                            tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                            tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                        }
+                                        catch
+                                        {
+
+                                        }
+
+                                        foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                        {
+                                            bool validItem = true;
+                                            try
                                             {
+                                                
                                                 tlogItemRecordMap["id"] =
                                                     String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
                                                 
-                                                
+                                                tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
+
                                                 tlogItemRecordMap["productId"] =
                                                     String.IsNullOrWhiteSpace(item.ProductId)
                                                         ? "null"
@@ -1092,40 +1115,36 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                     tlogItemRecordMap["unitOfMeasurement"] = "null";
                                                 }
                                             }
-                                            else
+                                            catch (Exception e)
                                             {
                                                 validItem = false;
                                             }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            validItem = false;
-                                        }
 
-                                        if (validItem)
-                                        {
-                                            yield return new Record
+                                            if (validItem)
                                             {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                            };
+                                                yield return new Record
+                                                {
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                                };
+                                            }
                                         }
                                     }
                                 }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
+                                }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_OrderPromos_Historical : Endpoint
@@ -1144,6 +1163,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "ticketday",
                     "ticketyear",
                     "productId",
+                    "isItemNotOnFile",
                     "departmentId",
                     "quantity",
                     "regularUnitPrice",
@@ -1245,83 +1265,91 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
-                do //while queryDate != today
+                
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
+                    readQuery.SiteInfoIds = new List<string>() {site};
                     
-                    do //while hasMore
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                // yield break;
-                                continue;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
+                                    // yield break;
+                                    continue;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogItemRecordMap = new Dictionary<string, object>();
+
                                     try
                                     {
                                         tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
@@ -1329,7 +1357,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
                                         tlogItemRecordMap["touchPointGroup"] =
                                             tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
-                                        
+
                                         var date_time = tLogResponseWrapper.BusinessDay.DateTime;
                                         tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
                                         tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
@@ -1338,7 +1366,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     }
                                     catch
                                     {
-                                        
+
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -1346,123 +1374,122 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         bool validItem = true;
                                         try
                                         {
-                                            if (item.IsItemNotOnFile == false)
-                                            {
-                                                tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                            tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                                ? "null"
+                                                : item.Id;
+
+                                            tlogItemRecordMap["IsItemNotOnFile"] = item.IsItemNotOnFile.ToString();
+                                            
+                                            tlogItemRecordMap["productId"] =
+                                                String.IsNullOrWhiteSpace(item.ProductId)
                                                     ? "null"
-                                                    : item.Id;
-                                                
-                                                tlogItemRecordMap["productId"] =
-                                                    String.IsNullOrWhiteSpace(item.ProductId)
-                                                        ? "null"
-                                                        : item.ProductId;
-                                                
-                                                tlogItemRecordMap["departmentId"] =
-                                                    String.IsNullOrWhiteSpace(item.DepartmentId)
-                                                        ? "null"
-                                                        : item.DepartmentId;
+                                                    : item.ProductId;
 
-                                                if (item.Quantity != null)
-                                                {
-                                                    tlogItemRecordMap["quantity"] =
-                                                        String.IsNullOrWhiteSpace(item.Quantity.Quantity)
-                                                            ? "0"
-                                                            : item.Quantity.Quantity;
-                                                }
-                                                if (item.RegularUnitPrice != null)
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] =
-                                                        String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
-                                                            ? "0"
-                                                            : item.RegularUnitPrice.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] = "0";
-                                                }
-                                                if (item.ActualAmount != null)
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] =
-                                                        String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
-                                                            ? "0"
-                                                            : item.ActualAmount.Amount;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] = "0";
-                                                }
+                                            tlogItemRecordMap["departmentId"] =
+                                                String.IsNullOrWhiteSpace(item.DepartmentId)
+                                                    ? "null"
+                                                    : item.DepartmentId;
 
-                                                if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
-                                                {
-                                                    tlogItemRecordMap["discountAmount"] =
-                                                        String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount)
-                                                            ? "0"
-                                                            : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] = "0";
-                                                }
-                                                
-                                                tlogItemRecordMap["isReturn"] = item.IsReturn;
-                                                
-                                                tlogItemRecordMap["isVoided"] = item.IsVoided;
+                                            if (item.Quantity != null)
+                                            {
+                                                tlogItemRecordMap["quantity"] =
+                                                    String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                        ? "0"
+                                                        : item.Quantity.Quantity;
+                                            }
 
-                                                if (item.ItemDiscounts != null)
-                                                {
-                                                    //Concat list for safety - original request unclear
-                                                    tlogItemRecordMap["discountType"] = string.Join(",",
-                                                        item.ItemDiscounts.Select(x => x.DiscountType));
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["discountType"] = "";
-                                                }
-                                                
-                                                // Placeholder rows - all null data by design
-                                                // These were cols in previous hive that no longer exist
-                                                
-                                                tlogItemRecordMap["03record"] = "null";
-                                                tlogItemRecordMap["rtntype"] = "null";
-                                                tlogItemRecordMap["fscard"] = "null";
-                                                tlogItemRecordMap["rtnsurchperc"] = "null";
-                                                tlogItemRecordMap["multunit"] = "null";
-                                                tlogItemRecordMap["notaxamt"] = "null";
-                                                tlogItemRecordMap["ignore_transaction"] = "null";
-                                                tlogItemRecordMap["non_merchandise"] = "null";
-                                                tlogItemRecordMap["subtract"] = "null";
-                                                tlogItemRecordMap["negative"] = "null";
-                                                tlogItemRecordMap["upcharge"] = "null";
-                                                tlogItemRecordMap["additive"] = "null";
-                                                tlogItemRecordMap["delivery_charges"] = "null";
-                                                tlogItemRecordMap["manual_discount"] = "null";
-                                                tlogItemRecordMap["percent_discount"] = "null";
-                                                tlogItemRecordMap["cost_plus_item_dept"] = "null";
-                                                tlogItemRecordMap["foodstampable_item"] = "null";
-                                                tlogItemRecordMap["store_promo"] = "null";
-                                                tlogItemRecordMap["plu_transaction_discount"] = "null";
-                                                tlogItemRecordMap["department_transaction_discount"] = "null";
-                                                tlogItemRecordMap["promo_type_given"] = "null";
-                                                tlogItemRecordMap["promo_type_reduction_given"] = "null";
-                                                tlogItemRecordMap["promo_type_offer_given"] = "null";
-                                                tlogItemRecordMap["multi_saver"] = "null";
-                                                tlogItemRecordMap["ext_promo"] = "null";
-                                                tlogItemRecordMap["not_net_promo"] = "null";
-                                                tlogItemRecordMap["member_discount"] = "null";
-                                                tlogItemRecordMap["discount_flag"] = "null";
-                                                tlogItemRecordMap["points_given_as_a_reward"] = "null";
-                                                tlogItemRecordMap["customer_acct_discount"] = "null";
-                                                tlogItemRecordMap["extended_trs"] = "null";
-                                                tlogItemRecordMap["auto_discount"] = "null";
-                                                tlogItemRecordMap["delayed_promo"] = "null";
-                                                tlogItemRecordMap["report_as_tender"] = "null";
-                                                tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
-                                                tlogItemRecordMap["row_str"] = "null";
+                                            if (item.RegularUnitPrice != null)
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice"] =
+                                                    String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.RegularUnitPrice.Amount.ToString();
                                             }
                                             else
                                             {
-                                                validItem = false;
+                                                tlogItemRecordMap["regularUnitPrice"] = "0";
                                             }
+
+                                            if (item.ActualAmount != null)
+                                            {
+                                                tlogItemRecordMap["actualAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                        ? "0"
+                                                        : item.ActualAmount.Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["actualAmount"] = "0";
+                                            }
+
+                                            if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
+                                            {
+                                                tlogItemRecordMap["discountAmount"] =
+                                                    String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog
+                                                        .TLogTotals.DiscountAmount.Amount)
+                                                        ? "0"
+                                                        : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount
+                                                            .Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["actualAmount"] = "0";
+                                            }
+
+                                            tlogItemRecordMap["isReturn"] = item.IsReturn;
+
+                                            tlogItemRecordMap["isVoided"] = item.IsVoided;
+
+                                            if (item.ItemDiscounts != null)
+                                            {
+                                                //Concat list for safety - original request unclear
+                                                tlogItemRecordMap["discountType"] = string.Join(",",
+                                                    item.ItemDiscounts.Select(x => x.DiscountType));
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["discountType"] = "";
+                                            }
+
+                                            // Placeholder rows - all null data by design
+                                            // These were cols in previous hive that no longer exist
+
+                                            tlogItemRecordMap["03record"] = "null";
+                                            tlogItemRecordMap["rtntype"] = "null";
+                                            tlogItemRecordMap["fscard"] = "null";
+                                            tlogItemRecordMap["rtnsurchperc"] = "null";
+                                            tlogItemRecordMap["multunit"] = "null";
+                                            tlogItemRecordMap["notaxamt"] = "null";
+                                            tlogItemRecordMap["ignore_transaction"] = "null";
+                                            tlogItemRecordMap["non_merchandise"] = "null";
+                                            tlogItemRecordMap["subtract"] = "null";
+                                            tlogItemRecordMap["negative"] = "null";
+                                            tlogItemRecordMap["upcharge"] = "null";
+                                            tlogItemRecordMap["additive"] = "null";
+                                            tlogItemRecordMap["delivery_charges"] = "null";
+                                            tlogItemRecordMap["manual_discount"] = "null";
+                                            tlogItemRecordMap["percent_discount"] = "null";
+                                            tlogItemRecordMap["cost_plus_item_dept"] = "null";
+                                            tlogItemRecordMap["foodstampable_item"] = "null";
+                                            tlogItemRecordMap["store_promo"] = "null";
+                                            tlogItemRecordMap["plu_transaction_discount"] = "null";
+                                            tlogItemRecordMap["department_transaction_discount"] = "null";
+                                            tlogItemRecordMap["promo_type_given"] = "null";
+                                            tlogItemRecordMap["promo_type_reduction_given"] = "null";
+                                            tlogItemRecordMap["promo_type_offer_given"] = "null";
+                                            tlogItemRecordMap["multi_saver"] = "null";
+                                            tlogItemRecordMap["ext_promo"] = "null";
+                                            tlogItemRecordMap["not_net_promo"] = "null";
+                                            tlogItemRecordMap["member_discount"] = "null";
+                                            tlogItemRecordMap["discount_flag"] = "null";
+                                            tlogItemRecordMap["points_given_as_a_reward"] = "null";
+                                            tlogItemRecordMap["customer_acct_discount"] = "null";
+                                            tlogItemRecordMap["extended_trs"] = "null";
+                                            tlogItemRecordMap["auto_discount"] = "null";
+                                            tlogItemRecordMap["delayed_promo"] = "null";
+                                            tlogItemRecordMap["report_as_tender"] = "null";
+                                            tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
+                                            tlogItemRecordMap["row_str"] = "null";
                                         }
                                         catch (Exception e)
                                         {
@@ -1479,20 +1506,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         }
                                     }
                                 }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
+                                }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_OrderPromos_Yesterday : Endpoint
@@ -1511,6 +1538,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "ticketday",
                     "ticketyear",
                     "productId",
+                    "isItemNotOnFile",
                     "departmentId",
                     "quantity",
                     "regularUnitPrice",
@@ -1612,83 +1640,89 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
-                do //while queryDate != today
+                
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                // yield break;
-                                continue;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
+                                    // yield break;
+                                    continue;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogItemRecordMap = new Dictionary<string, object>();
+
                                     try
                                     {
                                         tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
@@ -1696,7 +1730,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
                                         tlogItemRecordMap["touchPointGroup"] =
                                             tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
-                                        
+
                                         var date_time = tLogResponseWrapper.BusinessDay.DateTime;
                                         tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
                                         tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
@@ -1705,7 +1739,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     }
                                     catch
                                     {
-                                        
+
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -1718,12 +1752,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
                                                     ? "null"
                                                     : item.Id;
-                                                
+
                                                 tlogItemRecordMap["productId"] =
                                                     String.IsNullOrWhiteSpace(item.ProductId)
                                                         ? "null"
                                                         : item.ProductId;
-                                                
+
                                                 tlogItemRecordMap["departmentId"] =
                                                     String.IsNullOrWhiteSpace(item.DepartmentId)
                                                         ? "null"
@@ -1736,6 +1770,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                             ? "0"
                                                             : item.Quantity.Quantity;
                                                 }
+
                                                 if (item.RegularUnitPrice != null)
                                                 {
                                                     tlogItemRecordMap["regularUnitPrice"] =
@@ -1747,6 +1782,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 {
                                                     tlogItemRecordMap["regularUnitPrice"] = "0";
                                                 }
+
                                                 if (item.ActualAmount != null)
                                                 {
                                                     tlogItemRecordMap["actualAmount"] =
@@ -1762,17 +1798,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
                                                 {
                                                     tlogItemRecordMap["discountAmount"] =
-                                                        String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount)
+                                                        String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog
+                                                            .TLogTotals.DiscountAmount.Amount)
                                                             ? "0"
-                                                            : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount;
+                                                            : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount
+                                                                .Amount;
                                                 }
                                                 else
                                                 {
                                                     tlogItemRecordMap["actualAmount"] = "0";
                                                 }
-                                                
+
                                                 tlogItemRecordMap["isReturn"] = item.IsReturn;
-                                                
+
                                                 tlogItemRecordMap["isVoided"] = item.IsVoided;
 
                                                 if (item.ItemDiscounts != null)
@@ -1785,10 +1823,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 {
                                                     tlogItemRecordMap["discountType"] = "";
                                                 }
-                                                
+
                                                 // Placeholder rows - all null data by design
                                                 // These were cols in previous hive that no longer exist
-                                                
+
                                                 tlogItemRecordMap["03record"] = "null";
                                                 tlogItemRecordMap["rtntype"] = "null";
                                                 tlogItemRecordMap["fscard"] = "null";
@@ -1846,20 +1884,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         }
                                     }
                                 }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
+                                }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_OrderPromos_7Days : Endpoint
@@ -1878,6 +1916,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "ticketday",
                     "ticketyear",
                     "productId",
+                    "isItemNotOnFile",
                     "departmentId",
                     "quantity",
                     "regularUnitPrice",
@@ -1980,116 +2019,124 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
-                do //while queryDate != today
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        //queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        queryDate = "2021-09-27T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                // yield break;
-                                continue;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    try
-                                    {
-                                        tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                        tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                        tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
-                                        tlogItemRecordMap["touchPointGroup"] =
-                                            tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
-                                        
-                                        var date_time = tLogResponseWrapper.BusinessDay.DateTime;
-                                        tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
-                                        tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
-                                        tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
-                                        tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
-                                    }
-                                    catch
-                                    {
-                                        
-                                    }
+                                    // yield break;
+                                    continue;
+                                }
 
-                                    foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
                                     {
-                                        bool validItem = true;
                                         try
                                         {
-                                            if (item.IsItemNotOnFile == false)
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogItemRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                    {
+                                        try
+                                        {
+                                            tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                            tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                            tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
+                                            tlogItemRecordMap["touchPointGroup"] =
+                                                tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
+
+                                            var date_time = tLogResponseWrapper.BusinessDay.DateTime;
+                                            tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
+                                            tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
+                                            tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
+                                            tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
+                                        }
+                                        catch
+                                        {
+
+                                        }
+
+                                        foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                        {
+                                            bool validItem = true;
+                                            try
                                             {
                                                 tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
                                                     ? "null"
                                                     : item.Id;
-                                                
+
                                                 tlogItemRecordMap["productId"] =
                                                     String.IsNullOrWhiteSpace(item.ProductId)
                                                         ? "null"
                                                         : item.ProductId;
+                                                
+                                                tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
                                                 
                                                 tlogItemRecordMap["departmentId"] =
                                                     String.IsNullOrWhiteSpace(item.DepartmentId)
@@ -2103,6 +2150,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                             ? "0"
                                                             : item.Quantity.Quantity;
                                                 }
+
                                                 if (item.RegularUnitPrice != null)
                                                 {
                                                     tlogItemRecordMap["regularUnitPrice"] =
@@ -2114,6 +2162,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 {
                                                     tlogItemRecordMap["regularUnitPrice"] = "0";
                                                 }
+
                                                 if (item.ActualAmount != null)
                                                 {
                                                     tlogItemRecordMap["actualAmount"] =
@@ -2129,17 +2178,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
                                                 {
                                                     tlogItemRecordMap["discountAmount"] =
-                                                        String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount)
+                                                        String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog
+                                                            .TLogTotals.DiscountAmount.Amount)
                                                             ? "0"
-                                                            : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount;
+                                                            : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount
+                                                                .Amount;
                                                 }
                                                 else
                                                 {
                                                     tlogItemRecordMap["actualAmount"] = "0";
                                                 }
-                                                
+
                                                 tlogItemRecordMap["isReturn"] = item.IsReturn;
-                                                
+
                                                 tlogItemRecordMap["isVoided"] = item.IsVoided;
 
                                                 if (item.ItemDiscounts != null)
@@ -2152,10 +2203,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 {
                                                     tlogItemRecordMap["discountType"] = "";
                                                 }
-                                                
+
                                                 // Placeholder rows - all null data by design
                                                 // These were cols in previous hive that no longer exist
-                                                
+
                                                 tlogItemRecordMap["03record"] = "null";
                                                 tlogItemRecordMap["rtntype"] = "null";
                                                 tlogItemRecordMap["fscard"] = "null";
@@ -2193,40 +2244,36 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
                                                 tlogItemRecordMap["row_str"] = "null";
                                             }
-                                            else
+                                            catch (Exception e)
                                             {
                                                 validItem = false;
                                             }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            validItem = false;
-                                        }
 
-                                        if (validItem)
-                                        {
-                                            yield return new Record
+                                            if (validItem)
                                             {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                            };
+                                                yield return new Record
+                                                {
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                                };
+                                            }
                                         }
                                     }
                                 }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
+                                }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_OrderPromos_Today : Endpoint
@@ -2245,6 +2292,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "ticketday",
                     "ticketyear",
                     "productId",
+                    "isItemNotOnFile",
                     "departmentId",
                     "quantity",
                     "regularUnitPrice",
@@ -2346,83 +2394,89 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
-                do //while queryDate != today
+                
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                // yield break;
-                                continue;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
+                                    continue;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogItemRecordMap = new Dictionary<string, object>();
+
                                     try
                                     {
                                         tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
@@ -2430,7 +2484,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
                                         tlogItemRecordMap["touchPointGroup"] =
                                             tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
-                                        
+
                                         var date_time = tLogResponseWrapper.BusinessDay.DateTime;
                                         tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
                                         tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
@@ -2439,7 +2493,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     }
                                     catch
                                     {
-                                        
+
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -2447,123 +2501,122 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         bool validItem = true;
                                         try
                                         {
-                                            if (item.IsItemNotOnFile == false)
-                                            {
-                                                tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                            tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                                ? "null"
+                                                : item.Id;
+
+                                            tlogItemRecordMap["productId"] =
+                                                String.IsNullOrWhiteSpace(item.ProductId)
                                                     ? "null"
-                                                    : item.Id;
-                                                
-                                                tlogItemRecordMap["productId"] =
-                                                    String.IsNullOrWhiteSpace(item.ProductId)
-                                                        ? "null"
-                                                        : item.ProductId;
-                                                
-                                                tlogItemRecordMap["departmentId"] =
-                                                    String.IsNullOrWhiteSpace(item.DepartmentId)
-                                                        ? "null"
-                                                        : item.DepartmentId;
+                                                    : item.ProductId;
 
-                                                if (item.Quantity != null)
-                                                {
-                                                    tlogItemRecordMap["quantity"] =
-                                                        String.IsNullOrWhiteSpace(item.Quantity.Quantity)
-                                                            ? "0"
-                                                            : item.Quantity.Quantity;
-                                                }
-                                                if (item.RegularUnitPrice != null)
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] =
-                                                        String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
-                                                            ? "0"
-                                                            : item.RegularUnitPrice.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] = "0";
-                                                }
-                                                if (item.ActualAmount != null)
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] =
-                                                        String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
-                                                            ? "0"
-                                                            : item.ActualAmount.Amount;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] = "0";
-                                                }
+                                            tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
+                                            
+                                            tlogItemRecordMap["departmentId"] =
+                                                String.IsNullOrWhiteSpace(item.DepartmentId)
+                                                    ? "null"
+                                                    : item.DepartmentId;
 
-                                                if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
-                                                {
-                                                    tlogItemRecordMap["discountAmount"] =
-                                                        String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount)
-                                                            ? "0"
-                                                            : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount.Amount;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] = "0";
-                                                }
-                                                
-                                                tlogItemRecordMap["isReturn"] = item.IsReturn;
-                                                
-                                                tlogItemRecordMap["isVoided"] = item.IsVoided;
+                                            if (item.Quantity != null)
+                                            {
+                                                tlogItemRecordMap["quantity"] =
+                                                    String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                        ? "0"
+                                                        : item.Quantity.Quantity;
+                                            }
 
-                                                if (item.ItemDiscounts != null)
-                                                {
-                                                    //Concat list for safety - original request unclear
-                                                    tlogItemRecordMap["discountType"] = string.Join(",",
-                                                        item.ItemDiscounts.Select(x => x.DiscountType));
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["discountType"] = "";
-                                                }
-                                                
-                                                // Placeholder rows - all null data by design
-                                                // These were cols in previous hive that no longer exist
-                                                
-                                                tlogItemRecordMap["03record"] = "null";
-                                                tlogItemRecordMap["rtntype"] = "null";
-                                                tlogItemRecordMap["fscard"] = "null";
-                                                tlogItemRecordMap["rtnsurchperc"] = "null";
-                                                tlogItemRecordMap["multunit"] = "null";
-                                                tlogItemRecordMap["notaxamt"] = "null";
-                                                tlogItemRecordMap["ignore_transaction"] = "null";
-                                                tlogItemRecordMap["non_merchandise"] = "null";
-                                                tlogItemRecordMap["subtract"] = "null";
-                                                tlogItemRecordMap["negative"] = "null";
-                                                tlogItemRecordMap["upcharge"] = "null";
-                                                tlogItemRecordMap["additive"] = "null";
-                                                tlogItemRecordMap["delivery_charges"] = "null";
-                                                tlogItemRecordMap["manual_discount"] = "null";
-                                                tlogItemRecordMap["percent_discount"] = "null";
-                                                tlogItemRecordMap["cost_plus_item_dept"] = "null";
-                                                tlogItemRecordMap["foodstampable_item"] = "null";
-                                                tlogItemRecordMap["store_promo"] = "null";
-                                                tlogItemRecordMap["plu_transaction_discount"] = "null";
-                                                tlogItemRecordMap["department_transaction_discount"] = "null";
-                                                tlogItemRecordMap["promo_type_given"] = "null";
-                                                tlogItemRecordMap["promo_type_reduction_given"] = "null";
-                                                tlogItemRecordMap["promo_type_offer_given"] = "null";
-                                                tlogItemRecordMap["multi_saver"] = "null";
-                                                tlogItemRecordMap["ext_promo"] = "null";
-                                                tlogItemRecordMap["not_net_promo"] = "null";
-                                                tlogItemRecordMap["member_discount"] = "null";
-                                                tlogItemRecordMap["discount_flag"] = "null";
-                                                tlogItemRecordMap["points_given_as_a_reward"] = "null";
-                                                tlogItemRecordMap["customer_acct_discount"] = "null";
-                                                tlogItemRecordMap["extended_trs"] = "null";
-                                                tlogItemRecordMap["auto_discount"] = "null";
-                                                tlogItemRecordMap["delayed_promo"] = "null";
-                                                tlogItemRecordMap["report_as_tender"] = "null";
-                                                tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
-                                                tlogItemRecordMap["row_str"] = "null";
+                                            if (item.RegularUnitPrice != null)
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice"] =
+                                                    String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.RegularUnitPrice.Amount.ToString();
                                             }
                                             else
                                             {
-                                                validItem = false;
+                                                tlogItemRecordMap["regularUnitPrice"] = "0";
                                             }
+
+                                            if (item.ActualAmount != null)
+                                            {
+                                                tlogItemRecordMap["actualAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                        ? "0"
+                                                        : item.ActualAmount.Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["actualAmount"] = "0";
+                                            }
+
+                                            if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
+                                            {
+                                                tlogItemRecordMap["discountAmount"] =
+                                                    String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog
+                                                        .TLogTotals.DiscountAmount.Amount)
+                                                        ? "0"
+                                                        : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount
+                                                            .Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["actualAmount"] = "0";
+                                            }
+
+                                            tlogItemRecordMap["isReturn"] = item.IsReturn;
+
+                                            tlogItemRecordMap["isVoided"] = item.IsVoided;
+
+                                            if (item.ItemDiscounts != null)
+                                            {
+                                                //Concat list for safety - original request unclear
+                                                tlogItemRecordMap["discountType"] = string.Join(",",
+                                                    item.ItemDiscounts.Select(x => x.DiscountType));
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["discountType"] = "";
+                                            }
+
+                                            // Placeholder rows - all null data by design
+                                            // These were cols in previous hive that no longer exist
+
+                                            tlogItemRecordMap["03record"] = "null";
+                                            tlogItemRecordMap["rtntype"] = "null";
+                                            tlogItemRecordMap["fscard"] = "null";
+                                            tlogItemRecordMap["rtnsurchperc"] = "null";
+                                            tlogItemRecordMap["multunit"] = "null";
+                                            tlogItemRecordMap["notaxamt"] = "null";
+                                            tlogItemRecordMap["ignore_transaction"] = "null";
+                                            tlogItemRecordMap["non_merchandise"] = "null";
+                                            tlogItemRecordMap["subtract"] = "null";
+                                            tlogItemRecordMap["negative"] = "null";
+                                            tlogItemRecordMap["upcharge"] = "null";
+                                            tlogItemRecordMap["additive"] = "null";
+                                            tlogItemRecordMap["delivery_charges"] = "null";
+                                            tlogItemRecordMap["manual_discount"] = "null";
+                                            tlogItemRecordMap["percent_discount"] = "null";
+                                            tlogItemRecordMap["cost_plus_item_dept"] = "null";
+                                            tlogItemRecordMap["foodstampable_item"] = "null";
+                                            tlogItemRecordMap["store_promo"] = "null";
+                                            tlogItemRecordMap["plu_transaction_discount"] = "null";
+                                            tlogItemRecordMap["department_transaction_discount"] = "null";
+                                            tlogItemRecordMap["promo_type_given"] = "null";
+                                            tlogItemRecordMap["promo_type_reduction_given"] = "null";
+                                            tlogItemRecordMap["promo_type_offer_given"] = "null";
+                                            tlogItemRecordMap["multi_saver"] = "null";
+                                            tlogItemRecordMap["ext_promo"] = "null";
+                                            tlogItemRecordMap["not_net_promo"] = "null";
+                                            tlogItemRecordMap["member_discount"] = "null";
+                                            tlogItemRecordMap["discount_flag"] = "null";
+                                            tlogItemRecordMap["points_given_as_a_reward"] = "null";
+                                            tlogItemRecordMap["customer_acct_discount"] = "null";
+                                            tlogItemRecordMap["extended_trs"] = "null";
+                                            tlogItemRecordMap["auto_discount"] = "null";
+                                            tlogItemRecordMap["delayed_promo"] = "null";
+                                            tlogItemRecordMap["report_as_tender"] = "null";
+                                            tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
+                                            tlogItemRecordMap["row_str"] = "null";
                                         }
                                         catch (Exception e)
                                         {
@@ -2579,21 +2632,22 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             };
                                         }
                                     }
+                                    
+                                }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
                                 }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_Tenders_Historical : Endpoint
@@ -2671,83 +2725,89 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
-                do //while queryDate != today
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                yield break;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogTenderRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    if(tLogResponseWrapper.Tlog.Tenders.Count > 0)
+                                    yield break;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogTenderRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.Tlog.Tenders.Count > 0)
                                     {
                                         foreach (var tender in tLogResponseWrapper.Tlog.Tenders)
                                         {
@@ -2769,27 +2829,29 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                             }
                                         }
+
                                         yield return new Record
                                         {
                                             Action = Record.Types.Action.Upsert,
                                             DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
                                         };
                                     }
+                                    
+                                }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
                                 }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_Tenders_Today : Endpoint
@@ -2868,82 +2930,89 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
-                do //while queryDate != today
+                
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                yield break;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogTenderRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    if(tLogResponseWrapper.Tlog.Tenders.Count > 0)
+                                    yield break;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogTenderRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.Tlog.Tenders.Count > 0)
                                     {
                                         foreach (var tender in tLogResponseWrapper.Tlog.Tenders)
                                         {
@@ -2965,27 +3034,29 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                             }
                                         }
+
                                         yield return new Record
                                         {
                                             Action = Record.Types.Action.Upsert,
                                             DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
                                         };
                                     }
+                                    
+                                }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
                                 }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_Tenders_Yesterday : Endpoint
@@ -3063,83 +3134,89 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
-                do //while queryDate != today
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach (var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
-                    
-                    do //while hasMore
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                yield break;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogTenderRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    if(tLogResponseWrapper.Tlog.Tenders.Count > 0)
+                                    yield break;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogTenderRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.Tlog.Tenders.Count > 0)
                                     {
                                         foreach (var tender in tLogResponseWrapper.Tlog.Tenders)
                                         {
@@ -3161,27 +3238,29 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                             }
                                         }
+
                                         yield return new Record
                                         {
                                             Action = Record.Types.Action.Upsert,
                                             DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
                                         };
                                     }
+                                    
+                                }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
                                 }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
         private class TransactionDocumentEndpoint_Tenders_7Days : Endpoint
@@ -3259,83 +3338,91 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
-                do //while queryDate != today
+                
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                
+                foreach(var site in workingSiteList)
                 {
-                    queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                    currDayOffset = currDayOffset + 1;
-                    readQuery.BusinessDay.DateTime = queryDate;
-                    currPage = 0;
+                    readQuery.SiteInfoIds = new List<string>() {site};
                     
-                    do //while hasMore
+                    do //while queryDate != today
                     {
-                        readQuery.PageNumber = currPage;
-                        
-                        
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-                        using (var response = await apiClient.PostAsync(
-                            path
-                            , json))
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
                         {
-                            if (!response.IsSuccessStatusCode)
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
-                            }
-
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
-                            if (objectResponseWrapper?.PageContent.Count == 0)
-                            {
-                                yield break;
-                            }
-
-                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
-                            {
-                                var recordMap = new Dictionary<string, object>();
-
-                                foreach (var objectProperty in objectResponse)
-                                {
-                                    try
-                                    {
-                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                    }
-                                    catch
-                                    {
-                                        recordMap[objectProperty.Key] = "";
-                                    }
-
-                                }
-
-                                var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                        await response.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
 
-                                var tlogTenderRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    if(tLogResponseWrapper.Tlog.Tenders.Count > 0)
+                                    yield break;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogTenderRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.Tlog.Tenders.Count > 0)
                                     {
                                         foreach (var tender in tLogResponseWrapper.Tlog.Tenders)
                                         {
@@ -3357,6 +3444,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                             }
                                         }
+
                                         yield return new Record
                                         {
                                             Action = Record.Types.Action.Upsert,
@@ -3364,20 +3452,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         };
                                     }
                                 }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
+                                }
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                            {
-                                hasMore = false;
-                            }
-                            else
-                            {
-                                currPage++;
-                                hasMore = true;
-                            }
-                        }
-                    } while (hasMore);
-                } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                        } while (hasMore);
+                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                }
             }
         }
        
@@ -3599,7 +3687,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     PropertiesQuery = 
                         "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                     ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
                     SupportedActions = new List<EndpointActions>
                     {
                         //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
@@ -3674,7 +3762,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     PropertiesQuery = 
                         "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                     ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
                     SupportedActions = new List<EndpointActions>
                     {
                         //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI

@@ -10,9 +10,8 @@ namespace PluginNCR.Helper
         public string NepOrganization { get; set; }
         public string QueryStartDate { get; set; }
         public string NepApplicationKey { get; set; }
-        
-        public string ContentType { get; set; }
         public string NepCorrelationId { get; set; }
+        public string SiteIDs { get; set; }
 
         /// <summary>
         /// Validates the settings input object
@@ -43,6 +42,11 @@ namespace PluginNCR.Helper
             if (String.IsNullOrEmpty(QueryStartDate))
             {
                 throw new Exception("the QueryStartDate property must be set");
+            }
+
+            if (String.IsNullOrEmpty(SiteIDs))
+            {
+                throw new Exception("the SiteIDs property must be set");
             }
             
             Regex dateValidationRgx = new Regex(@"^(19|20)\d\d-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$");
