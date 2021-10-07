@@ -2021,8 +2021,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     
                     do //while queryDate != today
                     {
-                        //queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
-                        queryDate = "2021-09-27T00:00:00Z";
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
