@@ -27,7 +27,7 @@ namespace PluginNCRTest.Plugin
                     NepOrganization = @"",
                     NepCorrelationId = @"",
                     QueryStartDate = "",
-                    SiteIDs = ""
+                    SiteIDs = "2304"
                 };
         }
 

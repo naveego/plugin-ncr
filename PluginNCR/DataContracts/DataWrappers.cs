@@ -188,6 +188,27 @@ namespace PluginNCR.DataContracts
         
         [JsonProperty("customer")]
         public Customer Customer { get; set; }
+        
+        [JsonProperty("loyaltyAccount")]
+        public LoyaltyAccount LoyaltyAccount { get; set; }
+    }
+
+    public class LoyaltyAccount
+    {
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        
+        [JsonProperty("accountId")]
+        public string AccountId { get; set; }
+        
+        [JsonProperty("pointsAwarded")]
+        public string PointsAwarded { get; set; }
+        
+        [JsonProperty("pointsRedeemed")]
+        public string PointsRedeemed { get; set; }
+        
+        [JsonProperty("programType")]
+        public string ProgramType { get; set; }
     }
 
     public class Customer

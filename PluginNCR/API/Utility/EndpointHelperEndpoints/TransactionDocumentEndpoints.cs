@@ -40,6 +40,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "quantity",
                     "unitOfMeasurement",
                     "customerId",
+                    "loyaltyAccountRowId",
+                    "loyaltyAccountId",
+                    "loyaltyAccountPointsAwarded",
+                    "loyaltyAccountPointsRedeemed",
+                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans"
@@ -184,6 +189,35 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
                                         tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                     }
+                                    else
+                                    {
+                                        tlogItemRecordMap["customerId"] = "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                    }
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                    }
+                                    else
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
+                                    }
                                 }
                                 catch
                                 {
@@ -324,6 +358,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "quantity",
                     "unitOfMeasurement",
                     "customerId",
+                    "loyaltyAccountRowId",
+                    "loyaltyAccountId",
+                    "loyaltyAccountPointsAwarded",
+                    "loyaltyAccountPointsRedeemed",
+                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans"
@@ -467,6 +506,35 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
                                         tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                     }
+                                    else
+                                    {
+                                        tlogItemRecordMap["customerId"] = "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                    }
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                    }
+                                    else
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
+                                    }
                                 }
                                 catch
                                 {
@@ -609,6 +677,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "quantity",
                     "unitOfMeasurement",
                     "customerId",
+                    "loyaltyAccountRowId",
+                    "loyaltyAccountId",
+                    "loyaltyAccountPointsAwarded",
+                    "loyaltyAccountPointsRedeemed",
+                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans"
@@ -758,6 +831,35 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
                                             tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                         }
+                                    else
+                                    {
+                                        tlogItemRecordMap["customerId"] = "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                    }
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                    }
+                                    else
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
+                                    }
                                     }
                                     catch
                                     {
@@ -901,6 +1003,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "quantity",
                     "unitOfMeasurement",
                     "customerId",
+                    "loyaltyAccountRowId",
+                    "loyaltyAccountId",
+                    "loyaltyAccountPointsAwarded",
+                    "loyaltyAccountPointsRedeemed",
+                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans"
@@ -1043,127 +1150,154 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                     var tlogItemRecordMap = new Dictionary<string, object>();
 
-                                    if (tLogResponseWrapper.TransactionCategory == "SALE_OR_RETURN")
+                                    try
                                     {
-                                        try
+                                        tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                        tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                        if(tLogResponseWrapper.Tlog.Customer != null)
                                         {
-                                            tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                            tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                            if(tLogResponseWrapper.Tlog.Customer != null)
-                                            {
-                                                tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                                tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                                tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                                tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
-                                            }
+                                            tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                         }
-                                        catch
+                                        else
                                         {
-
+                                            tlogItemRecordMap["customerId"] = "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                         }
 
-                                        foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                        if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
                                         {
-                                            bool validItem = true;
-                                            try
-                                            {
-                                                
-                                                tlogItemRecordMap["id"] =
-                                                    String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
-                                                
-                                                tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
-
-                                                tlogItemRecordMap["productId"] =
-                                                    String.IsNullOrWhiteSpace(item.ProductId)
-                                                        ? "null"
-                                                        : item.ProductId;
-
-                                                tlogItemRecordMap["productName"] =
-                                                    String.IsNullOrWhiteSpace(item.ProductName)
-                                                        ? "null"
-                                                        : item.ProductName.Replace("'", "''");
-
-                                                if (item.RegularUnitPrice != null)
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] =
-                                                        String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
-                                                            ? "0"
-                                                            : item.RegularUnitPrice.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["regularUnitPrice"] = "0";
-                                                }
-
-                                                if (item.ExtendedUnitPrice != null)
-                                                {
-                                                    tlogItemRecordMap["extendedUnitPrice"] =
-                                                        String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
-                                                            ? "0"
-                                                            : item.ExtendedUnitPrice.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["extendedUnitPrice"] = "0";
-                                                }
-
-                                                if (item.ExtendedAmount != null)
-                                                {
-                                                    tlogItemRecordMap["extendedAmount"] =
-                                                        String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
-                                                            ? "0"
-                                                            : item.ExtendedAmount.Amount.ToString();
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["extendedAmount"] = "0";
-                                                }
-
-                                                if (item.ActualAmount != null)
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] =
-                                                        String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
-                                                            ? "0"
-                                                            : item.ActualAmount.Amount;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["actualAmount"] = "0";
-                                                }
-
-                                                if (item.Quantity != null)
-                                                {
-                                                    tlogItemRecordMap["quantity"] =
-                                                        String.IsNullOrWhiteSpace(item.Quantity.Quantity)
-                                                            ? "0"
-                                                            : item.Quantity.Quantity;
-
-                                                    tlogItemRecordMap["unitOfMeasurement"] =
-                                                        String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
-                                                            ? "null"
-                                                            : item.Quantity.UnitOfMeasurement;
-                                                }
-                                                else
-                                                {
-                                                    tlogItemRecordMap["quantity"] = "0";
-                                                    tlogItemRecordMap["unitOfMeasurement"] = "null";
-                                                }
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                validItem = false;
-                                            }
-
-                                            if (validItem)
-                                            {
-                                                yield return new Record
-                                                {
-                                                    Action = Record.Types.Action.Upsert,
-                                                    DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                                };
-                                            }
+                                            tlogItemRecordMap["loyaltyAccountRowId"] =
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                            tlogItemRecordMap["loyaltyAccountId"] =
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                            tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                            tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                            tlogItemRecordMap["loyaltyAccountProgramType"] =
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["loyaltyAccountRowId"] ="null";
+                                            tlogItemRecordMap["loyaltyAccountId"] ="null";
+                                            tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
+                                            tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
+                                            tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
                                         }
                                     }
+                                    catch
+                                    {
+
+                                    }
+
+                                    foreach (var item in tLogResponseWrapper.Tlog.Items)
+                                    {
+                                        bool validItem = true;
+                                        try
+                                        {
+                                            
+                                            tlogItemRecordMap["id"] =
+                                                String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
+                                            
+                                            tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
+
+                                            tlogItemRecordMap["productId"] =
+                                                String.IsNullOrWhiteSpace(item.ProductId)
+                                                    ? "null"
+                                                    : item.ProductId;
+
+                                            tlogItemRecordMap["productName"] =
+                                                String.IsNullOrWhiteSpace(item.ProductName)
+                                                    ? "null"
+                                                    : item.ProductName.Replace("'", "''");
+
+                                            if (item.RegularUnitPrice != null)
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice"] =
+                                                    String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.RegularUnitPrice.Amount.ToString();
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice"] = "0";
+                                            }
+
+                                            if (item.ExtendedUnitPrice != null)
+                                            {
+                                                tlogItemRecordMap["extendedUnitPrice"] =
+                                                    String.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.ExtendedUnitPrice.Amount.ToString();
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["extendedUnitPrice"] = "0";
+                                            }
+
+                                            if (item.ExtendedAmount != null)
+                                            {
+                                                tlogItemRecordMap["extendedAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ExtendedAmount.Amount)
+                                                        ? "0"
+                                                        : item.ExtendedAmount.Amount.ToString();
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["extendedAmount"] = "0";
+                                            }
+
+                                            if (item.ActualAmount != null)
+                                            {
+                                                tlogItemRecordMap["actualAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                        ? "0"
+                                                        : item.ActualAmount.Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["actualAmount"] = "0";
+                                            }
+
+                                            if (item.Quantity != null)
+                                            {
+                                                tlogItemRecordMap["quantity"] =
+                                                    String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                        ? "0"
+                                                        : item.Quantity.Quantity;
+
+                                                tlogItemRecordMap["unitOfMeasurement"] =
+                                                    String.IsNullOrWhiteSpace(item.Quantity.UnitOfMeasurement)
+                                                        ? "null"
+                                                        : item.Quantity.UnitOfMeasurement;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["quantity"] = "0";
+                                                tlogItemRecordMap["unitOfMeasurement"] = "null";
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            validItem = false;
+                                        }
+
+                                        if (validItem)
+                                        {
+                                            yield return new Record
+                                            {
+                                                Action = Record.Types.Action.Upsert,
+                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                            };
+                                        }
+                                    }
+                                    
                                 }
 
                                 if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -1191,6 +1325,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "id",
                     "siteInfoId",
                     "customerId",
+                    "loyaltyAccountRowId",
+                    "loyaltyAccountId",
+                    "loyaltyAccountPointsAwarded",
+                    "loyaltyAccountPointsRedeemed",
+                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
@@ -1410,6 +1549,35 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
                                             tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                         }
+                                    else
+                                    {
+                                        tlogItemRecordMap["customerId"] = "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                    }
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                    }
+                                    else
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
+                                    }
                                     }
                                     catch
                                     {
@@ -1579,6 +1747,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "id",
                     "siteInfoId",
                     "customerId",
+                    "loyaltyAccountRowId",
+                    "loyaltyAccountId",
+                    "loyaltyAccountPointsAwarded",
+                    "loyaltyAccountPointsRedeemed",
+                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
@@ -1793,6 +1966,35 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
                                         tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                     }
+                                    else
+                                    {
+                                        tlogItemRecordMap["customerId"] = "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                    }
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                    }
+                                    else
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
+                                    }
                                 }
                                 catch
                                 {
@@ -1966,6 +2168,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "id",
                     "siteInfoId",
                     "customerId",
+                    "loyaltyAccountRowId",
+                    "loyaltyAccountId",
+                    "loyaltyAccountPointsAwarded",
+                    "loyaltyAccountPointsRedeemed",
+                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
@@ -2184,6 +2391,35 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
                                             tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                         }
+                                    else
+                                    {
+                                        tlogItemRecordMap["customerId"] = "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                    }
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                    }
+                                    else
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
+                                    }
                                     }
                                     catch
                                     {
@@ -2353,6 +2589,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "id",
                     "siteInfoId",
                     "customerId",
+                    "loyaltyAccountRowId",
+                    "loyaltyAccountId",
+                    "loyaltyAccountPointsAwarded",
+                    "loyaltyAccountPointsRedeemed",
+                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
@@ -2563,6 +2804,35 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
                                         tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
                                         tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                    }
+                                    else
+                                    {
+                                        tlogItemRecordMap["customerId"] = "null";
+                                        tlogItemRecordMap["customerEntryMethod"] = "null";
+                                        tlogItemRecordMap["customerIdentifierData"] = "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                    }
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountId"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                    }
+                                    else
+                                    {
+                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
+                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
+                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
                                     }
                                 }
                                 catch
