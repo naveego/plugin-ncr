@@ -27,7 +27,7 @@ namespace PluginNCRTest.Plugin
                     NepOrganization = @"",
                     NepCorrelationId = @"",
                     QueryStartDate = "",
-                    SiteIDs = "2304"
+                    SiteIDs = ""
                 };
         }
 
@@ -229,7 +229,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_OrderPromos_7Days");
+            var schema = GetTestSchema("TransactionDocument_OrderPromos_HistoricalFromDate");
 
             var connectRequest = GetConnectSettings();
 

@@ -190,7 +190,7 @@ namespace PluginNCR.DataContracts
         public Customer Customer { get; set; }
         
         [JsonProperty("loyaltyAccount")]
-        public LoyaltyAccount LoyaltyAccount { get; set; }
+        public List<LoyaltyAccount> LoyaltyAccount { get; set; }
     }
 
     public class LoyaltyAccount

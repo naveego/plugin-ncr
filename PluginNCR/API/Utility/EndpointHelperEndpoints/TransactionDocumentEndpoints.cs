@@ -197,18 +197,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
                                     {
                                         tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
                                         tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
                                         tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
                                         tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
                                         tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
                                     }
                                     else
                                     {
@@ -514,18 +515,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
                                     {
                                         tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
                                         tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
                                         tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
                                         tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
                                         tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
                                     }
                                     else
                                     {
@@ -839,18 +840,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
                                     {
                                         tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
                                         tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
                                         tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
                                         tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
                                         tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
                                     }
                                     else
                                     {
@@ -1169,18 +1170,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                         }
 
-                                        if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                        if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
                                         {
                                             tlogItemRecordMap["loyaltyAccountRowId"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
                                             tlogItemRecordMap["loyaltyAccountId"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
                                             tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
                                             tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
                                             tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
                                         }
                                         else
                                         {
@@ -1557,18 +1558,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
                                     {
                                         tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
                                         tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
                                         tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
                                         tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
                                         tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
                                     }
                                     else
                                     {
@@ -1974,18 +1975,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
                                     {
                                         tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
                                         tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
                                         tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
                                         tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
                                         tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
                                     }
                                     else
                                     {
@@ -2399,18 +2400,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
                                     {
                                         tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
                                         tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
                                         tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
                                         tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
                                         tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
                                     }
                                     else
                                     {
@@ -2813,18 +2814,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount != null)
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
                                     {
                                         tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.Id ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
                                         tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.AccountId ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
                                         tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsAwarded ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
                                         tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.PointsRedeemed ?? "0";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
                                         tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount.ProgramType ?? "null";
+                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
                                     }
                                     else
                                     {
