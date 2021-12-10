@@ -183,6 +183,9 @@ namespace PluginNCR.DataContracts
         [JsonProperty("isSuspended")]
         public bool IsSuspended { get; set; }
         
+        [JsonProperty("isTrainingMode")]
+        public bool IsTrainingMode { get; set; }
+        
         [JsonProperty("coupons")]
         public List<object> Coupons { get; set; }
         

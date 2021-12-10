@@ -13,6 +13,7 @@ namespace PluginNCR.API.Factory
         Task<HttpResponseMessage> DeleteAsync(string path);
         Task<HttpResponseMessage> SendAsync(string path, StringContent json);
         Task<string> GetStartDate();
+        Task<string> GetEndDate();
         Task<string> GetSiteIds();
     }
 }

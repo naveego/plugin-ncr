@@ -27,6 +27,7 @@ namespace PluginNCRTest.Plugin
                     NepOrganization = @"",
                     NepCorrelationId = @"",
                     QueryStartDate = "",
+                    QueryEndDate = "",
                     SiteIDs = ""
                 };
         }
@@ -143,7 +144,8 @@ namespace PluginNCRTest.Plugin
             // Assert.Equal($"", schema2.Query);
             // Assert.Equal(10, schema2.Sample.Count);
             // Assert.Equal(17, schema2.Properties.Count);
-            //
+            
+            
             // var property2 = schema2.Properties[0];
             // Assert.Equal("field1", property2.Id);
             // Assert.Equal("field1", property2.Name);
@@ -181,7 +183,7 @@ namespace PluginNCRTest.Plugin
                 SampleSize = 10,
                 ToRefresh =
                 {
-                    GetTestSchema("TransactionDocument_Today")
+                    GetTestSchema("TransactionDocument_LoyaltyAccounts_HistoricalFromDate")
                 }
             };
 
@@ -198,7 +200,7 @@ namespace PluginNCRTest.Plugin
              Assert.Equal("test", schema.Name);
              Assert.Equal("", schema.Query);
              Assert.Equal(10, schema.Sample.Count);
-             Assert.Equal(10, schema.Properties.Count);
+             Assert.Equal(6, schema.Properties.Count);
             //
              var property = schema.Properties[0];
              Assert.Equal("tlogId", property.Id);
@@ -265,9 +267,9 @@ namespace PluginNCRTest.Plugin
             // assert
             
             //NOTE - endpoint queries are based on live data and current date.
-            //  Assertations will be incorrect often
+            //Assertations will be incorrect often
 
-            Assert.Equal(31133, records.Count);
+            Assert.Equal(134801, records.Count);
 
             //var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
             //Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);

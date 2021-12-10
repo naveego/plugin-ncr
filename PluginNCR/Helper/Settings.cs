@@ -10,6 +10,7 @@ namespace PluginNCR.Helper
         public string ProvPassword { get; set; }
         public string NepOrganization { get; set; }
         public string QueryStartDate { get; set; }
+        public string QueryEndDate { get; set; }
         public string NepApplicationKey { get; set; }
         public string NepCorrelationId { get; set; }
         public string SiteIDs { get; set; }
@@ -74,6 +75,23 @@ namespace PluginNCR.Helper
             if (DateTime.Compare(DateTime.Parse(QueryStartDate), DateTime.Today) > 0)
             {
                 throw new Exception("the QueryStartDate must be equal to or before today");
+            }
+            if (!string.IsNullOrWhiteSpace(QueryEndDate))
+            {
+                if (!dateValidationRgx.IsMatch(QueryEndDate))
+                {
+                    throw new Exception("the QueryEndDate property must match yyyy-MM-dd format");
+                }
+
+                if (DateTime.Compare(DateTime.Parse(QueryEndDate), DateTime.Today) > 0)
+                {
+                    throw new Exception("the QueryEndDate must be equal to or before today");
+                }
+                
+                if (DateTime.Compare(DateTime.Parse(QueryEndDate), DateTime.Parse(QueryStartDate)) == -1)
+                {
+                    throw new Exception("the QueryEndDate must be equal to or after QueryStartDate");
+                }
             }
         }
     }

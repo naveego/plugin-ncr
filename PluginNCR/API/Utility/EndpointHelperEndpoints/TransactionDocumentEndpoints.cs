@@ -20,8 +20,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 {
     public class TransactionDocumentEndpointHelper
     {
-       
-
         private class TransactionDocumentEndpoint_Today : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -40,16 +38,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "quantity",
                     "unitOfMeasurement",
                     "customerId",
-                    "loyaltyAccountRowId",
-                    "loyaltyAccountId",
-                    "loyaltyAccountPointsAwarded",
-                    "loyaltyAccountPointsRedeemed",
-                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
-                    "customerInfoValidationMeans"
+                    "customerInfoValidationMeans",
+                    "isTrainingMode",
+                    "isSuspended"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -74,38 +69,43 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
                 var startDate = DateTime.Now.ToString("yyyy-MM-dd");
-                
+
                 var queryDate = DateTime.Parse(startDate).ToString("yyyy-MM-dd") +
                                 "T00:00:00Z";
-                
+
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-                
+
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                
-                foreach(var site in workingSiteList)
+
+
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     readQuery.BusinessDay.DateTime = queryDate;
@@ -156,7 +156,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         recordMap[objectProperty.Key] = "";
                                     }
-
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
@@ -182,12 +181,16 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                     tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                    if(tLogResponseWrapper.Tlog.Customer != null)
+                                    if (tLogResponseWrapper.Tlog.Customer != null)
                                     {
-                                        tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                        tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                        tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        tlogItemRecordMap["customerId"] =
+                                            tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                        tlogItemRecordMap["customerEntryMethod"] =
+                                            tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                        tlogItemRecordMap["customerIdentifierData"] =
+                                            tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] =
+                                            tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                     }
                                     else
                                     {
@@ -197,28 +200,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
-                                    }
-                                    else
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
-                                    }
+                                    tlogItemRecordMap["isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                    tlogItemRecordMap["isTrainingMode"] =
+                                        tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
                                 }
                                 catch
                                 {
@@ -321,9 +305,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         Action = Record.Types.Action.Upsert,
                                         DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
                                     };
-                                    
                                 }
-
                             }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -343,7 +325,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_Yesterday : Endpoint
         {
-           public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
                 List<string> staticSchemaProperties = new List<string>()
                 {
@@ -359,16 +341,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "quantity",
                     "unitOfMeasurement",
                     "customerId",
-                    "loyaltyAccountRowId",
-                    "loyaltyAccountId",
-                    "loyaltyAccountPointsAwarded",
-                    "loyaltyAccountPointsRedeemed",
-                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
-                    "customerInfoValidationMeans"
+                    "customerInfoValidationMeans",
+                    "isTrainingMode",
+                    "isSuspended"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -393,37 +372,41 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
                 var startDate = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
-                
+
                 var queryDate = DateTime.Parse(startDate).ToString("yyyy-MM-dd") +
                                 "T00:00:00Z";
-                
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                foreach(var site in workingSiteList)
+
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     readQuery.BusinessDay.DateTime = queryDate;
@@ -474,7 +457,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         recordMap[objectProperty.Key] = "";
                                     }
-
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
@@ -500,12 +482,16 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                     tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                    if(tLogResponseWrapper.Tlog.Customer != null)
+                                    if (tLogResponseWrapper.Tlog.Customer != null)
                                     {
-                                        tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                        tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                        tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        tlogItemRecordMap["customerId"] =
+                                            tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                        tlogItemRecordMap["customerEntryMethod"] =
+                                            tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                        tlogItemRecordMap["customerIdentifierData"] =
+                                            tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] =
+                                            tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                     }
                                     else
                                     {
@@ -515,31 +501,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
-                                    }
-                                    else
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
-                                    }
+                                    tlogItemRecordMap["isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                    tlogItemRecordMap["isTrainingMode"] =
+                                        tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
                                 }
                                 catch
                                 {
-
+                                    //noop
                                 }
 
                                 foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -552,7 +520,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                         tlogItemRecordMap["isItemNotOnFile"] =
                                             item.IsItemNotOnFile.ToString();
-                                        
+
                                         tlogItemRecordMap["productId"] =
                                             String.IsNullOrWhiteSpace(item.ProductId)
                                                 ? "null"
@@ -643,7 +611,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         };
                                     }
                                 }
-                                
                             }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -660,9 +627,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_7Days : Endpoint
         {
-           public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
                 List<string> staticSchemaProperties = new List<string>()
                 {
@@ -678,16 +646,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "quantity",
                     "unitOfMeasurement",
                     "customerId",
-                    "loyaltyAccountRowId",
-                    "loyaltyAccountId",
-                    "loyaltyAccountPointsAwarded",
-                    "loyaltyAccountPointsRedeemed",
-                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
-                    "customerInfoValidationMeans"
+                    "customerInfoValidationMeans",
+                    "isTrainingMode",
+                    "isSuspended"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -712,16 +677,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
@@ -729,20 +698,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 var startDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
-                
+
                 var queryDate = startDate + "T00:00:00Z";
-                
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-                
+
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                foreach(var site in workingSiteList)
+
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
@@ -799,7 +768,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             recordMap[objectProperty.Key] = "";
                                         }
-
                                     }
 
                                     var thisTlogId = recordMap["tlogId"];
@@ -825,46 +793,33 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                         tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                        if(tLogResponseWrapper.Tlog.Customer != null)
+                                        if (tLogResponseWrapper.Tlog.Customer != null)
                                         {
-                                            tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                            tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                            tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                            tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                            tlogItemRecordMap["customerId"] =
+                                                tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] =
+                                                tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] =
+                                                tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] =
+                                                tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                         }
-                                    else
-                                    {
-                                        tlogItemRecordMap["customerId"] = "null";
-                                        tlogItemRecordMap["customerEntryMethod"] = "null";
-                                        tlogItemRecordMap["customerIdentifierData"] = "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
-                                    }
+                                        else
+                                        {
+                                            tlogItemRecordMap["customerId"] = "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                        }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
-                                    }
-                                    else
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
-                                    }
+                                        tlogItemRecordMap["isSuspended"] =
+                                            tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                        tlogItemRecordMap["isTrainingMode"] =
+                                            tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
                                     }
                                     catch
                                     {
-
+                                        //noop
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -882,7 +837,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                     : item.ProductId;
 
                                             tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
-                                            
+
                                             tlogItemRecordMap["productName"] =
                                                 String.IsNullOrWhiteSpace(item.ProductName)
                                                     ? "null"
@@ -968,7 +923,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             };
                                         }
                                     }
-                                    
                                 }
 
                                 if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -986,6 +940,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_Historical : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -1004,16 +959,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "quantity",
                     "unitOfMeasurement",
                     "customerId",
-                    "loyaltyAccountRowId",
-                    "loyaltyAccountId",
-                    "loyaltyAccountPointsAwarded",
-                    "loyaltyAccountPointsRedeemed",
-                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
-                    "customerInfoValidationMeans"
+                    "customerInfoValidationMeans",
+                    "isTrainingMode",
+                    "isSuspended"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -1038,30 +990,33 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
                 var currDayOffset = 0;
-                var startDate = await apiClient.GetStartDate();
-                
-                var queryDate = startDate + "T00:00:00Z";
-                
+                var queryDate = await apiClient.GetStartDate();
+                var queryEndDate = await apiClient.GetEndDate();
+
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
                 var tempSiteList = await apiClient.GetSiteIds();
@@ -1070,19 +1025,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
 
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                foreach(var site in workingSiteList)
+
+                foreach (var site in workingSiteList)
                 {
                     currDayOffset = 0;
-                    readQuery.SiteInfoIds = new List<string>(){site};
-                    
-                    do //while queryDate != today
+                    readQuery.SiteInfoIds = new List<string>() {site};
+
+                    do //while queryDate != queryEndDate
                     {
-                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
-                                    "T00:00:00Z";
+                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         readQuery.BusinessDay.DateTime = queryDate;
-                        
+
                         currPage = 0;
 
                         do //while hasMore
@@ -1129,7 +1083,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             recordMap[objectProperty.Key] = "";
                                         }
-
                                     }
 
                                     var thisTlogId = recordMap["tlogId"];
@@ -1155,12 +1108,16 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                         tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                        if(tLogResponseWrapper.Tlog.Customer != null)
+                                        if (tLogResponseWrapper.Tlog.Customer != null)
                                         {
-                                            tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                            tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                            tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                            tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                            tlogItemRecordMap["customerId"] =
+                                                tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] =
+                                                tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] =
+                                                tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] =
+                                                tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                         }
                                         else
                                         {
@@ -1169,32 +1126,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["customerIdentifierData"] = "null";
                                             tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                         }
-
-                                        if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                        {
-                                            tlogItemRecordMap["loyaltyAccountRowId"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
-                                            tlogItemRecordMap["loyaltyAccountId"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
-                                            tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
-                                            tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
-                                            tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                                tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
-                                        }
-                                        else
-                                        {
-                                            tlogItemRecordMap["loyaltyAccountRowId"] ="null";
-                                            tlogItemRecordMap["loyaltyAccountId"] ="null";
-                                            tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
-                                            tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
-                                            tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
-                                        }
                                     }
                                     catch
                                     {
-
+                                        //noop
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -1202,10 +1137,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         bool validItem = true;
                                         try
                                         {
-                                            
                                             tlogItemRecordMap["id"] =
                                                 String.IsNullOrWhiteSpace(item.Id) ? "null" : item.Id;
-                                            
+
                                             tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
 
                                             tlogItemRecordMap["productId"] =
@@ -1298,7 +1232,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             };
                                         }
                                     }
-                                    
                                 }
 
                                 if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -1312,10 +1245,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                         } while (hasMore);
-                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                    } while (DateTime.Compare(DateTime.Parse(queryDate), DateTime.Parse(queryEndDate)) < 0);
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_OrderPromos_Historical : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -1326,11 +1260,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "id",
                     "siteInfoId",
                     "customerId",
-                    "loyaltyAccountRowId",
-                    "loyaltyAccountId",
-                    "loyaltyAccountPointsAwarded",
-                    "loyaltyAccountPointsRedeemed",
-                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
@@ -1385,9 +1314,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "delayed_promo",
                     "report_as_tender",
                     "not_netted_promo_frequent_shopper",
-                    "row_str"
+                    "row_str",
+                    "isTrainingMode",
+                    "isSuspended"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -1418,46 +1349,48 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
                 var currDayOffset = 0;
-                var startDate = await apiClient.GetStartDate();
-                
-                var queryDate = startDate + "T00:00:00Z";
-                
+                var queryDate = await apiClient.GetStartDate();
+                var queryEndDate = await apiClient.GetEndDate();
+
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-                
+
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                foreach(var site in workingSiteList)
+
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
-                    
-                    do //while queryDate != today
+
+                    do //while queryDate != queryEndDate
                     {
-                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
-                                    "T00:00:00Z";
+                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
@@ -1507,7 +1440,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             recordMap[objectProperty.Key] = "";
                                         }
-
                                     }
 
                                     var thisTlogId = recordMap["tlogId"];
@@ -1542,47 +1474,34 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                         tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
                                         tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
-                                        
-                                        if(tLogResponseWrapper.Tlog.Customer != null)
-                                        {
-                                            tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                            tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                            tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                            tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
-                                        }
-                                    else
-                                    {
-                                        tlogItemRecordMap["customerId"] = "null";
-                                        tlogItemRecordMap["customerEntryMethod"] = "null";
-                                        tlogItemRecordMap["customerIdentifierData"] = "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
-                                    }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
-                                    }
-                                    else
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
-                                    }
+                                        if (tLogResponseWrapper.Tlog.Customer != null)
+                                        {
+                                            tlogItemRecordMap["customerId"] =
+                                                tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] =
+                                                tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] =
+                                                tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] =
+                                                tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["customerId"] = "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                        }
+
+                                        tlogItemRecordMap["isSuspended"] =
+                                            tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                        tlogItemRecordMap["isTrainingMode"] =
+                                            tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
                                     }
                                     catch
                                     {
-
+                                        //noop
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -1595,7 +1514,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 : item.Id;
 
                                             tlogItemRecordMap["IsItemNotOnFile"] = item.IsItemNotOnFile.ToString();
-                                            
+
                                             tlogItemRecordMap["productId"] =
                                                 String.IsNullOrWhiteSpace(item.ProductId)
                                                     ? "null"
@@ -1733,11 +1652,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     hasMore = true;
                                 }
                             }
-                        } while (hasMore);
-                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                         } while (hasMore);
+                    } while (DateTime.Compare(DateTime.Parse(queryDate), DateTime.Parse(queryEndDate)) < 0);
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_OrderPromos_Yesterday : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -1748,11 +1668,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "id",
                     "siteInfoId",
                     "customerId",
-                    "loyaltyAccountRowId",
-                    "loyaltyAccountId",
-                    "loyaltyAccountPointsAwarded",
-                    "loyaltyAccountPointsRedeemed",
-                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
@@ -1807,9 +1722,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "delayed_promo",
                     "report_as_tender",
                     "not_netted_promo_frequent_shopper",
-                    "row_str"
+                    "row_str",
+                    "isTrainingMode",
+                    "isSuspended"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -1840,17 +1757,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
@@ -1858,23 +1778,23 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 var startDate = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
-                
+
                 var queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
                                 "T00:00:00Z";
-                
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-                
+
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                foreach(var site in workingSiteList)
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
-                    
+
                     currDayOffset = currDayOffset + 1;
                     readQuery.BusinessDay.DateTime = queryDate;
                     currPage = 0;
@@ -1924,7 +1844,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         recordMap[objectProperty.Key] = "";
                                     }
-
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
@@ -1959,13 +1878,17 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                     tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
                                     tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
-                                    
-                                    if(tLogResponseWrapper.Tlog.Customer != null)
+
+                                    if (tLogResponseWrapper.Tlog.Customer != null)
                                     {
-                                        tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                        tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                        tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        tlogItemRecordMap["customerId"] =
+                                            tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                        tlogItemRecordMap["customerEntryMethod"] =
+                                            tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                        tlogItemRecordMap["customerIdentifierData"] =
+                                            tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] =
+                                            tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                     }
                                     else
                                     {
@@ -1975,31 +1898,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
-                                    }
-                                    else
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
-                                    }
+                                    tlogItemRecordMap["isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                    tlogItemRecordMap["isTrainingMode"] =
+                                        tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
                                 }
                                 catch
                                 {
-
                                 }
 
                                 foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -2159,6 +2063,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_OrderPromos_7Days : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -2169,11 +2074,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "id",
                     "siteInfoId",
                     "customerId",
-                    "loyaltyAccountRowId",
-                    "loyaltyAccountId",
-                    "loyaltyAccountPointsAwarded",
-                    "loyaltyAccountPointsRedeemed",
-                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
@@ -2228,9 +2128,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "delayed_promo",
                     "report_as_tender",
                     "not_netted_promo_frequent_shopper",
-                    "row_str"
+                    "row_str",
+                    "isTrainingMode",
+                    "isSuspended"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -2261,17 +2163,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
@@ -2279,27 +2184,28 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 var startDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
-                
+
                 var queryDate = startDate + "T00:00:00Z";
-                
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                foreach(var site in workingSiteList)
+
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
-                    
+
                     do //while queryDate != today
                     {
-                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
+                                    "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
@@ -2349,7 +2255,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             recordMap[objectProperty.Key] = "";
                                         }
-
                                     }
 
                                     var thisTlogId = recordMap["tlogId"];
@@ -2384,47 +2289,33 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                         tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
                                         tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
-                                        
-                                        if(tLogResponseWrapper.Tlog.Customer != null)
-                                        {
-                                            tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                            tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                            tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                            tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
-                                        }
-                                    else
-                                    {
-                                        tlogItemRecordMap["customerId"] = "null";
-                                        tlogItemRecordMap["customerEntryMethod"] = "null";
-                                        tlogItemRecordMap["customerIdentifierData"] = "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
-                                    }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
-                                    }
-                                    else
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
-                                    }
+                                        if (tLogResponseWrapper.Tlog.Customer != null)
+                                        {
+                                            tlogItemRecordMap["customerId"] =
+                                                tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] =
+                                                tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] =
+                                                tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] =
+                                                tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["customerId"] = "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                                        }
+
+                                        tlogItemRecordMap["isSuspended"] =
+                                            tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                        tlogItemRecordMap["isTrainingMode"] =
+                                            tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
                                     }
                                     catch
                                     {
-
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -2440,9 +2331,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 String.IsNullOrWhiteSpace(item.ProductId)
                                                     ? "null"
                                                     : item.ProductId;
-                                            
+
                                             tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
-                                            
+
                                             tlogItemRecordMap["departmentId"] =
                                                 String.IsNullOrWhiteSpace(item.DepartmentId)
                                                     ? "null"
@@ -2580,6 +2471,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_OrderPromos_Today : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -2590,11 +2482,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "id",
                     "siteInfoId",
                     "customerId",
-                    "loyaltyAccountRowId",
-                    "loyaltyAccountId",
-                    "loyaltyAccountPointsAwarded",
-                    "loyaltyAccountPointsRedeemed",
-                    "loyaltyAccountProgramType",
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
@@ -2649,9 +2536,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "delayed_promo",
                     "report_as_tender",
                     "not_netted_promo_frequent_shopper",
-                    "row_str"
+                    "row_str",
+                    "isTrainingMode",
+                    "isSuspended"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -2682,38 +2571,41 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
                 var startDate = DateTime.Now.ToString("yyyy-MM-dd");
-                
+
                 var queryDate = DateTime.Parse(startDate).ToString("yyyy-MM-dd") +
                                 "T00:00:00Z";
-                
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-                
+
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                foreach(var site in workingSiteList)
+
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     readQuery.BusinessDay.DateTime = queryDate;
@@ -2763,7 +2655,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         recordMap[objectProperty.Key] = "";
                                     }
-
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
@@ -2798,13 +2689,17 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                     tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
                                     tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
-                                    
-                                    if(tLogResponseWrapper.Tlog.Customer != null)
+
+                                    if (tLogResponseWrapper.Tlog.Customer != null)
                                     {
-                                        tlogItemRecordMap["customerId"] = tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                        tlogItemRecordMap["customerEntryMethod"] = tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                        tlogItemRecordMap["customerIdentifierData"] = tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] = tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        tlogItemRecordMap["customerId"] =
+                                            tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                        tlogItemRecordMap["customerEntryMethod"] =
+                                            tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                        tlogItemRecordMap["customerIdentifierData"] =
+                                            tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                        tlogItemRecordMap["customerInfoValidationMeans"] =
+                                            tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
                                     }
                                     else
                                     {
@@ -2814,31 +2709,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount?.Any() != true)
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].Id ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountId"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].AccountId ?? "null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsAwarded ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].PointsRedeemed ?? "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] =
-                                            tLogResponseWrapper.Tlog.LoyaltyAccount?[0].ProgramType ?? "null";
-                                    }
-                                    else
-                                    {
-                                        tlogItemRecordMap["loyaltyAccountRowId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountId"] ="null";
-                                        tlogItemRecordMap["loyaltyAccountPointsAwarded"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountPointsRedeemed"] = "0";
-                                        tlogItemRecordMap["loyaltyAccountProgramType"] ="null";
-                                    }
+                                    tlogItemRecordMap["isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                    tlogItemRecordMap["isTrainingMode"] =
+                                        tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
                                 }
                                 catch
                                 {
-
                                 }
 
                                 foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -2856,7 +2732,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 : item.ProductId;
 
                                         tlogItemRecordMap["isItemNotOnFile"] = item.IsItemNotOnFile.ToString();
-                                        
+
                                         tlogItemRecordMap["departmentId"] =
                                             String.IsNullOrWhiteSpace(item.DepartmentId)
                                                 ? "null"
@@ -2977,7 +2853,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         };
                                     }
                                 }
-                                
                             }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -2994,6 +2869,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_Tenders_Historical : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -3010,7 +2886,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "cardLastFourDigits",
                     "name"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -3028,12 +2904,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case("isVoided"):
+                        case ("isVoided"):
                             property.IsKey = false;
                             property.TypeAtSource = "boolean";
                             property.Type = PropertyType.Bool;
                             break;
-                        case("tenderAmount"):
+                        case ("tenderAmount"):
                             property.IsKey = false;
                             property.TypeAtSource = "double";
                             property.Type = PropertyType.Float;
@@ -3044,45 +2920,47 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
                 var currDayOffset = 0;
-                var startDate = await apiClient.GetStartDate();
-                
-                var queryDate = startDate + "T00:00:00Z";
-                
+                var queryDate = await apiClient.GetStartDate();
+                var queryEndDate = await apiClient.GetEndDate();
+
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                foreach(var site in workingSiteList)
+
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
-                    
-                    do //while queryDate != today
+
+                    do //while queryDate != queryEndDate
                     {
-                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
-                                    "T00:00:00Z";
+                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
@@ -3131,7 +3009,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             recordMap[objectProperty.Key] = "";
                                         }
-
                                     }
 
                                     var thisTlogId = recordMap["tlogId"];
@@ -3172,7 +3049,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             }
                                             catch
                                             {
-
                                             }
                                         }
 
@@ -3182,7 +3058,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
                                         };
                                     }
-                                    
                                 }
 
                                 if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -3196,10 +3071,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                         } while (hasMore);
-                    } while (DateTime.Parse(queryDate).ToString("yyyy-MM-dd") != DateTime.Today.ToString("yyyy-MM-dd"));
+                    } while (DateTime.Compare(DateTime.Parse(queryDate), DateTime.Parse(queryEndDate)) < 0);
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_Tenders_Today : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -3216,7 +3092,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "cardLastFourDigits",
                     "name"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -3234,12 +3110,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case("isVoided"):
+                        case ("isVoided"):
                             property.IsKey = false;
                             property.TypeAtSource = "boolean";
                             property.Type = PropertyType.Bool;
                             break;
-                        case("tenderAmount"):
+                        case ("tenderAmount"):
                             property.IsKey = false;
                             property.TypeAtSource = "double";
                             property.Type = PropertyType.Float;
@@ -3250,37 +3126,41 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
                 var startDate = DateTime.Now.ToString("yyyy-MM-dd");
-                
+
                 var queryDate = DateTime.Parse(startDate).ToString("yyyy-MM-dd") +
                                 "T00:00:00Z";
-                
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-                
+
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                foreach(var site in workingSiteList)
+                
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     readQuery.BusinessDay.DateTime = queryDate;
@@ -3289,7 +3169,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     do //while hasMore
                     {
                         readQuery.PageNumber = currPage;
-
 
                         var json = new StringContent(
                             JsonConvert.SerializeObject(readQuery),
@@ -3330,7 +3209,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         recordMap[objectProperty.Key] = "";
                                     }
-
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
@@ -3371,7 +3249,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         }
                                         catch
                                         {
-
                                         }
                                     }
 
@@ -3381,7 +3258,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
                                     };
                                 }
-                                
                             }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -3398,6 +3274,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_Tenders_Yesterday : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -3414,7 +3291,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "cardLastFourDigits",
                     "name"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -3432,12 +3309,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case("isVoided"):
+                        case ("isVoided"):
                             property.IsKey = false;
                             property.TypeAtSource = "boolean";
                             property.Type = PropertyType.Bool;
                             break;
-                        case("tenderAmount"):
+                        case ("tenderAmount"):
                             property.IsKey = false;
                             property.TypeAtSource = "double";
                             property.Type = PropertyType.Float;
@@ -3448,36 +3325,39 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
 
                 var currPage = 0;
                 var startDate = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
-                
+
                 var queryDate = DateTime.Parse(startDate).ToString("yyyy-MM-dd") +
                                 "T00:00:00Z";
-                
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
+
                 foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
@@ -3528,7 +3408,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         recordMap[objectProperty.Key] = "";
                                     }
-
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
@@ -3569,7 +3448,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         }
                                         catch
                                         {
-
                                         }
                                     }
 
@@ -3579,7 +3457,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
                                     };
                                 }
-                                
                             }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -3596,6 +3473,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_Tenders_7Days : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -3612,7 +3490,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "cardLastFourDigits",
                     "name"
                 };
-                
+
                 var properties = new List<Property>();
 
                 foreach (var staticProperty in staticSchemaProperties)
@@ -3630,12 +3508,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case("isVoided"):
+                        case ("isVoided"):
                             property.IsKey = false;
                             property.TypeAtSource = "boolean";
                             property.Type = PropertyType.Bool;
                             break;
-                        case("tenderAmount"):
+                        case ("tenderAmount"):
                             property.IsKey = false;
                             property.TypeAtSource = "double";
                             property.Type = PropertyType.Float;
@@ -3646,17 +3524,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             break;
                     }
+
                     properties.Add(property);
                 }
+
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
 
                 schema.DataFlowDirection = GetDataFlowDirection();
-                
+
                 return schema;
             }
-            
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
@@ -3664,24 +3545,24 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 var startDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
-                
+
                 var queryDate = startDate + "T00:00:00Z";
-                
+
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-                
+
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-                
+
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-                
+
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-                
-                foreach(var site in workingSiteList)
+
+                foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
-                    
+
                     do //while queryDate != today
                     {
                         queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
@@ -3734,7 +3615,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             recordMap[objectProperty.Key] = "";
                                         }
-
                                     }
 
                                     var thisTlogId = recordMap["tlogId"];
@@ -3775,7 +3655,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             }
                                             catch
                                             {
-
                                             }
                                         }
 
@@ -3802,313 +3681,1169 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
-       
-        public static readonly Dictionary<string, Endpoint> TransactionDocumentEndpoints = new Dictionary<string, Endpoint>
+
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_Historical : Endpoint
         {
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
-                "TransactionDocument_Today", new TransactionDocumentEndpoint_Today
+                List<string> staticSchemaProperties = new List<string>()
                 {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Today",
-                    Name = "TransactionDocument_Today",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
+                    "tlogId",
+                    "loyaltyAccountRow",
+                    "loyaltyAccountId",
+                    "pointsAwarded",
+                    "pointsRedeemed",
+                    "programType"
+                };
+
+                var properties = new List<Property>();
+
+                foreach (var staticProperty in staticSchemaProperties)
+                {
+                    var property = new Property();
+
+                    property.Id = staticProperty;
+                    property.Name = staticProperty;
+
+                    switch (staticProperty)
                     {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
+                        case ("tlogId"):
+                        case ("loyaltyAccountRow"):
+                        case ("loyaltyAccountId"):
+                            property.IsKey = true;
+                            property.TypeAtSource = "string";
+                            property.Type = PropertyType.String;
+                            break;
+                        default:
+                            property.IsKey = false;
+                            property.TypeAtSource = "string";
+                            property.Type = PropertyType.String;
+                            break;
+                    }
+
+                    properties.Add(property);
                 }
-                
-            },
+
+                schema.Properties.Clear();
+                schema.Properties.AddRange(properties);
+
+                schema.DataFlowDirection = GetDataFlowDirection();
+
+                return schema;
+            }
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
             {
-                "TransactionDocument_Yesterday", new TransactionDocumentEndpoint_Yesterday
+                var hasMore = false;
+                var endpoint = EndpointHelper.GetEndpointForSchema(schema);
+
+                var currPage = 0;
+                var currDayOffset = 0;
+                var queryDate = await apiClient.GetStartDate();
+                var queryEndDate = await apiClient.GetEndDate();
+
+
+                var readQuery =
+                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+
+                var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+
+                foreach (var site in workingSiteList)
                 {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Yesterday",
-                    Name = "TransactionDocument_Yesterday",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    currDayOffset = 0;
+
+                    do //while queryDate != queryEndDate
                     {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-                
-            }, 
-            {
-                "TransactionDocument_7Days", new TransactionDocumentEndpoint_7Days
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_7Days",
-                    Name = "TransactionDocument_7Days",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-                
-            }, 
-            {
-                "TransactionDocument_HistoricalFromDate", new TransactionDocumentEndpoint_Historical
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_HistoricalFromDate",
-                    Name = "TransactionDocument_HistoricalFromDate",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"<DATE_TIME>\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        EndpointActions.Get,
-                        EndpointActions.Post,
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-            },
-            {
-                "TransactionDocument_Tenders_HistoricalFromDate", new TransactionDocumentEndpoint_Tenders_Historical
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Tenders_HistoricalFromDate",
-                    Name = "TransactionDocument_Tenders_HistoricalFromDate",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-            },
-            {
-                "TransactionDocument_Tenders_Yesterday", new TransactionDocumentEndpoint_Tenders_Yesterday
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Tenders_Yesterday",
-                    Name = "TransactionDocument_Tenders_Yesterday",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-            },
-            {
-                "TransactionDocument_Tenders_7Days", new TransactionDocumentEndpoint_Tenders_7Days
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Tenders_7Days",
-                    Name = "TransactionDocument_Tenders_7Days",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-            },
-            {
-                "TransactionDocument_Tenders_Today", new TransactionDocumentEndpoint_Tenders_Today
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_Tenders_Today",
-                    Name = "TransactionDocument_Tenders_Today",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-            },
-            {
-                "TransactionDocument_OrderPromos_HistoricalFromDate", new TransactionDocumentEndpoint_OrderPromos_Historical
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_OrderPromos_HistoricalFromDate",
-                    Name = "TransactionDocument_OrderPromos_HistoricalFromDate",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-            },
-            {
-                "TransactionDocument_OrderPromos_Today", new TransactionDocumentEndpoint_OrderPromos_Today
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_OrderPromos_Today",
-                    Name = "TransactionDocument_OrderPromos_Today",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-            },
-            {
-                "TransactionDocument_OrderPromos_Yesterday", new TransactionDocumentEndpoint_OrderPromos_Yesterday
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_OrderPromos_Yesterday",
-                    Name = "TransactionDocument_OrderPromos_Yesterday",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
-                }
-            },
-            {
-                "TransactionDocument_OrderPromos_7Days", new TransactionDocumentEndpoint_OrderPromos_7Days
-                {
-                    ShouldGetStaticSchema = true,
-                    Id = "TransactionDocument_OrderPromos_7Days",
-                    Name = "TransactionDocument_OrderPromos_7Days",
-                    BasePath = "/transaction-document/2.0/transaction-documents/2.0",
-                    AllPath = "/find",
-                    PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
-                    PropertiesQuery = 
-                        "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
-                    ReadQuery = 
-                        "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
-                    SupportedActions = new List<EndpointActions>
-                    {
-                        //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
-                        EndpointActions.Get
-                    },
-                    PropertyKeys = new List<string>
-                    {
-                        "tlogId"
-                    },
-                    Method = Method.GET
+                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
+                        {
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
+                            {
+                                if (!response.IsSuccessStatusCode)
+                                {
+                                    var error = JsonConvert.DeserializeObject<ApiError>(
+                                        await response.Content.ReadAsStringAsync());
+                                    throw new Exception(error.Message);
+                                }
+
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
+
+                                if (objectResponseWrapper?.PageContent.Count == 0)
+                                {
+                                    yield break;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
+                                    {
+                                        foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
+                                        {
+                                            try
+                                            {
+                                                tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                                tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] = loyaltyAccount.Id ?? "";
+                                                tlogLoyaltyAccountRecordMap["loyaltyAccountId"] = loyaltyAccount.AccountId ?? "";
+                                                tlogLoyaltyAccountRecordMap["pointsAwarded"] = loyaltyAccount.PointsAwarded ?? "";
+                                                tlogLoyaltyAccountRecordMap["pointsRedeemed"] = loyaltyAccount.PointsRedeemed ?? "";
+                                                tlogLoyaltyAccountRecordMap["programType"] = loyaltyAccount.ProgramType ?? "";
+                                            }
+                                            catch
+                                            {
+                                            }
+                                        }
+
+                                        yield return new Record
+                                        {
+                                            Action = Record.Types.Action.Upsert,
+                                            DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
+                                        };
+                                    }
+                                }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
+                                }
+                            }
+                        } while (hasMore);
+                    } while (DateTime.Compare(DateTime.Parse(queryDate), DateTime.Parse(queryEndDate)) < 0);
                 }
             }
-        };
+        }
+
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_Today : Endpoint
+        {
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            {
+                List<string> staticSchemaProperties = new List<string>()
+                {
+                    "tlogId",
+                    "loyaltyAccountRow",
+                    "loyaltyAccountId",
+                    "pointsAwarded",
+                    "pointsRedeemed",
+                    "programType"
+                };
+
+                var properties = new List<Property>();
+
+                foreach (var staticProperty in staticSchemaProperties)
+                {
+                    var property = new Property();
+
+                    property.Id = staticProperty;
+                    property.Name = staticProperty;
+
+                    switch (staticProperty)
+                    {
+                        case ("tlogId"):
+                        case ("loyaltyAccountRow"):
+                        case ("loyaltyAccountId"):
+                            property.IsKey = true;
+                            property.TypeAtSource = "string";
+                            property.Type = PropertyType.String;
+                            break;
+                        default:
+                            property.IsKey = false;
+                            property.TypeAtSource = "string";
+                            property.Type = PropertyType.String;
+                            break;
+                    }
+
+                    properties.Add(property);
+                }
+
+                schema.Properties.Clear();
+                schema.Properties.AddRange(properties);
+
+                schema.DataFlowDirection = GetDataFlowDirection();
+
+                return schema;
+            }
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
+            {
+                var hasMore = false;
+                var endpoint = EndpointHelper.GetEndpointForSchema(schema);
+
+                var currPage = 0;
+                var currDayOffset = 0;
+                var queryDate = DateTime.Now.ToString("yyyy-MM-dd") +
+                                "T00:00:00Z";
+
+
+                var readQuery =
+                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+
+                var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+
+                foreach (var site in workingSiteList)
+                {
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    readQuery.BusinessDay.DateTime = queryDate;
+                    currPage = 0;
+                    
+                    do //while hasMore
+                    {
+                        readQuery.PageNumber = currPage;
+
+                        var json = new StringContent(
+                            JsonConvert.SerializeObject(readQuery),
+                            Encoding.UTF8,
+                            "application/json"
+                        );
+                        using (var response = await apiClient.PostAsync(
+                            path
+                            , json))
+                        {
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                var error = JsonConvert.DeserializeObject<ApiError>(
+                                    await response.Content.ReadAsStringAsync());
+                                throw new Exception(error.Message);
+                            }
+
+                            var objectResponseWrapper =
+                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                    await response.Content.ReadAsStringAsync());
+
+                            if (objectResponseWrapper?.PageContent.Count == 0)
+                            {
+                                yield break;
+                            }
+
+                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                            {
+                                var recordMap = new Dictionary<string, object>();
+
+                                foreach (var objectProperty in objectResponse)
+                                {
+                                    try
+                                    {
+                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                    }
+                                    catch
+                                    {
+                                        recordMap[objectProperty.Key] = "";
+                                    }
+                                }
+
+                                var thisTlogId = recordMap["tlogId"];
+
+                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                if (!tlogResponse.IsSuccessStatusCode)
+                                {
+                                    var error = JsonConvert.DeserializeObject<ApiError>(
+                                        await tlogResponse.Content.ReadAsStringAsync());
+                                    throw new Exception(error.Message);
+                                }
+
+                                var tLogResponseWrapper =
+                                    JsonConvert.DeserializeObject<TlogWrapper>(
+                                        await tlogResponse.Content.ReadAsStringAsync());
+
+                                var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
+
+                                if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
+                                {
+                                    foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
+                                    {
+                                        try
+                                        {
+                                            tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                            tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] = loyaltyAccount.Id ?? "";
+                                            tlogLoyaltyAccountRecordMap["loyaltyAccountId"] = loyaltyAccount.AccountId ?? "";
+                                            tlogLoyaltyAccountRecordMap["pointsAwarded"] = loyaltyAccount.PointsAwarded ?? "";
+                                            tlogLoyaltyAccountRecordMap["pointsRedeemed"] = loyaltyAccount.PointsRedeemed ?? "";
+                                            tlogLoyaltyAccountRecordMap["programType"] = loyaltyAccount.ProgramType ?? "";
+                                        }
+                                        catch
+                                        {
+                                        }
+                                    }
+
+                                    yield return new Record
+                                    {
+                                        Action = Record.Types.Action.Upsert,
+                                        DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
+                                    };
+                                }
+                            }
+
+                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            {
+                                hasMore = false;
+                            }
+                            else
+                            {
+                                currPage++;
+                                hasMore = true;
+                            }
+                        }
+                    } while (hasMore);
+                }
+            }
+        }
+
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday : Endpoint
+        {
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            {
+                List<string> staticSchemaProperties = new List<string>()
+                {
+                    "tlogId",
+                    "loyaltyAccountRow",
+                    "loyaltyAccountId",
+                    "pointsAwarded",
+                    "pointsRedeemed",
+                    "programType"
+                };
+
+                var properties = new List<Property>();
+
+                foreach (var staticProperty in staticSchemaProperties)
+                {
+                    var property = new Property();
+
+                    property.Id = staticProperty;
+                    property.Name = staticProperty;
+
+                    switch (staticProperty)
+                    {
+                        case ("tlogId"):
+                        case ("loyaltyAccountRow"):
+                        case ("loyaltyAccountId"):
+                            property.IsKey = true;
+                            property.TypeAtSource = "string";
+                            property.Type = PropertyType.String;
+                            break;
+                        default:
+                            property.IsKey = false;
+                            property.TypeAtSource = "string";
+                            property.Type = PropertyType.String;
+                            break;
+                    }
+
+                    properties.Add(property);
+                }
+
+                schema.Properties.Clear();
+                schema.Properties.AddRange(properties);
+
+                schema.DataFlowDirection = GetDataFlowDirection();
+
+                return schema;
+            }
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
+            {
+                var hasMore = false;
+                var endpoint = EndpointHelper.GetEndpointForSchema(schema);
+
+                var currPage = 0;
+                var currDayOffset = 0;
+                var queryDate = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd") +
+                                "T00:00:00Z";
+
+
+                var readQuery =
+                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+
+                var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+
+                foreach (var site in workingSiteList)
+                {
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    readQuery.BusinessDay.DateTime = queryDate;
+                    currPage = 0;
+                    
+                    do //while hasMore
+                    {
+                        readQuery.PageNumber = currPage;
+
+                        var json = new StringContent(
+                            JsonConvert.SerializeObject(readQuery),
+                            Encoding.UTF8,
+                            "application/json"
+                        );
+                        using (var response = await apiClient.PostAsync(
+                            path
+                            , json))
+                        {
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                var error = JsonConvert.DeserializeObject<ApiError>(
+                                    await response.Content.ReadAsStringAsync());
+                                throw new Exception(error.Message);
+                            }
+
+                            var objectResponseWrapper =
+                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                    await response.Content.ReadAsStringAsync());
+
+                            if (objectResponseWrapper?.PageContent.Count == 0)
+                            {
+                                yield break;
+                            }
+
+                            foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                            {
+                                var recordMap = new Dictionary<string, object>();
+
+                                foreach (var objectProperty in objectResponse)
+                                {
+                                    try
+                                    {
+                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                    }
+                                    catch
+                                    {
+                                        recordMap[objectProperty.Key] = "";
+                                    }
+                                }
+
+                                var thisTlogId = recordMap["tlogId"];
+
+                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                if (!tlogResponse.IsSuccessStatusCode)
+                                {
+                                    var error = JsonConvert.DeserializeObject<ApiError>(
+                                        await tlogResponse.Content.ReadAsStringAsync());
+                                    throw new Exception(error.Message);
+                                }
+
+                                var tLogResponseWrapper =
+                                    JsonConvert.DeserializeObject<TlogWrapper>(
+                                        await tlogResponse.Content.ReadAsStringAsync());
+
+                                var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
+
+                                if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
+                                {
+                                    foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
+                                    {
+                                        try
+                                        {
+                                            tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                            tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] = loyaltyAccount.Id ?? "";
+                                            tlogLoyaltyAccountRecordMap["loyaltyAccountId"] = loyaltyAccount.AccountId ?? "";
+                                            tlogLoyaltyAccountRecordMap["pointsAwarded"] = loyaltyAccount.PointsAwarded ?? "";
+                                            tlogLoyaltyAccountRecordMap["pointsRedeemed"] = loyaltyAccount.PointsRedeemed ?? "";
+                                            tlogLoyaltyAccountRecordMap["programType"] = loyaltyAccount.ProgramType ?? "";
+                                        }
+                                        catch
+                                        {
+                                        }
+                                    }
+
+                                    yield return new Record
+                                    {
+                                        Action = Record.Types.Action.Upsert,
+                                        DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
+                                    };
+                                }
+                            }
+
+                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            {
+                                hasMore = false;
+                            }
+                            else
+                            {
+                                currPage++;
+                                hasMore = true;
+                            }
+                        }
+                    } while (hasMore);
+                }
+            }
+        }
+
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_7Days : Endpoint
+        {
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            {
+                List<string> staticSchemaProperties = new List<string>()
+                {
+                    "tlogId",
+                    "loyaltyAccountRow",
+                    "loyaltyAccountId",
+                    "pointsAwarded",
+                    "pointsRedeemed",
+                    "programType"
+                };
+
+                var properties = new List<Property>();
+
+                foreach (var staticProperty in staticSchemaProperties)
+                {
+                    var property = new Property();
+
+                    property.Id = staticProperty;
+                    property.Name = staticProperty;
+
+                    switch (staticProperty)
+                    {
+                        case ("tlogId"):
+                        case ("loyaltyAccountRow"):
+                        case ("loyaltyAccountId"):
+                            property.IsKey = true;
+                            property.TypeAtSource = "string";
+                            property.Type = PropertyType.String;
+                            break;
+                        default:
+                            property.IsKey = false;
+                            property.TypeAtSource = "string";
+                            property.Type = PropertyType.String;
+                            break;
+                    }
+
+                    properties.Add(property);
+                }
+
+                schema.Properties.Clear();
+                schema.Properties.AddRange(properties);
+
+                schema.DataFlowDirection = GetDataFlowDirection();
+
+                return schema;
+            }
+
+            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                bool isDiscoverRead = false)
+            {
+                var hasMore = false;
+                var endpoint = EndpointHelper.GetEndpointForSchema(schema);
+
+                var currPage = 0;
+                var currDayOffset = 0;
+                var queryDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
+
+                var readQuery =
+                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+
+                var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
+                var tempSiteList = await apiClient.GetSiteIds();
+                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+
+                readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+
+                foreach (var site in workingSiteList)
+                {
+                    readQuery.SiteInfoIds = new List<string>() {site};
+                    currDayOffset = 0;
+
+                    do //while queryDate != queryEndDate
+                    {
+                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        currDayOffset = currDayOffset + 1;
+                        readQuery.BusinessDay.DateTime = queryDate;
+                        currPage = 0;
+
+                        do //while hasMore
+                        {
+                            readQuery.PageNumber = currPage;
+
+
+                            var json = new StringContent(
+                                JsonConvert.SerializeObject(readQuery),
+                                Encoding.UTF8,
+                                "application/json"
+                            );
+                            using (var response = await apiClient.PostAsync(
+                                path
+                                , json))
+                            {
+                                if (!response.IsSuccessStatusCode)
+                                {
+                                    var error = JsonConvert.DeserializeObject<ApiError>(
+                                        await response.Content.ReadAsStringAsync());
+                                    throw new Exception(error.Message);
+                                }
+
+                                var objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
+
+                                if (objectResponseWrapper?.PageContent.Count == 0)
+                                {
+                                    yield break;
+                                }
+
+                                foreach (var objectResponse in objectResponseWrapper?.PageContent)
+                                {
+                                    var recordMap = new Dictionary<string, object>();
+
+                                    foreach (var objectProperty in objectResponse)
+                                    {
+                                        try
+                                        {
+                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            recordMap[objectProperty.Key] = "";
+                                        }
+                                    }
+
+                                    var thisTlogId = recordMap["tlogId"];
+
+                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    {
+                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                        throw new Exception(error.Message);
+                                    }
+
+                                    var tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TlogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+
+                                    var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
+                                    {
+                                        foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
+                                        {
+                                            try
+                                            {
+                                                tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                                tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] = loyaltyAccount.Id ?? "";
+                                                tlogLoyaltyAccountRecordMap["loyaltyAccountId"] = loyaltyAccount.AccountId ?? "";
+                                                tlogLoyaltyAccountRecordMap["pointsAwarded"] = loyaltyAccount.PointsAwarded ?? "";
+                                                tlogLoyaltyAccountRecordMap["pointsRedeemed"] = loyaltyAccount.PointsRedeemed ?? "";
+                                                tlogLoyaltyAccountRecordMap["programType"] = loyaltyAccount.ProgramType ?? "";
+                                            }
+                                            catch
+                                            {
+                                            }
+                                        }
+
+                                        yield return new Record
+                                        {
+                                            Action = Record.Types.Action.Upsert,
+                                            DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
+                                        };
+                                    }
+                                }
+
+                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                                {
+                                    hasMore = false;
+                                }
+                                else
+                                {
+                                    currPage++;
+                                    hasMore = true;
+                                }
+                            }
+                        } while (hasMore);
+                    } while (DateTime.Compare(DateTime.Parse(queryDate), DateTime.Today) < 0);
+                }
+            }
+        }
+
+        public static readonly Dictionary<string, Endpoint> TransactionDocumentEndpoints =
+            new Dictionary<string, Endpoint>
+            {
+                {
+                    "TransactionDocument_Today", new TransactionDocumentEndpoint_Today
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_Today",
+                        Name = "TransactionDocument_Today",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_Yesterday", new TransactionDocumentEndpoint_Yesterday
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_Yesterday",
+                        Name = "TransactionDocument_Yesterday",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_7Days", new TransactionDocumentEndpoint_7Days
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_7Days",
+                        Name = "TransactionDocument_7Days",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_HistoricalFromDate", new TransactionDocumentEndpoint_Historical
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_HistoricalFromDate",
+                        Name = "TransactionDocument_HistoricalFromDate",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"<DATE_TIME>\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            EndpointActions.Get,
+                            EndpointActions.Post,
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_Tenders_HistoricalFromDate", new TransactionDocumentEndpoint_Tenders_Historical
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_Tenders_HistoricalFromDate",
+                        Name = "TransactionDocument_Tenders_HistoricalFromDate",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_Tenders_Yesterday", new TransactionDocumentEndpoint_Tenders_Yesterday
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_Tenders_Yesterday",
+                        Name = "TransactionDocument_Tenders_Yesterday",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_Tenders_7Days", new TransactionDocumentEndpoint_Tenders_7Days
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_Tenders_7Days",
+                        Name = "TransactionDocument_Tenders_7Days",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_Tenders_Today", new TransactionDocumentEndpoint_Tenders_Today
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_Tenders_Today",
+                        Name = "TransactionDocument_Tenders_Today",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_OrderPromos_HistoricalFromDate", new TransactionDocumentEndpoint_OrderPromos_Historical
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_OrderPromos_HistoricalFromDate",
+                        Name = "TransactionDocument_OrderPromos_HistoricalFromDate",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_OrderPromos_Today", new TransactionDocumentEndpoint_OrderPromos_Today
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_OrderPromos_Today",
+                        Name = "TransactionDocument_OrderPromos_Today",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_OrderPromos_Yesterday", new TransactionDocumentEndpoint_OrderPromos_Yesterday
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_OrderPromos_Yesterday",
+                        Name = "TransactionDocument_OrderPromos_Yesterday",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_OrderPromos_7Days", new TransactionDocumentEndpoint_OrderPromos_7Days
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_OrderPromos_7Days",
+                        Name = "TransactionDocument_OrderPromos_7Days",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_LoyaltyAccounts_HistoricalFromDate", new TransactionDocumentEndpoint_LoyaltyAccounts_Historical
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_LoyaltyAccounts_HistoricalFromDate",
+                        Name = "TransactionDocument_LoyaltyAccounts_HistoricalFromDate",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_LoyaltyAccounts_Yesterday", new TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_LoyaltyAccounts_Yesterday",
+                        Name = "TransactionDocument_LoyaltyAccounts_Yesterday",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_LoyaltyAccounts_7Days", new TransactionDocumentEndpoint_LoyaltyAccounts_7Days
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_LoyaltyAccounts_7Days",
+                        Name = "TransactionDocument_LoyaltyAccounts_7Days",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                },
+                {
+                    "TransactionDocument_LoyaltyAccounts_Today", new TransactionDocumentEndpoint_LoyaltyAccounts_Today
+                    {
+                        ShouldGetStaticSchema = true,
+                        Id = "TransactionDocument_LoyaltyAccounts_Today",
+                        Name = "TransactionDocument_LoyaltyAccounts_Today",
+                        BasePath = "/transaction-document/2.0/transaction-documents/2.0",
+                        AllPath = "/find",
+                        PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
+                        PropertiesQuery =
+                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                        ReadQuery =
+                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
+                        SupportedActions = new List<EndpointActions>
+                        {
+                            //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
+                            EndpointActions.Get
+                        },
+                        PropertyKeys = new List<string>
+                        {
+                            "tlogId"
+                        },
+                        Method = Method.GET
+                    }
+                }
+            };
     }
 }

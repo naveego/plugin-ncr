@@ -65,7 +65,17 @@ namespace PluginNCR.API.Factory
         }
         public async Task<string> GetStartDate()
         {
-            return Settings.QueryStartDate;
+            return Settings.QueryStartDate.TrimEnd("T00:00:00Z".ToCharArray()) + "T00:00:00Z";
+        }
+        
+        public async Task<string> GetEndDate()
+        {
+            if (string.IsNullOrWhiteSpace(Settings.QueryEndDate))
+            {
+                return DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
+            }
+            return Settings.QueryEndDate + "T00:00:00Z";
+
         }
 
         public async Task<string> GetSiteIds()
