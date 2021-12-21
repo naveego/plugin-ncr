@@ -138,7 +138,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             if (objectResponseWrapper?.PageContent.Count == 0)
                             {
-                                // yield break;
                                 continue;
                             }
 
@@ -439,7 +438,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             if (objectResponseWrapper?.PageContent.Count == 0)
                             {
-                                // yield break;
                                 continue;
                             }
 
@@ -750,7 +748,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    // yield break;
                                     continue;
                                 }
 
@@ -1422,7 +1419,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    // yield break;
                                     continue;
                                 }
 
@@ -1826,7 +1822,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             if (objectResponseWrapper?.PageContent.Count == 0)
                             {
-                                // yield break;
                                 continue;
                             }
 
@@ -2237,7 +2232,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    // yield break;
                                     continue;
                                 }
 
@@ -2992,7 +2986,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    yield break;
+                                    continue;
                                 }
 
                                 foreach (var objectResponse in objectResponseWrapper?.PageContent)
@@ -3192,7 +3186,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             if (objectResponseWrapper?.PageContent.Count == 0)
                             {
-                                yield break;
+                                continue;
                             }
 
                             foreach (var objectResponse in objectResponseWrapper?.PageContent)
@@ -3391,7 +3385,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             if (objectResponseWrapper?.PageContent.Count == 0)
                             {
-                                yield break;
+                                continue;
                             }
 
                             foreach (var objectResponse in objectResponseWrapper?.PageContent)
@@ -3598,7 +3592,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    yield break;
+                                    continue;
                                 }
 
                                 foreach (var objectResponse in objectResponseWrapper?.PageContent)
@@ -3792,7 +3786,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    yield break;
+                                    continue;
                                 }
 
                                 foreach (var objectResponse in objectResponseWrapper?.PageContent)
@@ -3975,7 +3969,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             if (objectResponseWrapper?.PageContent.Count == 0)
                             {
-                                yield break;
+                                continue;
                             }
 
                             foreach (var objectResponse in objectResponseWrapper?.PageContent)
@@ -4157,7 +4151,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             if (objectResponseWrapper?.PageContent.Count == 0)
                             {
-                                yield break;
+                                continue;
                             }
 
                             foreach (var objectResponse in objectResponseWrapper?.PageContent)
@@ -4345,7 +4339,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
-                                    yield break;
+                                    continue;
                                 }
 
                                 foreach (var objectResponse in objectResponseWrapper?.PageContent)
