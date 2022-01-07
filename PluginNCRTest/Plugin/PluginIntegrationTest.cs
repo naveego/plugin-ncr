@@ -269,6 +269,7 @@ namespace PluginNCRTest.Plugin
             //NOTE - endpoint queries are based on live data and current date.
             //Assertations will be incorrect often
 
+            
             Assert.Equal(134801, records.Count);
 
             //var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);

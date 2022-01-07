@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AsyncEnumerator" Version="4.0.2" />
       <PackageReference Include="chilkat-x64" Version="9.5.0.87" />
       <PackageReference Include="Naveego.Sdk" Version="1.2.2" />
       <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
