@@ -29,6 +29,7 @@ namespace PluginNCRTest.Plugin
                     QueryStartDate = "",
                     QueryEndDate = "",
                     SiteIDs = ""
+
                 };
         }
 

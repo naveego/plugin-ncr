@@ -186,6 +186,12 @@ namespace PluginNCR.DataContracts
         [JsonProperty("isTrainingMode")]
         public bool IsTrainingMode { get; set; }
         
+        [JsonProperty("isResumed")]
+        public bool IsResumed { get; set; }
+        
+        [JsonProperty("isDeleted")]
+        public bool IsDeleted { get; set; }
+        
         [JsonProperty("coupons")]
         public List<object> Coupons { get; set; }
         
@@ -318,6 +324,9 @@ namespace PluginNCR.DataContracts
         
         [JsonProperty("isVoided")]
         public bool IsVoided { get; set; }
+        
+        [JsonProperty("isRefund")]
+        public bool IsRefund { get; set; }
         
         [JsonProperty("isOverridden")]
         public bool IsOverridden { get; set; }

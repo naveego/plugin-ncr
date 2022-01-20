@@ -42,8 +42,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
-                    "isTrainingMode",
-                    "isSuspended"
+                    "tlog_isTrainingMode",
+                    "tlog_isResumed",
+                    "tlog_isVoided",
+                    "tlog_isDeleted",
+                    "tlog_isRecalled",
+                    "tlog_isSuspended",
+                    "item_isReturn",
+                    "item_isVoided",
+                    "item_isRefund"
                 };
 
                 var properties = new List<Property>();
@@ -63,6 +70,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.IsKey = true;
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
+                            break;
+                        case ("item_isReturn"):
+                        case ("item_isVoided"):
+                        case ("item_isRefund"):
+                            property.IsKey = false;
+                            property.TypeAtSource = "bool";
+                            property.Type = PropertyType.Bool;
                             break;
                         default:
                             property.IsKey = false;
@@ -200,9 +214,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    tlogItemRecordMap["isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
-                                    tlogItemRecordMap["isTrainingMode"] =
+                                    tlogItemRecordMap["tlog_isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                    tlogItemRecordMap["tlog_isTrainingMode"] =
                                         tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                                    tlogItemRecordMap["tlog_isResumed"] = tLogResponseWrapper.Tlog.IsResumed.ToString();
+                                    tlogItemRecordMap["tlog_isRecalled"] =
+                                        tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                                    tlogItemRecordMap["tlog_isDeleted"] = tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                                    tlogItemRecordMap["tlog_isVoided"] = tLogResponseWrapper.Tlog.IsVoided.ToString();
+
                                 }
                                 catch
                                 {
@@ -294,6 +314,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["quantity"] = "0";
                                             tlogItemRecordMap["unitOfMeasurement"] = "null";
                                         }
+                                        
+                                        
+                                        tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                        tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                        tlogItemRecordMap["item_isRefund"] = item.IsRefund;
                                     }
                                     catch (Exception e)
                                     {
@@ -344,8 +369,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
-                    "isTrainingMode",
-                    "isSuspended"
+                    "tlog_isTrainingMode",
+                    "tlog_isResumed",
+                    "tlog_isVoided",
+                    "tlog_isDeleted",
+                    "tlog_isRecalled",
+                    "tlog_isSuspended",
+                    "item_isReturn",
+                    "item_isVoided",
+                    "item_isRefund"
                 };
 
                 var properties = new List<Property>();
@@ -365,6 +397,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.IsKey = true;
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
+                            break;
+                        case ("item_isReturn"):
+                        case ("item_isVoided"):
+                        case ("item_isRefund"):
+                            property.IsKey = false;
+                            property.TypeAtSource = "bool";
+                            property.Type = PropertyType.Bool;
                             break;
                         default:
                             property.IsKey = false;
@@ -500,9 +539,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    tlogItemRecordMap["isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
-                                    tlogItemRecordMap["isTrainingMode"] =
+                                    tlogItemRecordMap["tlog_isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                    tlogItemRecordMap["tlog_isTrainingMode"] =
                                         tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                                    tlogItemRecordMap["tlog_isResumed"] = tLogResponseWrapper.Tlog.IsResumed.ToString();
+                                    tlogItemRecordMap["tlog_isRecalled"] =
+                                        tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                                    tlogItemRecordMap["tlog_isDeleted"] = tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                                    tlogItemRecordMap["tlog_isVoided"] = tLogResponseWrapper.Tlog.IsVoided.ToString();
                                 }
                                 catch
                                 {
@@ -595,6 +639,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["quantity"] = "0";
                                             tlogItemRecordMap["unitOfMeasurement"] = "null";
                                         }
+                                        
+                                        
+                                        tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                        tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                        tlogItemRecordMap["item_isRefund"] = item.IsRefund;
                                     }
                                     catch (Exception e)
                                     {
@@ -648,8 +697,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
-                    "isTrainingMode",
-                    "isSuspended"
+                    "tlog_isTrainingMode",
+                    "tlog_isResumed",
+                    "tlog_isVoided",
+                    "tlog_isDeleted",
+                    "tlog_isRecalled",
+                    "tlog_isSuspended",
+                    "item_isReturn",
+                    "item_isVoided",
+                    "item_isRefund"
                 };
 
                 var properties = new List<Property>();
@@ -669,6 +725,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.IsKey = true;
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
+                            break;
+                        case ("item_isReturn"):
+                        case ("item_isVoided"):
+                        case ("item_isRefund"):
+                            property.IsKey = false;
+                            property.TypeAtSource = "bool";
+                            property.Type = PropertyType.Bool;
                             break;
                         default:
                             property.IsKey = false;
@@ -810,10 +873,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                         }
 
-                                        tlogItemRecordMap["isSuspended"] =
+                                        tlogItemRecordMap["tlog_isSuspended"] =
                                             tLogResponseWrapper.Tlog.IsSuspended.ToString();
-                                        tlogItemRecordMap["isTrainingMode"] =
+                                        tlogItemRecordMap["tlog_isTrainingMode"] =
                                             tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                                        tlogItemRecordMap["tlog_isResumed"] = tLogResponseWrapper.Tlog.IsResumed.ToString();
+                                        tlogItemRecordMap["tlog_isRecalled"] =
+                                            tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                                        tlogItemRecordMap["tlog_isDeleted"] = tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                                        tlogItemRecordMap["tlog_isVoided"] = tLogResponseWrapper.Tlog.IsVoided.ToString();
                                     }
                                     catch
                                     {
@@ -906,6 +974,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogItemRecordMap["quantity"] = "0";
                                                 tlogItemRecordMap["unitOfMeasurement"] = "null";
                                             }
+                                            
+                                            
+                                            tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                            tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                            tlogItemRecordMap["item_isRefund"] = item.IsRefund;
                                         }
                                         catch (Exception e)
                                         {
@@ -960,8 +1033,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "customerEntryMethod",
                     "customerIdentifierData",
                     "customerInfoValidationMeans",
-                    "isTrainingMode",
-                    "isSuspended"
+                    "tlog_isTrainingMode",
+                    "tlog_isResumed",
+                    "tlog_isVoided",
+                    "tlog_isDeleted",
+                    "tlog_isRecalled",
+                    "tlog_isSuspended",
+                    "item_isReturn",
+                    "item_isVoided",
+                    "item_isRefund"
                 };
 
                 var properties = new List<Property>();
@@ -981,6 +1061,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.IsKey = true;
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
+                            break;
+                        case ("item_isReturn"):
+                        case ("item_isVoided"):
+                        case ("item_isRefund"):
+                            property.IsKey = false;
+                            property.TypeAtSource = "bool";
+                            property.Type = PropertyType.Bool;
                             break;
                         default:
                             property.IsKey = false;
@@ -1216,6 +1303,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogItemRecordMap["quantity"] = "0";
                                                 tlogItemRecordMap["unitOfMeasurement"] = "null";
                                             }
+                                            
+                                            
+                                            tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                            tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                            tlogItemRecordMap["item_isRefund"] = item.IsRefund;
                                         }
                                         catch (Exception e)
                                         {
@@ -1280,8 +1372,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "regularUnitPrice",
                     "actualAmount",
                     "discountAmount",
-                    "isReturn",
-                    "isVoided",
                     "discountType",
                     "03record",
                     "rtntype",
@@ -1319,8 +1409,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "report_as_tender",
                     "not_netted_promo_frequent_shopper",
                     "row_str",
-                    "isTrainingMode",
-                    "isSuspended"
+                    "tlog_isTrainingMode",
+                    "tlog_isResumed",
+                    "tlog_isVoided",
+                    "tlog_isDeleted",
+                    "tlog_isRecalled",
+                    "tlog_isSuspended",
+                    "item_isReturn",
+                    "item_isVoided",
+                    "item_isRefund"
                 };
 
                 var properties = new List<Property>();
@@ -1341,8 +1438,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case ("isReturn"):
-                        case ("isVoided"):
+                        case ("item_isReturn"):
+                        case ("item_isVoided"):
+                        case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
                             property.Type = PropertyType.Bool;
@@ -1499,10 +1597,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                             }
 
-                                            tlogItemRecordMap["isSuspended"] =
+                                            tlogItemRecordMap["tlog_isSuspended"] =
                                                 tLogResponseWrapper.Tlog.IsSuspended.ToString();
-                                            tlogItemRecordMap["isTrainingMode"] =
+                                            tlogItemRecordMap["tlog_isTrainingMode"] =
                                                 tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                                            tlogItemRecordMap["tlog_isResumed"] = tLogResponseWrapper.Tlog.IsResumed.ToString();
+                                            tlogItemRecordMap["tlog_isRecalled"] =
+                                                tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                                            tlogItemRecordMap["tlog_isDeleted"] = tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                                            tlogItemRecordMap["tlog_isVoided"] = tLogResponseWrapper.Tlog.IsVoided.ToString();
                                         }
                                         catch
                                         {
@@ -1576,9 +1679,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                     tlogItemRecordMap["actualAmount"] = "0";
                                                 }
 
-                                                tlogItemRecordMap["isReturn"] = item.IsReturn;
-
-                                                tlogItemRecordMap["isVoided"] = item.IsVoided;
+                                                tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                                tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                                tlogItemRecordMap["item_isRefund"] = item.IsRefund;
 
                                                 if (item.ItemDiscounts != null)
                                                 {
@@ -1694,8 +1797,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "regularUnitPrice",
                     "actualAmount",
                     "discountAmount",
-                    "isReturn",
-                    "isVoided",
                     "discountType",
                     "03record",
                     "rtntype",
@@ -1733,8 +1834,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "report_as_tender",
                     "not_netted_promo_frequent_shopper",
                     "row_str",
-                    "isTrainingMode",
-                    "isSuspended"
+                    "tlog_isTrainingMode",
+                    "tlog_isResumed",
+                    "tlog_isVoided",
+                    "tlog_isDeleted",
+                    "tlog_isRecalled",
+                    "tlog_isSuspended",
+                    "item_isReturn",
+                    "item_isVoided",
+                    "item_isRefund"
                 };
 
                 var properties = new List<Property>();
@@ -1755,8 +1863,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case ("isReturn"):
-                        case ("isVoided"):
+                        case ("item_isReturn"):
+                        case ("item_isVoided"):
+                        case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
                             property.Type = PropertyType.Bool;
@@ -1907,9 +2016,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    tlogItemRecordMap["isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
-                                    tlogItemRecordMap["isTrainingMode"] =
+                                    tlogItemRecordMap["tlog_isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                    tlogItemRecordMap["tlog_isTrainingMode"] =
                                         tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                                    tlogItemRecordMap["tlog_isResumed"] = tLogResponseWrapper.Tlog.IsResumed.ToString();
+                                    tlogItemRecordMap["tlog_isRecalled"] =
+                                        tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                                    tlogItemRecordMap["tlog_isDeleted"] = tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                                    tlogItemRecordMap["tlog_isVoided"] = tLogResponseWrapper.Tlog.IsVoided.ToString();
                                 }
                                 catch
                                 {
@@ -1982,9 +2096,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogItemRecordMap["actualAmount"] = "0";
                                             }
 
-                                            tlogItemRecordMap["isReturn"] = item.IsReturn;
-
-                                            tlogItemRecordMap["isVoided"] = item.IsVoided;
+                                            
+                                            tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                            tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                            tlogItemRecordMap["item_isRefund"] = item.IsRefund;
 
                                             if (item.ItemDiscounts != null)
                                             {
@@ -2099,8 +2214,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "regularUnitPrice",
                     "actualAmount",
                     "discountAmount",
-                    "isReturn",
-                    "isVoided",
                     "discountType",
                     "03record",
                     "rtntype",
@@ -2138,8 +2251,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "report_as_tender",
                     "not_netted_promo_frequent_shopper",
                     "row_str",
-                    "isTrainingMode",
-                    "isSuspended"
+                    "tlog_isTrainingMode",
+                    "tlog_isResumed",
+                    "tlog_isVoided",
+                    "tlog_isDeleted",
+                    "tlog_isRecalled",
+                    "tlog_isSuspended",
+                    "item_isReturn",
+                    "item_isVoided",
+                    "item_isRefund"
                 };
 
                 var properties = new List<Property>();
@@ -2160,8 +2280,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case ("isReturn"):
-                        case ("isVoided"):
+                        case ("item_isReturn"):
+                        case ("item_isVoided"):
+                        case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
                             property.Type = PropertyType.Bool;
@@ -2319,10 +2440,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                         }
 
-                                        tlogItemRecordMap["isSuspended"] =
+                                        tlogItemRecordMap["tlog_isSuspended"] =
                                             tLogResponseWrapper.Tlog.IsSuspended.ToString();
-                                        tlogItemRecordMap["isTrainingMode"] =
+                                        tlogItemRecordMap["tlog_isTrainingMode"] =
                                             tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                                        tlogItemRecordMap["tlog_isResumed"] = tLogResponseWrapper.Tlog.IsResumed.ToString();
+                                        tlogItemRecordMap["tlog_isRecalled"] =
+                                            tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                                        tlogItemRecordMap["tlog_isDeleted"] = tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                                        tlogItemRecordMap["tlog_isVoided"] = tLogResponseWrapper.Tlog.IsVoided.ToString();
                                     }
                                     catch
                                     {
@@ -2395,9 +2521,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogItemRecordMap["actualAmount"] = "0";
                                             }
 
-                                            tlogItemRecordMap["isReturn"] = item.IsReturn;
-
-                                            tlogItemRecordMap["isVoided"] = item.IsVoided;
+                                            
+                                            tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                            tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                            tlogItemRecordMap["item_isRefund"] = item.IsRefund;
 
                                             if (item.ItemDiscounts != null)
                                             {
@@ -2508,8 +2635,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "regularUnitPrice",
                     "actualAmount",
                     "discountAmount",
-                    "isReturn",
-                    "isVoided",
                     "discountType",
                     "03record",
                     "rtntype",
@@ -2547,8 +2672,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "report_as_tender",
                     "not_netted_promo_frequent_shopper",
                     "row_str",
-                    "isTrainingMode",
-                    "isSuspended"
+                    "tlog_isTrainingMode",
+                    "tlog_isResumed",
+                    "tlog_isVoided",
+                    "tlog_isDeleted",
+                    "tlog_isRecalled",
+                    "tlog_isSuspended",
+                    "item_isReturn",
+                    "item_isVoided",
+                    "item_isRefund"
                 };
 
                 var properties = new List<Property>();
@@ -2569,8 +2701,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case ("isReturn"):
-                        case ("isVoided"):
+                        case ("item_isReturn"):
+                        case ("item_isVoided"):
+                        case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
                             property.Type = PropertyType.Bool;
@@ -2719,9 +2852,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                     }
 
-                                    tlogItemRecordMap["isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
-                                    tlogItemRecordMap["isTrainingMode"] =
+                                    tlogItemRecordMap["tlog_isSuspended"] = tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                    tlogItemRecordMap["tlog_isTrainingMode"] =
                                         tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                                    tlogItemRecordMap["tlog_isResumed"] = tLogResponseWrapper.Tlog.IsResumed.ToString();
+                                    tlogItemRecordMap["tlog_isRecalled"] =
+                                        tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                                    tlogItemRecordMap["tlog_isDeleted"] = tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                                    tlogItemRecordMap["tlog_isVoided"] = tLogResponseWrapper.Tlog.IsVoided.ToString();
                                 }
                                 catch
                                 {
@@ -2794,9 +2932,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["actualAmount"] = "0";
                                         }
 
-                                        tlogItemRecordMap["isReturn"] = item.IsReturn;
-
-                                        tlogItemRecordMap["isVoided"] = item.IsVoided;
+                                        
+                                        tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                        tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                        tlogItemRecordMap["item_isRefund"] = item.IsRefund;
 
                                         if (item.ItemDiscounts != null)
                                         {
@@ -2891,7 +3030,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "type",
                     "usage",
                     "tenderAmount",
-                    "isVoided",
+                    "tender_isVoided",
                     "typeLabel",
                     "cardLastFourDigits",
                     "name"
@@ -2914,7 +3053,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case ("isVoided"):
+                        case ("tender_isVoided"):
                             property.IsKey = false;
                             property.TypeAtSource = "boolean";
                             property.Type = PropertyType.Bool;
@@ -3051,7 +3190,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogTenderRecordMap["type"] = tender.Type ?? "";
                                                 tlogTenderRecordMap["usage"] = tender.Usage ?? "";
                                                 tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
-                                                tlogTenderRecordMap["isVoided"] = tender.IsVoided;
+                                                tlogTenderRecordMap["tender_isVoided"] = tender.IsVoided;
                                                 tlogTenderRecordMap["typeLabel"] = tender.TypeLabel ?? "";
                                                 tlogTenderRecordMap["cardLastFourDigits"] =
                                                     tender.CardLastFourDigits ?? "";
@@ -3103,7 +3242,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "type",
                     "usage",
                     "tenderAmount",
-                    "isVoided",
+                    "tender_isVoided",
                     "typeLabel",
                     "cardLastFourDigits",
                     "name"
@@ -3126,7 +3265,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case ("isVoided"):
+                        case ("tender_isVoided"):
                             property.IsKey = false;
                             property.TypeAtSource = "boolean";
                             property.Type = PropertyType.Bool;
@@ -3256,7 +3395,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogTenderRecordMap["type"] = tender.Type ?? "";
                                             tlogTenderRecordMap["usage"] = tender.Usage ?? "";
                                             tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
-                                            tlogTenderRecordMap["isVoided"] = tender.IsVoided;
+                                            tlogTenderRecordMap["tender_isVoided"] = tender.IsVoided;
                                             tlogTenderRecordMap["typeLabel"] = tender.TypeLabel ?? "";
                                             tlogTenderRecordMap["cardLastFourDigits"] =
                                                 tender.CardLastFourDigits ?? "";
@@ -3302,7 +3441,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "type",
                     "usage",
                     "tenderAmount",
-                    "isVoided",
+                    "tender_isVoided",
                     "typeLabel",
                     "cardLastFourDigits",
                     "name"
@@ -3325,7 +3464,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case ("isVoided"):
+                        case ("tender_isVoided"):
+                        case ("item_isReturn"):
+                        case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "boolean";
                             property.Type = PropertyType.Bool;
@@ -3455,7 +3596,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogTenderRecordMap["type"] = tender.Type ?? "";
                                             tlogTenderRecordMap["usage"] = tender.Usage ?? "";
                                             tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
-                                            tlogTenderRecordMap["isVoided"] = tender.IsVoided;
+                                            tlogTenderRecordMap["tender_isVoided"] = tender.IsVoided;
                                             tlogTenderRecordMap["typeLabel"] = tender.TypeLabel ?? "";
                                             tlogTenderRecordMap["cardLastFourDigits"] =
                                                 tender.CardLastFourDigits ?? "";
@@ -3501,7 +3642,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "type",
                     "usage",
                     "tenderAmount",
-                    "isVoided",
+                    "tender_isVoided",
                     "typeLabel",
                     "cardLastFourDigits",
                     "name"
@@ -3524,7 +3665,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
-                        case ("isVoided"):
+                        case ("tender_isVoided"):
                             property.IsKey = false;
                             property.TypeAtSource = "boolean";
                             property.Type = PropertyType.Bool;
@@ -3662,7 +3803,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogTenderRecordMap["type"] = tender.Type ?? "";
                                                 tlogTenderRecordMap["usage"] = tender.Usage ?? "";
                                                 tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
-                                                tlogTenderRecordMap["isVoided"] = tender.IsVoided;
+                                                tlogTenderRecordMap["tender_isVoided"] = tender.IsVoided;
                                                 tlogTenderRecordMap["typeLabel"] = tender.TypeLabel ?? "";
                                                 tlogTenderRecordMap["cardLastFourDigits"] =
                                                     tender.CardLastFourDigits ?? "";
