@@ -51,6 +51,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "item_isReturn",
                     "item_isVoided",
                     "item_isRefund",
+                    "item_isRefused",
+                    "item_isPriceLookup",
+                    "item_isOverridden",
                     "taxId",
                     "taxName",
                     "taxType",
@@ -83,6 +86,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
+                        case ("item_isRefused"):
+                        case ("item_isPriceLookup"):
+                        case ("item_isOverridden"):
                         case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
@@ -343,6 +349,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["item_isReturn"] = item.IsReturn;
                                         tlogItemRecordMap["item_isVoided"] = item.IsVoided;
                                         tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                        tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                        tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                        tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
                                     }
                                     catch (Exception e)
                                     {
@@ -402,6 +411,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "item_isReturn",
                     "item_isVoided",
                     "item_isRefund",
+                    "item_isRefused",
+                    "item_isPriceLookup",
+                    "item_isOverridden",
                     "taxId",
                     "taxName",
                     "taxType",
@@ -434,6 +446,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
+                        case ("item_isRefused"):
+                        case ("item_isPriceLookup"):
+                        case ("item_isOverridden"):
                         case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
@@ -690,6 +705,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["item_isReturn"] = item.IsReturn;
                                         tlogItemRecordMap["item_isVoided"] = item.IsVoided;
                                         tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                        tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                        tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                        tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
                                     }
                                     catch (Exception e)
                                     {
@@ -752,6 +770,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "item_isReturn",
                     "item_isVoided",
                     "item_isRefund",
+                    "item_isRefused",
+                    "item_isPriceLookup",
+                    "item_isOverridden",
                     "taxId",
                     "taxName",
                     "taxType",
@@ -784,6 +805,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
+                        case ("item_isRefused"):
+                        case ("item_isPriceLookup"):
+                        case ("item_isOverridden"):
                         case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
@@ -1047,6 +1071,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["item_isReturn"] = item.IsReturn;
                                             tlogItemRecordMap["item_isVoided"] = item.IsVoided;
                                             tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                            tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                            tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                            tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
                                         }
                                         catch (Exception e)
                                         {
@@ -1110,6 +1137,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "item_isReturn",
                     "item_isVoided",
                     "item_isRefund",
+                    "item_isRefused",
+                    "item_isPriceLookup",
+                    "item_isOverridden",
                     "taxId",
                     "taxName",
                     "taxType",
@@ -1142,6 +1172,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
+                        case ("item_isRefused"):
+                        case ("item_isPriceLookup"):
+                        case ("item_isOverridden"):
                         case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
@@ -1399,6 +1432,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["item_isReturn"] = item.IsReturn;
                                             tlogItemRecordMap["item_isVoided"] = item.IsVoided;
                                             tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                            tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                            tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                            tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
                                         }
                                         catch (Exception e)
                                         {
@@ -1509,6 +1545,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "item_isReturn",
                     "item_isVoided",
                     "item_isRefund",
+                    "item_isRefused",
+                    "item_isPriceLookup",
+                    "item_isOverridden",
                     "taxId",
                     "taxName",
                     "taxType",
@@ -1541,6 +1580,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
+                        case ("item_isRefused"):
+                        case ("item_isPriceLookup"):
+                        case ("item_isOverridden"):
                         case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
@@ -1795,6 +1837,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tlogItemRecordMap["item_isReturn"] = item.IsReturn;
                                                 tlogItemRecordMap["item_isVoided"] = item.IsVoided;
                                                 tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                                tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                                tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                                tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
 
                                                 if (item.ItemDiscounts != null)
                                                 {
@@ -1956,6 +2001,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "item_isReturn",
                     "item_isVoided",
                     "item_isRefund",
+                    "item_isRefused",
+                    "item_isPriceLookup",
+                    "item_isOverridden",
                     "taxId",
                     "taxName",
                     "taxType",
@@ -1988,6 +2036,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
+                        case ("item_isRefused"):
+                        case ("item_isPriceLookup"):
+                        case ("item_isOverridden"):
                         case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
@@ -2235,6 +2286,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["item_isReturn"] = item.IsReturn;
                                             tlogItemRecordMap["item_isVoided"] = item.IsVoided;
                                             tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                            tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                            tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                            tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
 
                                             if (item.ItemDiscounts != null)
                                             {
@@ -2395,6 +2449,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "item_isReturn",
                     "item_isVoided",
                     "item_isRefund",
+                    "item_isRefused",
+                    "item_isPriceLookup",
+                    "item_isOverridden",
                     "taxId",
                     "taxName",
                     "taxType",
@@ -2427,6 +2484,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
+                        case ("item_isRefused"):
+                        case ("item_isPriceLookup"):
+                        case ("item_isOverridden"):
                         case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
@@ -2682,6 +2742,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["item_isReturn"] = item.IsReturn;
                                             tlogItemRecordMap["item_isVoided"] = item.IsVoided;
                                             tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                            tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                            tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                            tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
 
                                             if (item.ItemDiscounts != null)
                                             {
@@ -2838,6 +2901,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "item_isReturn",
                     "item_isVoided",
                     "item_isRefund",
+                    "item_isRefused",
+                    "item_isPriceLookup",
+                    "item_isOverridden",
                     "taxId",
                     "taxName",
                     "taxType",
@@ -2870,6 +2936,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
+                        case ("item_isRefused"):
+                        case ("item_isPriceLookup"):
+                        case ("item_isOverridden"):
                         case ("item_isRefund"):
                             property.IsKey = false;
                             property.TypeAtSource = "bool";
@@ -3115,6 +3184,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["item_isReturn"] = item.IsReturn;
                                         tlogItemRecordMap["item_isVoided"] = item.IsVoided;
                                         tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                        tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                        tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                        tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
 
                                         if (item.ItemDiscounts != null)
                                         {

@@ -360,6 +360,12 @@ namespace PluginNCR.DataContracts
         [JsonProperty("isOverridden")]
         public bool IsOverridden { get; set; }
         
+        [JsonProperty("isRefused")]
+        public bool IsRefused { get; set; }
+        
+        [JsonProperty("isPriceLookup")]
+        public bool IsPriceLookup { get; set; }
+        
         [JsonProperty("isNonSaleItem")]
         public bool IsNonSaleItem { get; set; }
         
