@@ -279,9 +279,38 @@ namespace PluginNCR.DataContracts
     {
         [JsonProperty("amount")]
         public TLogTotalTaxesAmount Amount { get; set; }
+        
+        [JsonProperty("taxableAmount")]
+        public TLogTotalTaxesAmount TaxableAmount { get; set; }
+        
+        [JsonProperty("isRefund")]
+        public bool IsRefund { get; set; }
+        
+        [JsonProperty("id")]
+        public string Id { get; set; } 
+        
+        [JsonProperty("name")]
+        public string Name { get; set; }
+        
+        [JsonProperty("taxType")]
+        public string TaxType { get; set; }
+        
+        [JsonProperty("isVoided")]
+        public bool IsVoided { get; set; }
+        
+        [JsonProperty("taxPercent")]
+        public string TaxPercent { get; set; }
+        
+        [JsonProperty("sequenceNumber")]
+        public string SequenceNumber { get; set; }
     }
 
     public class TLogTotalTaxesAmount
+    {
+        [JsonProperty("amount")]
+        public string Amount { get; set; }
+    }
+    public class TLogTotalTaxesTaxableAmount
     {
         [JsonProperty("amount")]
         public string Amount { get; set; }

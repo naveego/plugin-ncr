@@ -50,7 +50,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlog_isSuspended",
                     "item_isReturn",
                     "item_isVoided",
-                    "item_isRefund"
+                    "item_isRefund",
+                    "taxId",
+                    "taxName",
+                    "taxType",
+                    "taxableAmount",
+                    "taxAmount",
+                    "taxIsRefund",
+                    "taxIsVoided",
+                    "taxSequenceNumber"
                 };
 
                 var properties = new List<Property>();
@@ -71,6 +79,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
                             break;
+                        case ("taxIsRefund"):
+                        case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
                         case ("item_isRefund"):
@@ -229,6 +239,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     //noop
                                 }
 
+                                if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                {
+                                    var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+                                    
+                                    tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                    tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                    tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                    tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                    tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                    tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                    tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                    tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                }
+                                
                                 foreach (var item in tLogResponseWrapper.Tlog.Items)
                                 {
                                     try
@@ -377,7 +401,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlog_isSuspended",
                     "item_isReturn",
                     "item_isVoided",
-                    "item_isRefund"
+                    "item_isRefund",
+                    "taxId",
+                    "taxName",
+                    "taxType",
+                    "taxableAmount",
+                    "taxAmount",
+                    "taxIsRefund",
+                    "taxIsVoided",
+                    "taxSequenceNumber"
                 };
 
                 var properties = new List<Property>();
@@ -398,6 +430,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
                             break;
+                        case ("taxIsRefund"):
+                        case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
                         case ("item_isRefund"):
@@ -552,7 +586,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     //noop
                                 }
-
+                                if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                {
+                                    var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+                                    
+                                    tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                    tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                    tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                    tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                    tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                    tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                    tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                    tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                }
                                 foreach (var item in tLogResponseWrapper.Tlog.Items)
                                 {
                                     bool validItem = true;
@@ -705,7 +751,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlog_isSuspended",
                     "item_isReturn",
                     "item_isVoided",
-                    "item_isRefund"
+                    "item_isRefund",
+                    "taxId",
+                    "taxName",
+                    "taxType",
+                    "taxableAmount",
+                    "taxAmount",
+                    "taxIsRefund",
+                    "taxIsVoided",
+                    "taxSequenceNumber"
                 };
 
                 var properties = new List<Property>();
@@ -726,6 +780,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
                             break;
+                        case ("taxIsRefund"):
+                        case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
                         case ("item_isRefund"):
@@ -887,7 +943,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         //noop
                                     }
-
+                                    if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                    {
+                                        var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+                                    
+                                        tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                        tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                        tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                        tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                        tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                        tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                        tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                        tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                    }
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
                                     {
                                         bool validItem = true;
@@ -1041,7 +1109,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlog_isSuspended",
                     "item_isReturn",
                     "item_isVoided",
-                    "item_isRefund"
+                    "item_isRefund",
+                    "taxId",
+                    "taxName",
+                    "taxType",
+                    "taxableAmount",
+                    "taxAmount",
+                    "taxIsRefund",
+                    "taxIsVoided",
+                    "taxSequenceNumber"
                 };
 
                 var properties = new List<Property>();
@@ -1062,6 +1138,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.Type = PropertyType.String;
                             property.TypeAtSource = "string";
                             break;
+                        case ("taxIsRefund"):
+                        case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
                         case ("item_isRefund"):
@@ -1216,6 +1294,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     catch
                                     {
                                         //noop
+                                    }
+                                    if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                    {
+                                        var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+                                    
+                                        tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                        tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                        tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                        tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                        tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                        tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                        tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                        tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
                                     }
 
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
@@ -1417,7 +1508,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlog_isSuspended",
                     "item_isReturn",
                     "item_isVoided",
-                    "item_isRefund"
+                    "item_isRefund",
+                    "taxId",
+                    "taxName",
+                    "taxType",
+                    "taxableAmount",
+                    "taxAmount",
+                    "taxIsRefund",
+                    "taxIsVoided",
+                    "taxSequenceNumber"
                 };
 
                 var properties = new List<Property>();
@@ -1438,6 +1537,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
+                        case ("taxIsRefund"):
+                        case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
                         case ("item_isRefund"):
@@ -1611,7 +1712,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         {
                                             //noop
                                         }
-
+                                        if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                        {
+                                            var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+                                    
+                                            tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                            tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                            tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                            tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                            tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                            tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                            tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                            tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                        }
                                         foreach (var item in tLogResponseWrapper.Tlog.Items)
                                         {
                                             bool validItem = true;
@@ -1842,7 +1955,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlog_isSuspended",
                     "item_isReturn",
                     "item_isVoided",
-                    "item_isRefund"
+                    "item_isRefund",
+                    "taxId",
+                    "taxName",
+                    "taxType",
+                    "taxableAmount",
+                    "taxAmount",
+                    "taxIsRefund",
+                    "taxIsVoided",
+                    "taxSequenceNumber"
                 };
 
                 var properties = new List<Property>();
@@ -1863,6 +1984,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
+                        case ("taxIsRefund"):
+                        case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
                         case ("item_isRefund"):
@@ -2028,7 +2151,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 catch
                                 {
                                 }
-
+                                if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                {
+                                    var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+                                    
+                                    tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                    tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                    tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                    tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                    tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                    tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                    tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                    tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                }
                                 foreach (var item in tLogResponseWrapper.Tlog.Items)
                                 {
                                     bool validItem = true;
@@ -2259,7 +2394,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlog_isSuspended",
                     "item_isReturn",
                     "item_isVoided",
-                    "item_isRefund"
+                    "item_isRefund",
+                    "taxId",
+                    "taxName",
+                    "taxType",
+                    "taxableAmount",
+                    "taxAmount",
+                    "taxIsRefund",
+                    "taxIsVoided",
+                    "taxSequenceNumber"
                 };
 
                 var properties = new List<Property>();
@@ -2280,6 +2423,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
+                        case ("taxIsRefund"):
+                        case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
                         case ("item_isRefund"):
@@ -2453,7 +2598,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     catch
                                     {
                                     }
-
+                                    if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                    {
+                                        var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+                                    
+                                        tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                        tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                        tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                        tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                        tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                        tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                        tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                        tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                    }
                                     foreach (var item in tLogResponseWrapper.Tlog.Items)
                                     {
                                         bool validItem = true;
@@ -2680,7 +2837,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlog_isSuspended",
                     "item_isReturn",
                     "item_isVoided",
-                    "item_isRefund"
+                    "item_isRefund",
+                    "taxId",
+                    "taxName",
+                    "taxType",
+                    "taxableAmount",
+                    "taxAmount",
+                    "taxIsRefund",
+                    "taxIsVoided",
+                    "taxSequenceNumber"
                 };
 
                 var properties = new List<Property>();
@@ -2701,6 +2866,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
                             break;
+                        case ("taxIsRefund"):
+                        case ("taxIsVoided"):
                         case ("item_isReturn"):
                         case ("item_isVoided"):
                         case ("item_isRefund"):
@@ -2864,7 +3031,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 catch
                                 {
                                 }
-
+                                if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                {
+                                    var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+                                    
+                                    tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                    tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                    tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                    tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                    tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                    tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                    tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                    tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                }
                                 foreach (var item in tLogResponseWrapper.Tlog.Items)
                                 {
                                     bool validItem = true;
