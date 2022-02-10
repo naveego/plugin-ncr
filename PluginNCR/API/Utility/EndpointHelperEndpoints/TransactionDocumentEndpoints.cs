@@ -147,11 +147,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         readQuery.PageNumber = currPage;
 
 
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
+                        var json = JsonConvert.SerializeObject(readQuery);
                         using (var response = await apiClient.PostAsync(
                             path
                             , json))
@@ -505,11 +501,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         readQuery.PageNumber = currPage;
 
 
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
+                        var json = JsonConvert.SerializeObject(readQuery);
                         using (var response = await apiClient.PostAsync(
                             path
                             , json))
@@ -859,22 +851,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     currDayOffset = 0;
                     do //while queryDate != today
                     {
-                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
-                                    "T00:00:00Z";
+                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
-                        readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
 
                         do //while hasMore
                         {
                             readQuery.PageNumber = currPage;
 
-
-                            var json = new StringContent(
-                                JsonConvert.SerializeObject(readQuery),
-                                Encoding.UTF8,
-                                "application/json"
-                            );
+var json = JsonConvert.SerializeObject(readQuery);
                             using (var response = await apiClient.PostAsync(
                                 path
                                 , json))
@@ -1229,22 +1214,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
-                        readQuery.BusinessDay.DateTime = queryDate;
-
                         currPage = 0;
 
                         do //while hasMore
                         {
                             readQuery.PageNumber = currPage;
 
-
-                            var json = new StringContent(
-                                JsonConvert.SerializeObject(readQuery),
-                                Encoding.UTF8,
-                                "application/json"
-                            );
+var json = JsonConvert.SerializeObject(readQuery);
                             using (var response = await apiClient.PostAsync(
                                 path
                                 , json))
@@ -1614,6 +1592,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 var currPage = 0;
                 var currDayOffset = 0;
+                
                 var queryDate = await apiClient.GetStartDate();
                 var queryEndDate = await apiClient.GetEndDate();
 
@@ -1631,25 +1610,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var site in workingSiteList)
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
-                    currDayOffset = 0;
+                    currDayOffset = 1;
 
                     do //while queryDate != queryEndDate
                     {
-                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
-                        readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
 
                         do //while hasMore
                         {
                             readQuery.PageNumber = currPage;
 
-
-                            var json = new StringContent(
-                                JsonConvert.SerializeObject(readQuery),
-                                Encoding.UTF8,
-                                "application/json"
-                            );
+                            var json = JsonConvert.SerializeObject(readQuery);
                             using (var response = await apiClient.PostAsync(
                                 path
                                 , json))
@@ -1707,6 +1680,17 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                         var tlogItemRecordMap = new Dictionary<string, object>();
 
+                                        var tender_type_db = tLogResponseWrapper.Tlog.Tenders;
+
+                                        foreach (var tender in tender_type_db)
+                                        {
+                                            if (tender.Type != "DEBIT_CARD")
+                                            {
+                                                var id = thisTlogId;
+                                                var db0 = tender;
+                                            }
+                                        }
+                                        
                                         try
                                         {
                                             tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
@@ -1924,7 +1908,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                          } while (hasMore);
-                    } while (DateTime.Compare(DateTime.Parse(queryDate), DateTime.Parse(queryEndDate)) < 0);
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0);
                 }
             }
         }
@@ -2088,7 +2072,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 {
                     readQuery.SiteInfoIds = new List<string>() {site};
 
-                    currDayOffset = currDayOffset + 1;
                     readQuery.BusinessDay.DateTime = queryDate;
                     currPage = 0;
 
@@ -2097,11 +2080,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         readQuery.PageNumber = currPage;
 
 
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
+                        // var json = new StringContent(
+                        //     JsonConvert.SerializeObject(readQuery),
+                        //     Encoding.UTF8,
+                        //     "application/json");
+                        
+                        var json = JsonConvert.SerializeObject(readQuery);
                         using (var response = await apiClient.PostAsync(
                             path
                             , json))
@@ -2541,22 +2525,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != today
                     {
-                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
-                                    "T00:00:00Z";
+                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
-                        readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
 
                         do //while hasMore
                         {
                             readQuery.PageNumber = currPage;
 
-
-                            var json = new StringContent(
-                                JsonConvert.SerializeObject(readQuery),
-                                Encoding.UTF8,
-                                "application/json"
-                            );
+var json = JsonConvert.SerializeObject(readQuery);
                             using (var response = await apiClient.PostAsync(
                                 path
                                 , json))
@@ -2995,11 +2972,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         readQuery.PageNumber = currPage;
 
 
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
+                        var json = JsonConvert.SerializeObject(readQuery);
                         using (var response = await apiClient.PostAsync(
                             path
                             , json))
@@ -3360,21 +3333,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
-                        readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
 
                         do //while hasMore
                         {
                             readQuery.PageNumber = currPage;
 
-
-                            var json = new StringContent(
-                                JsonConvert.SerializeObject(readQuery),
-                                Encoding.UTF8,
-                                "application/json"
-                            );
+var json = JsonConvert.SerializeObject(readQuery);
                             using (var response = await apiClient.PostAsync(
                                 path
                                 , json))
@@ -3576,11 +3543,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         readQuery.PageNumber = currPage;
 
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
+                        var json = JsonConvert.SerializeObject(readQuery);
                         using (var response = await apiClient.PostAsync(
                             path
                             , json))
@@ -3777,11 +3740,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         readQuery.PageNumber = currPage;
 
 
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
+                        var json = JsonConvert.SerializeObject(readQuery);
                         using (var response = await apiClient.PostAsync(
                             path
                             , json))
@@ -3973,22 +3932,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != today
                     {
-                        queryDate = DateTime.Parse(startDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") +
-                                    "T00:00:00Z";
+                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
-                        readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
 
                         do //while hasMore
                         {
                             readQuery.PageNumber = currPage;
 
-
-                            var json = new StringContent(
-                                JsonConvert.SerializeObject(readQuery),
-                                Encoding.UTF8,
-                                "application/json"
-                            );
+                            var json = JsonConvert.SerializeObject(readQuery);
                             using (var response = await apiClient.PostAsync(
                                 path
                                 , json))
@@ -4168,21 +4120,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
-                        readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
 
                         do //while hasMore
                         {
                             readQuery.PageNumber = currPage;
 
-
-                            var json = new StringContent(
-                                JsonConvert.SerializeObject(readQuery),
-                                Encoding.UTF8,
-                                "application/json"
-                            );
+var json = JsonConvert.SerializeObject(readQuery);
                             using (var response = await apiClient.PostAsync(
                                 path
                                 , json))
@@ -4371,11 +4317,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         readQuery.PageNumber = currPage;
 
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
+                        var json = JsonConvert.SerializeObject(readQuery);
                         using (var response = await apiClient.PostAsync(
                             path
                             , json))
@@ -4553,11 +4495,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         readQuery.PageNumber = currPage;
 
-                        var json = new StringContent(
-                            JsonConvert.SerializeObject(readQuery),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
+                        var json = JsonConvert.SerializeObject(readQuery);
                         using (var response = await apiClient.PostAsync(
                             path
                             , json))
@@ -4731,21 +4669,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        queryDate = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
-                        readQuery.BusinessDay.DateTime = queryDate;
                         currPage = 0;
 
                         do //while hasMore
                         {
                             readQuery.PageNumber = currPage;
 
-
-                            var json = new StringContent(
-                                JsonConvert.SerializeObject(readQuery),
-                                Encoding.UTF8,
-                                "application/json"
-                            );
+var json = JsonConvert.SerializeObject(readQuery);
                             using (var response = await apiClient.PostAsync(
                                 path
                                 , json))

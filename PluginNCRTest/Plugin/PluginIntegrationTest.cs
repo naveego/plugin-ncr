@@ -28,9 +28,10 @@ namespace PluginNCRTest.Plugin
                     NepCorrelationId = @"",
                     QueryStartDate = "",
                     QueryEndDate = "",
-                    SiteIDs = ""
-
-
+                    SiteIDs = "",
+                    AuthMethod = false,
+                    SecretKey = "",
+                    SharedKey = "",
                 };
         }
 
@@ -46,7 +47,7 @@ namespace PluginNCRTest.Plugin
 
         private Schema GetTestSchema(string endpointId = null, string id = "test", string name = "test")
         {
-            Endpoint endpoint = endpointId == null? EndpointHelper.GetEndpointForId("TransactionDocument_HistoricalFromDate")
+            Endpoint endpoint = endpointId == null? EndpointHelper.GetEndpointForId("TransactionDocument_Tenders_7Days")
                 : EndpointHelper.GetEndpointForId(endpointId);
 
             return new Schema
@@ -260,7 +261,7 @@ namespace PluginNCRTest.Plugin
             var response = client.ReadStream(request);
             var responseStream = response.ResponseStream;
             var records = new List<Record>();
-
+            
             while (await responseStream.MoveNext())
             {
                 records.Add(responseStream.Current);

@@ -14,6 +14,9 @@ namespace PluginNCR.Helper
         public string NepApplicationKey { get; set; }
         public string NepCorrelationId { get; set; }
         public string SiteIDs { get; set; }
+        public string SecretKey { get; set; }
+        public string SharedKey { get; set; }
+        public bool AuthMethod { get; set; }
 
         /// <summary>
         /// Validates the settings input object
@@ -21,13 +24,29 @@ namespace PluginNCR.Helper
         /// <exception cref="Exception"></exception>
         public void Validate()
         {
-            if (String.IsNullOrEmpty(ProvUsername))
+            if(AuthMethod) //use credentials
             {
-                throw new Exception("the ProvUsername property must be set");
+                if (String.IsNullOrEmpty(ProvUsername))
+                {
+                    throw new Exception("the ProvUsername property must be set");
+                }
+
+                if (String.IsNullOrEmpty(ProvPassword))
+                {
+                    throw new Exception("the ProvPassword property must be set");
+                }
             }
-            if (String.IsNullOrEmpty(ProvPassword))
+
+            if (!AuthMethod) //use key
             {
-                throw new Exception("the ProvPassword property must be set");
+                if (String.IsNullOrEmpty(SecretKey))
+                {
+                    throw new Exception("the SecretKey property must be set");
+                } 
+                if (String.IsNullOrEmpty(SharedKey))
+                {
+                    throw new Exception("the SharedKey property must be set");
+                } 
             }
             if (String.IsNullOrEmpty(NepOrganization))
             {

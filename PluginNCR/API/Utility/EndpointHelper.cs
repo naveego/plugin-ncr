@@ -97,11 +97,7 @@ namespace PluginNCR.API.Utility
                 {
                     readQuery.PageNumber = currPage;
                     
-                    var json = new StringContent(
-                        JsonConvert.SerializeObject(readQuery),
-                        Encoding.UTF8,
-                        "application/json"
-                    );
+                    var json = JsonConvert.SerializeObject(readQuery);
                     using (var response = await apiClient.PostAsync(
                         path
                         , json))
@@ -437,26 +433,25 @@ namespace PluginNCR.API.Utility
                 Properties = postObject
             };
 
-            var objstr = JsonConvert.SerializeObject(postObjectWrapper);
-
-            var json = new StringContent(
-                JsonConvert.SerializeObject(postObjectWrapper),
-                Encoding.UTF8,
-                "application/json"
-            );
-
             HttpResponseMessage response;
 
             if (!recordMap.ContainsKey(WritePathPropertyId) || recordMap.ContainsKey(WritePathPropertyId) &&
                 recordMap[WritePathPropertyId] == null)
             {
+                var json = JsonConvert.SerializeObject(postObjectWrapper);
+
                 response =
                     await apiClient.PostAsync($"{BasePath.TrimEnd('/')}", json);
             }
             else
             {
+                var jsonPatch = new StringContent(
+                    JsonConvert.SerializeObject(postObjectWrapper),
+                    Encoding.UTF8,
+                    "application/json"
+                );
                 response =
-                    await apiClient.PatchAsync($"{BasePath.TrimEnd('/')}/{recordMap[WritePathPropertyId]}", json);
+                    await apiClient.PatchAsync($"{BasePath.TrimEnd('/')}/{recordMap[WritePathPropertyId]}", jsonPatch);
             }
 
             if (!response.IsSuccessStatusCode)

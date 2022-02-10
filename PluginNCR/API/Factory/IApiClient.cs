@@ -7,7 +7,7 @@ namespace PluginNCR.API.Factory
     {
         Task TestConnection();
         Task<HttpResponseMessage> GetAsync(string path);
-        Task<HttpResponseMessage> PostAsync(string path, StringContent json);
+        Task<HttpResponseMessage> PostAsync(string path, string json);
         Task<HttpResponseMessage> PutAsync(string path, StringContent json);
         Task<HttpResponseMessage> PatchAsync(string path, StringContent json);
         Task<HttpResponseMessage> DeleteAsync(string path);
