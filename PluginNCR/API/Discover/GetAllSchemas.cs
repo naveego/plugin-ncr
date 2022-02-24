@@ -48,7 +48,8 @@ namespace PluginNCR.API.Discover
             }
 
             // add sample and count
-            var records = Read.Read.ReadRecordsAsync(apiClient, schema).Take(sampleSize);
+            // var records = Read.Read.ReadRecordsAsync(apiClient, schema).Take(sampleSize);
+            var records = Read.Read.ReadRecordsAsync(apiClient, schema, sampleSize);
             schema.Sample.AddRange(await records.ToListAsync());
             schema.Count = await GetCountOfRecords(apiClient, endpoint);
 

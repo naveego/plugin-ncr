@@ -277,7 +277,7 @@ namespace PluginNCR.Plugin
             try
             {
                 var schema = request.Schema;
-                var limit = request.Limit;
+                var limit = request.Limit > Int32.MaxValue ? Int32.MaxValue : (int)request.Limit;
                 var limitFlag = request.Limit != 0;
                 var jobId = request.JobId;
                 long recordsCount = 0;
@@ -287,7 +287,7 @@ namespace PluginNCR.Plugin
                 Logger.Debug(JsonConvert.SerializeObject(request.RealTimeStateJson, Formatting.Indented));
 
 
-                var records = Read.ReadRecordsAsync(_apiClient, schema);
+                var records = Read.ReadRecordsAsync(_apiClient, schema, limit);
 
                 await foreach (var record in records)
                 {

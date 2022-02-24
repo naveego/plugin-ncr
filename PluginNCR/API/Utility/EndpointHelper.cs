@@ -53,6 +53,8 @@ namespace PluginNCR.API.Utility
         public string BasePath { get; set; } = "";
         public string AllPath { get; set; } = "";
         public Method Method { get; set; }
+        public string StartDate { get; set; }
+        public string EndDate { get; set; }
         public string? DetailPath { get; set; }
         public string? DetailPropertyId { get; set; }
         public List<string> PropertyKeys { get; set; } = new List<string>();
@@ -76,20 +78,21 @@ namespace PluginNCR.API.Utility
             });
         }
 
-        public virtual async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, bool isDiscoverRead = false)
+        public virtual async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "", bool isDiscoverRead = false)
         {
             var hasMore = false;
             var endpoint = EndpointHelper.GetEndpointForSchema(schema);
-
+            
             var currPage = 0;
-            var startDate = await apiClient.GetStartDate();
+            //var startDate = await apiClient.GetStartDate();
             var queryDate = startDate + "T00:00:00Z";
             
             var readQuery =
                 JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
             
             var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-            
+
+            long recordsCount = 0;
             do
             {
                 
