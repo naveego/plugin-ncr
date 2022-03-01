@@ -218,11 +218,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     continue;
                                 }
-                                
 
+                                var pageContent = limit > 0 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int)recordCount) : 
+                                    objectResponseWrapper?.PageContent;
+                                
                                 List<Record> returnRecords = new List<Record>() { };
                                 
-                                await objectResponseWrapper?.PageContent.Take(safeLimit).ParallelForEachAsync(async objectResponse =>
+                                await pageContent.ParallelForEachAsync(async objectResponse =>
                                 {
                                     var recordMap = new Dictionary<string, object>();
                                     
@@ -317,7 +319,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
                                         tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
                                     }
-                                    foreach (var item in tLogResponseWrapper.Tlog.Items.Take(safeLimit))
+                                    var items = limit > 0
+                                        ? tLogResponseWrapper.Tlog.Items.Take(safeLimit-(int)recordCount)
+                                        : tLogResponseWrapper.Tlog.Items;
+                                    
+                                    foreach (var item in items)
                                     {
                                         bool validItem = true;
                                         try
@@ -481,8 +487,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     hasMore = true;
                                 }
                             }
-                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || recordCount < limit));
+                         } while (hasMore && (limit == 0 || (int)recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
             }
         }
@@ -679,7 +685,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 List<Record> returnRecords = new List<Record>() { };
                                 
-                                await objectResponseWrapper?.PageContent.Take(safeLimit).ParallelForEachAsync(async objectResponse =>
+                                var pageContent = limit > 0
+                                    ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
+                                    : objectResponseWrapper?.PageContent;
+                                
+                                await pageContent.Take(safeLimit).ParallelForEachAsync(async objectResponse =>
                                 {
                                     var recordMap = new Dictionary<string, object>();
 
@@ -954,7 +964,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 List<Record> returnRecords = new List<Record>() { };
                                 
-                                await objectResponseWrapper?.PageContent.Take(safeLimit).ParallelForEachAsync(async objectResponse =>
+                                var pageContent = limit > 0
+                                    ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
+                                    : objectResponseWrapper?.PageContent;
+                                
+                                await pageContent.ParallelForEachAsync(async objectResponse =>
                                 {
                                     var recordMap = new Dictionary<string, object>();
 
@@ -1237,8 +1251,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 
 
                                 List<Record> returnRecords = new List<Record>() { };
-                                
-                                await objectResponseWrapper?.PageContent.Take(safeLimit).ParallelForEachAsync(async objectResponse =>
+                                var pageContent = limit > 0
+                                    ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
+                                    : objectResponseWrapper?.PageContent;
+
+                                await pageContent.Take(safeLimit).ParallelForEachAsync(async objectResponse =>
                                 {
                                     var recordMap = new Dictionary<string, object>();
                                     
@@ -1274,8 +1291,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     var tlogItemRecordMap = new Dictionary<string, object>();
 
                                     tlogItemRecordMap["tlogId"] = recordMap["tlogId"];
-
-                                    foreach (var item in tLogResponseWrapper.Tlog.Items.Take(safeLimit))
+                                    
+                                    var items = limit > 0
+                                        ? tLogResponseWrapper.Tlog.Items.Take(safeLimit-(int)recordCount)
+                                        : tLogResponseWrapper.Tlog.Items;
+                                    
+                                    foreach (var item in items)
                                     {
                                         tlogItemRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
                                             ? "null"
@@ -1812,11 +1833,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionItemTaxes_Historical", new TransactionDocumentEndpoint_TransactionItemTaxes_Historical
+                    "TransactionItemTaxes_HistoricalFromDate", new TransactionDocumentEndpoint_TransactionItemTaxes_Historical
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionItemTaxes_Historical",
-                        Name = "TransactionItemTaxes_Historical",
+                        Id = "TransactionItemTaxes_HistoricalFromDate",
+                        Name = "TransactionItemTaxes_HistoricalFromDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",

@@ -104,7 +104,7 @@ namespace PluginNCRTest.Plugin
                 Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
             };
             server.Start();
-
+            
             var port = server.Ports.First().BoundPort;
 
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
@@ -121,10 +121,9 @@ namespace PluginNCRTest.Plugin
             // act
             client.Connect(connectRequest);
             var response = client.DiscoverSchemas(request);
-
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(12, response.Schemas.Count);
+            Assert.Equal(16, response.Schemas.Count);
             //
              var schema = response.Schemas[0];
              Assert.Equal($"TransactionDocument_Tenders_HistoricalFromDate", schema.Id);

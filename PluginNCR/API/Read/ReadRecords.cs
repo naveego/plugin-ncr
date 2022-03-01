@@ -12,9 +12,7 @@ namespace PluginNCR.API.Read
         public static async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit)
         {
             var endpoint = EndpointHelper.GetEndpointForSchema(schema);
-
             var records = endpoint?.ReadRecordsAsync(apiClient, schema, limit);
-
             if (records != null)
             {
                 await foreach (var record in records)
