@@ -175,6 +175,12 @@ namespace PluginNCR.Plugin
             Logger.Info("Discovering Schemas...");
 
             var sampleSize = checked((int) request.SampleSize);
+            
+            //prevent unlimited sample size query
+            if (sampleSize == 0)
+            {
+                sampleSize = 10;
+            }
 
             DiscoverSchemasResponse discoverSchemasResponse = new DiscoverSchemasResponse();
 

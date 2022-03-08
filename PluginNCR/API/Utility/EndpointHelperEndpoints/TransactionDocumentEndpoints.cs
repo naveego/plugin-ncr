@@ -575,6 +575,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tender_isVoided",
                     "typeLabel",
                     "cardLastFourDigits",
+                    "maskedCardNumber",
                     "name"
                 };
 
@@ -689,7 +690,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
                                     : objectResponseWrapper?.PageContent;
                                 
-                                await pageContent.Take(safeLimit).ParallelForEachAsync(async objectResponse =>
+                                
+                                await pageContent.ParallelForEachAsync(async objectResponse =>
                                 {
                                     var recordMap = new Dictionary<string, object>();
 
@@ -740,24 +742,25 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                     tender.CardLastFourDigits ?? "";
                                                 tlogTenderRecordMap["name"] = tender.Name ?? "";
                                                 tlogTenderRecordMap["id"] = tender.Id ?? "";
+                                                tlogTenderRecordMap["maskedCardNumber"] = tender.MaskedCardNumber ?? "";
+
+                                                recordCount++;
+                                                if (recordCount > limit && limit > 0)
+                                                {
+                                                    hasMore = false;
+                                                }
+                                                else
+                                                {
+                                                    returnRecords.Add(new Record
+                                                    {
+                                                        Action = Record.Types.Action.Upsert,
+                                                        DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
+                                                    }); 
+                                                }
                                             }
                                             catch
                                             {
                                             }
-                                        }
-
-                                        recordCount++;
-                                        if (recordCount > limit && limit > 0)
-                                        {
-                                            hasMore = false;
-                                        }
-                                        else
-                                        {
-                                            returnRecords.Add(new Record
-                                            {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
-                                            }); 
                                         }
                                     }
                                 }, maxDegreeOfParallelism: System.Environment.ProcessorCount);
@@ -1020,25 +1023,27 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                     loyaltyAccount.PointsRedeemed ?? "";
                                                 tlogLoyaltyAccountRecordMap["programType"] =
                                                     loyaltyAccount.ProgramType ?? "";
+                                                
+                                                recordCount++;
+                                                if (recordCount > limit && limit > 0)
+                                                {
+                                                    hasMore = false;
+                                                }
+                                                else
+                                                {
+                                                    returnRecords.Add(new Record
+                                                    {
+                                                        Action = Record.Types.Action.Upsert,
+                                                        DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
+                                                    });
+                                                }
                                             }
                                             catch
                                             {
                                             }
                                         }
 
-                                        recordCount++;
-                                        if (recordCount > limit && limit > 0)
-                                        {
-                                            hasMore = false;
-                                        }
-                                        else
-                                        {
-                                            returnRecords.Add(new Record
-                                            {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
-                                            });
-                                        }
+                                        
                                     }
                                 }, maxDegreeOfParallelism: System.Environment.ProcessorCount);
 
@@ -1255,7 +1260,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
                                     : objectResponseWrapper?.PageContent;
 
-                                await pageContent.Take(safeLimit).ParallelForEachAsync(async objectResponse =>
+                                await pageContent.ParallelForEachAsync(async objectResponse =>
                                 {
                                     var recordMap = new Dictionary<string, object>();
                                     

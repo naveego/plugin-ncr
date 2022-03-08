@@ -233,14 +233,15 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionItemTaxes_Yesterday");
+            var schema = GetTestSchema("TransactionDocument_Tenders_Yesterday");
 
             var connectRequest = GetConnectSettings();
 
             var schemaRequest = new DiscoverSchemasRequest
             {
                 Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
+                ToRefresh = {schema},
+                SampleSize = 10
             };
 
             var request = new ReadRequest()
@@ -272,14 +273,17 @@ namespace PluginNCRTest.Plugin
             //Assertations will be incorrect often
 
             
-            Assert.Equal(7600, records.Count);
+            Assert.Equal(2985, records.Count);
 
             //var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
             //Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);
             // Assert.Equal("False", record["isTrainingMode"]);
             // Assert.Equal("572", record["transactionNumber"]);
-            
-           
+
+
+            var db0 = 0;
+            var db1 = 0;
+            var db2 = 0;
             // cleanup
             await channel.ShutdownAsync();
             await server.ShutdownAsync();

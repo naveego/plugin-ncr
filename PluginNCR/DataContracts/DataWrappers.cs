@@ -260,6 +260,9 @@ namespace PluginNCR.DataContracts
         
         [JsonProperty("cardLastFourDigits", NullValueHandling = NullValueHandling.Ignore)]
         public string CardLastFourDigits { get; set; }
+        
+        [JsonProperty("maskedCardNumber", NullValueHandling = NullValueHandling.Ignore)]
+        public string MaskedCardNumber { get; set; }
     }
 
     public class TLogTendersTenderAmount
