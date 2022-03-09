@@ -463,6 +463,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             if (recordCount > limit && limit > 0)
                                             {
                                                 hasMore = false;
+                                                break;
                                             }
                                             else
                                             {
@@ -756,6 +757,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 if (recordCount > limit && limit > 0)
                                                 {
                                                     hasMore = false;
+                                                    break;
                                                 }
                                                 else
                                                 {
@@ -1040,6 +1042,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 if (recordCount > limit && limit > 0)
                                                 {
                                                     hasMore = false;
+                                                    break;
                                                 }
                                                 else
                                                 {

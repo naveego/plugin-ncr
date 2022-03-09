@@ -29,7 +29,7 @@ namespace PluginNCRTest.Plugin
                     QueryStartDate = "",
                     QueryEndDate = "",
                     SiteIDs = "",
-                    AuthMethod = false,
+                    AuthMethod = "",
                     SecretKey = "",
                     SharedKey = "",
                 };
@@ -130,7 +130,7 @@ namespace PluginNCRTest.Plugin
              Assert.Equal("TransactionDocument_Tenders_HistoricalFromDate", schema.Name);
             // Assert.Equal($"", schema.Query);
              Assert.Equal(10, schema.Sample.Count);
-             Assert.Equal(9, schema.Properties.Count);
+             Assert.Equal(10, schema.Properties.Count);
             //
              var property = schema.Properties[0];
              Assert.Equal("tlogId", property.Id);
@@ -273,17 +273,13 @@ namespace PluginNCRTest.Plugin
             //Assertations will be incorrect often
 
             
-            Assert.Equal(2985, records.Count);
+            Assert.Equal(3107, records.Count);
 
             //var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
             //Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);
             // Assert.Equal("False", record["isTrainingMode"]);
             // Assert.Equal("572", record["transactionNumber"]);
-
-
-            var db0 = 0;
-            var db1 = 0;
-            var db2 = 0;
+            
             // cleanup
             await channel.ShutdownAsync();
             await server.ShutdownAsync();

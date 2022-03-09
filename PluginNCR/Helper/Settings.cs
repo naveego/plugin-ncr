@@ -16,7 +16,7 @@ namespace PluginNCR.Helper
         public string SiteIDs { get; set; }
         public string SecretKey { get; set; }
         public string SharedKey { get; set; }
-        public bool AuthMethod { get; set; }
+        public string AuthMethod { get; set; }
 
         /// <summary>
         /// Validates the settings input object
@@ -24,7 +24,7 @@ namespace PluginNCR.Helper
         /// <exception cref="Exception"></exception>
         public void Validate()
         {
-            if(AuthMethod) //use credentials
+            if(AuthMethod == "Credentials") //use credentials
             {
                 if (String.IsNullOrEmpty(ProvUsername))
                 {
@@ -37,7 +37,7 @@ namespace PluginNCR.Helper
                 }
             }
 
-            if (!AuthMethod) //use key
+            else if (AuthMethod == "Access Key") //use key
             {
                 if (String.IsNullOrEmpty(SecretKey))
                 {
@@ -48,6 +48,11 @@ namespace PluginNCR.Helper
                     throw new Exception("the SharedKey property must be set");
                 } 
             }
+            else
+            {
+                throw new Exception("the Auth Method property must be set");
+            }
+            
             if (String.IsNullOrEmpty(NepOrganization))
             {
                 throw new Exception("the NepOrganization property must be set");

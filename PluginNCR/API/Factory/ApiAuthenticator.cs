@@ -30,11 +30,11 @@ namespace PluginNCR.API.Factory
         public async Task<string> GetToken(DateTimeOffset date, string uri = "", string method = "")
         {
             //access key method - one-use key so never a need to assign Token
-            if (Settings.AuthMethod == false)
+            if (Settings.AuthMethod == "Access Key")
             {
                 return await GetNewToken(date, uri, method);
             }
-            else
+            if (Settings.AuthMethod == "Credentials")
             {
                 // check if token is expired or will expire in 5 minutes or less
                 if (DateTime.Compare(DateTime.Now.AddMinutes(5), ExpiresAt) >= 0)
@@ -43,14 +43,17 @@ namespace PluginNCR.API.Factory
                 }
                 return Token;
             }
+            else
+            {
+                throw new Exception($"Unhandled auth method: {Settings.AuthMethod}");
+            }
         }
 
         public async Task<string> GetNewToken(DateTimeOffset date, string uri = "", string method = "")
         {
             try
             {
-                //False == access key
-                if (Settings.AuthMethod == false)
+                if (Settings.AuthMethod == "Access Key")
                 {
                     var isoDate = date.ToString("yyyy-MM-ddTHH:mm:ss.000Z");
                     var toSign = method + "\n" + uri;
