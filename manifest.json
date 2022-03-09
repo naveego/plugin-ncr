@@ -34,32 +34,19 @@
       {
         "ui:widget": "password"
       },
-      "AuthMethod": {
-        "ui:widget": "radio"
+      "SecretKey":
+      {
+        "ui:widget": "password"
       }
     },
     "schema": {
-      "definitions": {
-      "Toggle": {
-        "title": "Auth Method",
-        "type": "boolean",
-        "oneOf": [
-          {
-            "title": "Credentials",
-            "const": true
-          },
-          {
-            "title": "Access Key",
-            "const": false
-          }
-        ]
-      }
-    },
       "type": "object",
       "properties": {
         "AuthMethod": {
-          "title": "Auth Method",
-          "$ref": "#/definitions/Toggle"
+          "enum": [
+            "Credentials",
+            "Access Key"
+          ]
         },
         "ProvUsername" : {
           "type": "string",
@@ -114,6 +101,7 @@
       },
 
       "required": [
+        "Auth Method",
         "NepApplicationKey",
         "NepOrganization",
         "NepCorrelationId",

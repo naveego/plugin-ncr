@@ -185,6 +185,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in workingSiteList)
                 {
+                    if (limit > 0 && recordCount >= limit)
+                    {
+                        break;
+                    }
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 1;
 
@@ -650,6 +654,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in workingSiteList)
                 {
+                    if (limit > 0 && recordCount >= limit)
+                    {
+                        break;
+                    }
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
 
@@ -931,6 +939,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in workingSiteList)
                 {
+                    if (limit > 0 && recordCount >= limit)
+                    {
+                        break;
+                    }
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
 
@@ -1220,6 +1232,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in workingSiteList)
                 {
+                    if (limit > 0 && recordCount >= limit)
+                    {
+                        break;
+                    }
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 1;
 
