@@ -101,7 +101,7 @@
       },
 
       "required": [
-        "Auth Method",
+        "AuthMethod",
         "NepApplicationKey",
         "NepOrganization",
         "NepCorrelationId",

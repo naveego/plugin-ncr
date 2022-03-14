@@ -29,8 +29,8 @@ namespace PluginNCRTest.Plugin
                     QueryStartDate = "",
                     QueryEndDate = "",
                     SiteIDs = "",
-                    AuthMethod = "",
                     SecretKey = "",
+                    AuthMethod = "",
                     SharedKey = "",
                 };
         }
