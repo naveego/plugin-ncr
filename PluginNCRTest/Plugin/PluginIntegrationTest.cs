@@ -29,8 +29,8 @@ namespace PluginNCRTest.Plugin
                     QueryStartDate = "",
                     QueryEndDate = "",
                     SiteIDs = "",
-                    SecretKey = "",
                     AuthMethod = "",
+                    SecretKey = "",
                     SharedKey = "",
                 };
         }
@@ -233,7 +233,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_Tenders_Yesterday");
+            var schema = GetTestSchema("TransactionItemTaxes_Today");
 
             var connectRequest = GetConnectSettings();
 

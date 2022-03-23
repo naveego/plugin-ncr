@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -48,12 +49,11 @@ namespace PluginNCR.API.Discover
             }
 
             // add sample and count
-            // var records = Read.Read.ReadRecordsAsync(apiClient, schema).Take(sampleSize);
             var records = Read.Read.ReadRecordsAsync(apiClient, schema, sampleSize);
             schema.Sample.AddRange(await records.ToListAsync());
             schema.Count = await GetCountOfRecords(apiClient, endpoint);
-
-            return schema;
+            
+             return schema;
         }
 
         private static async Task<Schema> GetSchemaForEndpoint(IApiClient apiClient, Schema schema, Endpoint? endpoint)

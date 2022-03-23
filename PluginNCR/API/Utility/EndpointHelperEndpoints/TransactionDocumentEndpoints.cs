@@ -1156,6 +1156,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 List<string> staticSchemaProperties = new List<string>()
                 {
                     "tlogId",
+                    "itemId",
                     "itemTaxId",
                     "itemTaxName",
                     "itemTaxType",
@@ -1179,7 +1180,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     switch (staticProperty)
                     {
                         case ("tlogId"):
-                        case ("taxSequenceNumber"):
+                        case ("itemId"):
+                        case ("itemTaxId"):
                             property.IsKey = true;
                             property.TypeAtSource = "string";
                             property.Type = PropertyType.String;
