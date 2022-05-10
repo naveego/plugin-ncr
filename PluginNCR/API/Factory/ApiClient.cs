@@ -181,14 +181,38 @@ namespace PluginNCR.API.Factory
             webRequest.Headers["nep-organization"] = Settings.NepOrganization;
             webRequest.Headers["Date"] = date.ToString("ddd, dd MMM yyyy HH:mm:ss") + " GMT";
 
-            var webResponse = webRequest.GetResponse();
-            var response = new HttpResponseMessage(HttpStatusCode.OK);
-            //problem here
-            using (var streamReader = new StreamReader(webResponse.GetResponseStream()))
+            var response = new HttpResponseMessage();
+            try
             {
-                var result = await streamReader.ReadToEndAsync();
-                response.Content = new StringContent(result, Encoding.UTF8, "application/json");
+                var webResponse = await webRequest.GetResponseAsync();
+                using (var streamReader = new StreamReader(webResponse.GetResponseStream()))
+                {
+                    var result = await streamReader.ReadToEndAsync();
+                    response.Content = new StringContent(result, Encoding.UTF8, "application/json");
+                }
             }
+            catch (WebException e)
+            {
+                double backOffRetryCount = 1;
+                while (backOffRetryCount <= 10 && !response.IsSuccessStatusCode)
+                {
+                    await Task.Delay((int)(Math.Pow(3, backOffRetryCount) * 1000));
+                    
+                    var webResponse = await webRequest.GetResponseAsync();
+                    using (var streamReader = new StreamReader(webResponse.GetResponseStream()))
+                    {
+                        var result = await streamReader.ReadToEndAsync();
+                        response.Content = new StringContent(result, Encoding.UTF8, "application/json");
+                    }
+                    backOffRetryCount++;
+                }
+
+                if (backOffRetryCount <= 5 && !response.IsSuccessStatusCode)
+                {
+                    var db = response;
+                }
+            }
+            //problem here
             return response;
             // //date format
             // //Tue, 08 Feb 2022 16:35:28 GMT
@@ -263,7 +287,22 @@ namespace PluginNCR.API.Factory
             var token = await Authenticator.GetNewToken(date, uri.PathAndQuery, "POST");
 
             request.Headers.Add("Authorization", $"AccessToken {token}");
-            return await Client.SendAsync(request);
+
+            HttpResponseMessage response = null;
+            response = await Client.SendAsync(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                double backOffRetryCount = 1;
+                while (backOffRetryCount <= 5 && !response.IsSuccessStatusCode)
+                {
+                    await Task.Delay((int)(Math.Pow(3, backOffRetryCount) * 1000));
+                    response = await Client.SendAsync(request);
+                    backOffRetryCount++;
+                }
+            }
+
+            return response;
         }
         public async Task<HttpResponseMessage> PostAsync(string path, string json)
         {
@@ -289,12 +328,22 @@ namespace PluginNCR.API.Factory
                 webRequest.Headers["nep-organization"] = Settings.NepOrganization;
                 webRequest.Headers["Date"] = date.ToString("ddd, dd MMM yyyy HH:mm:ss") + " GMT";
                 
-                var response = new HttpResponseMessage(HttpStatusCode.OK);
+                var response = new HttpResponseMessage();
                 using (var streamWriter = new StreamWriter(await webRequest.GetRequestStreamAsync()))
                 {
                     await streamWriter.WriteAsync(json);
                 }
                 var httpResponse = (HttpWebResponse) await webRequest.GetResponseAsync();
+                if (httpResponse.StatusCode != HttpStatusCode.OK)
+                {
+                    double backOffRetryCount = 1;
+                    while (backOffRetryCount <= 5 && !response.IsSuccessStatusCode)
+                    {
+                        await Task.Delay((int)(Math.Pow(3, backOffRetryCount) * 1000));
+                        httpResponse = (HttpWebResponse) await webRequest.GetResponseAsync();
+                        backOffRetryCount++;
+                    }
+                }
                 using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
                 {
                     var result = await streamReader.ReadToEndAsync();

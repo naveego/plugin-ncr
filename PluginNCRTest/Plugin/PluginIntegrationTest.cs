@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,8 +30,8 @@ namespace PluginNCRTest.Plugin
                     QueryStartDate = "",
                     QueryEndDate = "",
                     SiteIDs = "",
-                    AuthMethod = "",
                     SecretKey = "",
+                    AuthMethod = "",
                     SharedKey = "",
                 };
         }
@@ -233,7 +234,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionItemTaxes_Today");
+            var schema = GetTestSchema("TransactionDocument_HistoricalFromDate");
 
             var connectRequest = GetConnectSettings();
 
@@ -252,7 +253,6 @@ namespace PluginNCRTest.Plugin
                 },
                 JobId = "test",
             };
-
             // act
             client.Connect(connectRequest);
             var schemasResponse = client.DiscoverSchemas(schemaRequest);
@@ -271,8 +271,6 @@ namespace PluginNCRTest.Plugin
             
             //NOTE - endpoint queries are based on live data and current date.
             //Assertations will be incorrect often
-
-            
             Assert.Equal(3107, records.Count);
 
             //var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
