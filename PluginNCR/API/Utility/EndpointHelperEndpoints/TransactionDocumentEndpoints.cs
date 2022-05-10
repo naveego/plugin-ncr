@@ -163,28 +163,22 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
-
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
                 var safeLimit = limit > 0 ? (int)limit : Int32.MaxValue;
-                
                 var queryDate = startDate;
                 var queryEndDate = endDate;
-
+                var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
 
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
 
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
 
-                var timeNow = DateTime.Now;
-                
                 foreach (var site in workingSiteList)
                 {
                     var timeAtSiteChange = DateTime.Now;
@@ -481,7 +475,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         }
                                     }
                                 }
-                            }, maxDegreeOfParallelism: 16);
+                            }, maxDegreeOfParallelism: degreeOfParallelism);
                             
                             foreach (var record in returnRecords)
                             {
@@ -648,7 +642,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 
                 var queryDate = startDate;
                 var queryEndDate = endDate;
-
+                var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
 
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
@@ -779,7 +773,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             }
                                         }
                                     }
-                                }, maxDegreeOfParallelism: System.Environment.ProcessorCount);
+                                }, maxDegreeOfParallelism: degreeOfParallelism);
 
                                 foreach (var record in returnRecords)
                                 {
@@ -934,7 +928,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 
                 var queryDate = startDate;
                 var queryEndDate = endDate;
-
+                var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
 
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
@@ -1066,7 +1060,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                         
                                     }
-                                }, maxDegreeOfParallelism: System.Environment.ProcessorCount);
+                                }, maxDegreeOfParallelism: degreeOfParallelism);
 
                                 foreach (var record in returnRecords)
                                 {
@@ -1229,7 +1223,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 
                 var queryDate = startDate;
                 var queryEndDate = endDate;
-
+                var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
 
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
@@ -1376,7 +1370,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             }
                                         }
                                     }
-                                }, maxDegreeOfParallelism: System.Environment.ProcessorCount);
+                                }, maxDegreeOfParallelism: degreeOfParallelism);
                                 
                                 foreach (var record in returnRecords)
                                 {

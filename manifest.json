@@ -28,9 +28,10 @@
         "NepCorrelationId",
         "QueryStartDate",
         "QueryEndDate",
-        "SiteIDs"
+        "SiteIDs",
+        "DegreeOfParallelism"
       ],
-      "ProvPassword": 
+      "ProvPassword":
       {
         "ui:widget": "password"
       },
@@ -97,6 +98,11 @@
           "type": "string",
           "title": "Site IDs",
           "description": "Use CSV format. Format examples: \"#,#\" or \"2315, 2304, 2430\""
+        },
+        "DegreeOfParallelism" : {
+          "type": "string",
+          "title": "Degree Of Parallelism",
+          "description": "How many threads will be used to process each site's transactions, for each day of transactions"
         }
       },
 
@@ -106,7 +112,8 @@
         "NepOrganization",
         "NepCorrelationId",
         "QueryStartDate",
-        "SiteIDs"
+        "SiteIDs",
+        "DegreeOfParallelism"
       ]
     }
   }

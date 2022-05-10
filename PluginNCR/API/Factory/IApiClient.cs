@@ -15,5 +15,6 @@ namespace PluginNCR.API.Factory
         Task<string> GetStartDate();
         Task<string> GetEndDate();
         Task<string> GetSiteIds();
+        Task<string> GetDegreeOfParallelism();
     }
 }

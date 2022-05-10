@@ -17,6 +17,7 @@ namespace PluginNCR.Helper
         public string SecretKey { get; set; }
         public string SharedKey { get; set; }
         public string AuthMethod { get; set; }
+        public string DegreeOfParallelism { get; set; }
 
         /// <summary>
         /// Validates the settings input object
@@ -117,6 +118,19 @@ namespace PluginNCR.Helper
                     throw new Exception("the QueryEndDate must be equal to or after QueryStartDate");
                 }
             }
+
+            try
+            {
+                if (Int32.Parse(DegreeOfParallelism) <= 0)
+                {
+                    throw new Exception("degree of parallelism must be a positive integer value");
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception("unable to parse given degree of parallelism. This should be a single number greater than zero");
+            }
+            
         }
     }
 }

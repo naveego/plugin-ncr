@@ -33,6 +33,7 @@ namespace PluginNCRTest.Plugin
                     SecretKey = "",
                     AuthMethod = "",
                     SharedKey = "",
+                    DegreeOfParallelism = ""
                 };
         }
 
