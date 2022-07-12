@@ -48,7 +48,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "isItemNotOnFile",
                     "departmentId",
                     "quantity",
+                    "quantityUnitOfMeasurement",
+                    "quantityEntryMethod",
                     "regularUnitPrice",
+                    "regularUnitPrice.quantity",
+                    "regularUnitPrice.unitOfMeasurement",
+                    "extendedUnitPrice",
+                    "extendedUnitPrice.quantity",
+                    "extendedUnitPrice.unitOfMeasurement",
                     "actualAmount",
                     "discountAmount",
                     "discountType",
@@ -351,23 +358,68 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         if (item.Quantity != null)
                                         {
                                             tlogItemRecordMap["quantity"] =
-                                                String.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                string.IsNullOrWhiteSpace(item.Quantity.Quantity)
                                                     ? "0"
                                                     : item.Quantity.Quantity;
+                                            tlogItemRecordMap["quantityUnitOfMeasurement"] =
+                                                item.Quantity.UnitOfMeasurement ?? "";
+                                            tlogItemRecordMap["quantityEntryMethod"] = item.Quantity.EntryMethod ?? "";
                                         }
 
                                         if (item.RegularUnitPrice != null)
                                         {
                                             tlogItemRecordMap["regularUnitPrice"] =
-                                                String.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                string.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
                                                     ? "0"
                                                     : item.RegularUnitPrice.Amount.ToString();
+
+                                            if (item.RegularUnitPrice.UnitPriceQuantity != null)
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice.quantity"] =
+                                                    item.RegularUnitPrice.UnitPriceQuantity.Quantity.ToString() ?? "";
+
+                                                tlogItemRecordMap["regularUnitPrice.unitOfMeasurement"] =
+                                                    item.RegularUnitPrice.UnitPriceQuantity.UnitOfMeasurement ?? "";
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice.quantity"] = "";
+                                                tlogItemRecordMap[
+                                                    "regularUnitPrice.unitOfMeasurement"] = "";
+                                            }
                                         }
                                         else
                                         {
                                             tlogItemRecordMap["regularUnitPrice"] = "0";
                                         }
 
+                                        if (item.RegularUnitPrice != null)
+                                        {
+                                            tlogItemRecordMap["extendedUnitPrice"] =
+                                                string.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                    ? "0"
+                                                    : item.ExtendedUnitPrice.Amount.ToString();
+
+                                            if (item.ExtendedUnitPrice.UnitPriceQuantity != null)
+                                            {
+                                                tlogItemRecordMap["extendedUnitPrice.quantity"] =
+                                                    item.ExtendedUnitPrice.UnitPriceQuantity.Quantity.ToString() ?? "";
+
+                                                tlogItemRecordMap["extendedUnitPrice.unitOfMeasurement"] =
+                                                    item.ExtendedUnitPrice.UnitPriceQuantity.UnitOfMeasurement ?? "";
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["extendedUnitPrice.quantity"] = "";
+                                                tlogItemRecordMap[
+                                                    "extendedUnitPrice.unitOfMeasurement"] = "";
+                                            }
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["regularUnitPrice"] = "0";
+                                        }
+                                        
                                         if (item.ActualAmount != null)
                                         {
                                             tlogItemRecordMap["actualAmount"] =
@@ -391,7 +443,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         }
                                         else
                                         {
-                                            tlogItemRecordMap["actualAmount"] = "0";
+                                            tlogItemRecordMap["discountAmount"] = "0";
                                         }
 
                                         tlogItemRecordMap["item_isReturn"] = item.IsReturn;

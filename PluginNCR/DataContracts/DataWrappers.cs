@@ -388,10 +388,10 @@ namespace PluginNCR.DataContracts
         public List<TLogItemDiscounts> ItemDiscounts { get; set; }
         
         [JsonProperty("regularUnitPrice", NullValueHandling = NullValueHandling.Ignore)]
-        public TLogAmount RegularUnitPrice { get; set; }
+        public TLogAmountWithQuantity RegularUnitPrice { get; set; }
         
         [JsonProperty("extendedUnitPrice", NullValueHandling = NullValueHandling.Ignore)]
-        public TLogAmount ExtendedUnitPrice { get; set; }
+        public TLogAmountWithQuantity ExtendedUnitPrice { get; set; }
         
         [JsonProperty("extendedAmount", NullValueHandling = NullValueHandling.Ignore)]
         public TLogAmount ExtendedAmount { get; set; }
@@ -446,7 +446,23 @@ namespace PluginNCR.DataContracts
         [JsonProperty("amount", NullValueHandling = NullValueHandling.Ignore)]
         public string Amount { get; set; }
     }
+    public class TLogAmountWithQuantity
+    {
+        [JsonProperty("amount", NullValueHandling = NullValueHandling.Ignore)]
+        public string Amount { get; set; }
+        
+        [JsonProperty("unitPriceQuantity", NullValueHandling = NullValueHandling.Ignore)]
+        public UnitPriceQuantity UnitPriceQuantity { get; set; }
+    }
 
+    public class UnitPriceQuantity
+    {
+        [JsonProperty("quantity")]
+        public string Quantity { get; set; }
+        
+        [JsonProperty("unitOfMeasurement")]
+        public string UnitOfMeasurement { get; set; }
+    }
     public class TLogQuantity
     {
         [JsonProperty("quantity", NullValueHandling = NullValueHandling.Ignore)]
