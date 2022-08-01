@@ -264,10 +264,27 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     throw new Exception(error.Message);
                                 }
 
-                                var tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
-
+                                TlogWrapper tLogResponseWrapper = new TlogWrapper();
+                                var tlogResponsePulledSuccessfully = false;
+                                var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
+                                while (!tlogResponsePulledSuccessfully && retryCount < 20)
+                                {
+                                    try
+                                    {
+                                        tLogResponseWrapper =
+                                            JsonConvert.DeserializeObject<TlogWrapper>(
+                                                await tlogResponse.Content.ReadAsStringAsync());
+                                        tlogResponsePulledSuccessfully = true;
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        retryCount++;
+                                        Thread.Sleep(1000*60);
+                                        tlogResponse = await apiClient.GetAsync(tlogPath);
+                                    }
+                                }
+                                
+                                
                                 var tlogItemRecordMap = new Dictionary<string, object>();
                                 
                                 try
@@ -781,9 +798,25 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         throw new Exception(error.Message);
                                     }
 
-                                    var tLogResponseWrapper =
-                                        JsonConvert.DeserializeObject<TlogWrapper>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
+                                    TlogWrapper tLogResponseWrapper = new TlogWrapper();
+                                    var tlogResponsePulledSuccessfully = false;
+                                    var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
+                                    while (!tlogResponsePulledSuccessfully && retryCount < 20)
+                                    {
+                                        try
+                                        {
+                                            tLogResponseWrapper =
+                                                JsonConvert.DeserializeObject<TlogWrapper>(
+                                                    await tlogResponse.Content.ReadAsStringAsync());
+                                            tlogResponsePulledSuccessfully = true;
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            retryCount++;
+                                            Thread.Sleep(1000*60);
+                                            tlogResponse = await apiClient.GetAsync(tlogPath);
+                                        }
+                                    }
 
                                     var tlogTenderRecordMap = new Dictionary<string, object>();
 
@@ -1066,9 +1099,25 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         throw new Exception(error.Message);
                                     }
 
-                                    var tLogResponseWrapper =
-                                        JsonConvert.DeserializeObject<TlogWrapper>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
+                                    TlogWrapper tLogResponseWrapper = new TlogWrapper();
+                                    var tlogResponsePulledSuccessfully = false;
+                                    var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
+                                    while (!tlogResponsePulledSuccessfully && retryCount < 20)
+                                    {
+                                        try
+                                        {
+                                            tLogResponseWrapper =
+                                                JsonConvert.DeserializeObject<TlogWrapper>(
+                                                    await tlogResponse.Content.ReadAsStringAsync());
+                                            tlogResponsePulledSuccessfully = true;
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            retryCount++;
+                                            Thread.Sleep(1000*60);
+                                            tlogResponse = await apiClient.GetAsync(tlogPath);
+                                        }
+                                    }
 
                                     var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
 
@@ -1362,9 +1411,25 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         throw new Exception(error.Message);
                                     }
 
-                                    var tLogResponseWrapper =
-                                        JsonConvert.DeserializeObject<TlogWrapper>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
+                                    TlogWrapper tLogResponseWrapper = new TlogWrapper();
+                                    var tlogResponsePulledSuccessfully = false;
+                                    var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
+                                    while (!tlogResponsePulledSuccessfully && retryCount < 20)
+                                    {
+                                        try
+                                        {
+                                            tLogResponseWrapper =
+                                                JsonConvert.DeserializeObject<TlogWrapper>(
+                                                    await tlogResponse.Content.ReadAsStringAsync());
+                                            tlogResponsePulledSuccessfully = true;
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            retryCount++;
+                                            Thread.Sleep(1000*60);
+                                            tlogResponse = await apiClient.GetAsync(tlogPath);
+                                        }
+                                    }
 
                                     var tlogItemRecordMap = new Dictionary<string, object>();
 
