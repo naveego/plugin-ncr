@@ -263,7 +263,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         await tlogResponse.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
-
+                                
                                 TlogWrapper tLogResponseWrapper = new TlogWrapper();
                                 var tlogResponsePulledSuccessfully = false;
                                 var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
@@ -283,7 +283,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogResponse = await apiClient.GetAsync(tlogPath);
                                     }
                                 }
-                                
+
+                                if (retryCount >= 20)
+                                {
+                                    //critical failure
+                                    var db = tlogResponse;
+                                }
                                 
                                 var tlogItemRecordMap = new Dictionary<string, object>();
                                 
@@ -876,7 +881,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(queryDate), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
             }
         }
@@ -1179,7 +1184,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(queryDate), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
             }
         }
@@ -1505,7 +1510,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                          } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
             }
         }
