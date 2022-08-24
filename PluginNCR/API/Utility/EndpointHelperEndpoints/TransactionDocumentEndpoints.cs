@@ -19,7 +19,6 @@ using PluginNCR.DataContracts;
 using PluginNCR.Helper;
 using RestSharp;
 using Dasync.Collections;
-using Microsoft.VisualStudio.Threading;
 
 namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 {
