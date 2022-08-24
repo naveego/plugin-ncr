@@ -259,6 +259,9 @@ namespace PluginNCRTest.Plugin
             var schemasResponse = client.DiscoverSchemas(schemaRequest);
             request.Schema = schemasResponse.Schemas[0];
 
+            var startTime = DateTime.UtcNow;
+            Console.WriteLine("Starting read: " + startTime.ToString());
+            
             var response = client.ReadStream(request);
             var responseStream = response.ResponseStream;
             var records = new List<Record>();
@@ -268,6 +271,9 @@ namespace PluginNCRTest.Plugin
                 records.Add(responseStream.Current);
             }
 
+            var endTime = DateTime.UtcNow;
+            Console.WriteLine("Finished read: " + endTime.ToString());
+            Console.WriteLine("Total time elapsed: " + (endTime - startTime).ToString());
             // assert
             
             //NOTE - endpoint queries are based on live data and current date.
