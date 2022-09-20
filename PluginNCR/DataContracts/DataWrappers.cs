@@ -25,7 +25,7 @@ namespace PluginNCR.DataContracts
     public class PostBody
     {
         [JsonProperty("businessDay", NullValueHandling = NullValueHandling.Ignore)]
-        public BusinessDay BusinessDay { get; set; }
+        public DateWrapper DateWrapper { get; set; }
         
         [JsonProperty("siteInfoIds", NullValueHandling = NullValueHandling.Ignore)]
         public List<string> SiteInfoIds { get; set; }
@@ -115,7 +115,7 @@ namespace PluginNCR.DataContracts
 
     
 
-    public class BusinessDay
+    public class DateWrapper
     {
         [JsonProperty("dateTime", NullValueHandling = NullValueHandling.Ignore)]
         public string DateTime { get; set; }
@@ -141,10 +141,16 @@ namespace PluginNCR.DataContracts
         public SiteInfo SiteInfo { get; set; }
         
         [JsonProperty("businessDay", NullValueHandling = NullValueHandling.Ignore)]
-        public BusinessDay BusinessDay { get; set; }
+        public DateWrapper DateWrapper { get; set; }
         
         [JsonProperty("tlog", NullValueHandling = NullValueHandling.Ignore)]
         public TLog Tlog { get; set; }
+        
+        [JsonProperty("openDateTimeUtc")]
+        public DateWrapper OpenDateTimeUtc { get; set; }
+        
+        [JsonProperty("closeDateTimeUtc")]
+        public DateWrapper CloseDateTimeUtc { get; set; }
     }
 
     

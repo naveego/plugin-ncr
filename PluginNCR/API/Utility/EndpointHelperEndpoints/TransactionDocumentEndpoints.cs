@@ -34,6 +34,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "siteInfoId",
+                    "closeDateTimeUtc",
+                    "receivedDateTimeUtc",
+                    "endTransactionDateTimeUtc",
                     "customerId",
                     "customerEntryMethod",
                     "customerIdentifierData",
@@ -198,7 +201,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.DateWrapper.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
@@ -252,6 +255,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
+                                var closeDateTime = recordMap["closeDateTimeUtc"].ToString() ?? "";
+                                var receivedDateTime = recordMap["receivedDateTimeUtc"].ToString() ?? "";
+                                var endTransactionDateTimeUtc = recordMap["endTransactionDateTimeUtc"].ToString() ?? "";
 
                                 var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
 
@@ -299,8 +305,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
                                     tlogItemRecordMap["touchPointGroup"] =
                                         tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
+                                    
+                                    
+                                    tlogItemRecordMap["closeDateTimeUtc"] = recordMap["closeDateTimeUtc"].ToString() ?? "";
+                                    tlogItemRecordMap["receivedDateTimeUtc"] = recordMap["receivedDateTimeUtc"].ToString() ?? "";
+                                    tlogItemRecordMap["endTransactionDateTimeUtc"] = recordMap["endTransactionDateTimeUtc"].ToString() ?? "";
 
-                                    var date_time = tLogResponseWrapper.BusinessDay.DateTime;
+                                    var date_time = tLogResponseWrapper.DateWrapper.DateTime;
                                     tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
                                     tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
                                     tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
@@ -567,7 +578,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             }
                             
                          } while (hasMore && (limit == 0 || (int)recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
             }
         }
@@ -738,7 +749,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.DateWrapper.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
@@ -881,7 +892,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
             }
         }
@@ -1040,7 +1051,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.DateWrapper.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
@@ -1184,7 +1195,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
             }
         }
@@ -1352,7 +1363,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.BusinessDay.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.DateWrapper.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
@@ -1510,7 +1521,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
                             }
                          } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.BusinessDay.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
             }
         }

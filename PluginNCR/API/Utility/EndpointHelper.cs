@@ -172,7 +172,7 @@ namespace PluginNCR.API.Utility
                                     tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
 
                                     tlogItemRecordMap["businessDayDateTime"] =
-                                        tLogResponseWrapper.BusinessDay.DateTime ?? "";
+                                        tLogResponseWrapper.DateWrapper.DateTime ?? "";
 
                                     tlogItemRecordMap["employeeNames"] = string.Join(',', tLogResponseWrapper.Tlog.Employees);
 
