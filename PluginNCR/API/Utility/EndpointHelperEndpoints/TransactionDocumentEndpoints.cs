@@ -18,13 +18,12 @@ using PluginNCR.DataContracts;
 using PluginNCR.Helper;
 using RestSharp;
 using Dasync.Collections;
+using Microsoft.IdentityModel.Tokens;
 
 namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 {
     public class TransactionDocumentEndpointHelper
     {
-        //create another tier of nesting for each endpoint - only diff is time and staticschemas?
-        
         private class TransactionDocumentEndpoint : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
@@ -168,7 +167,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var hasMore = false;
@@ -224,10 +223,34 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 throw new Exception(error.Message);
                             }
 
-                            var objectResponseWrapper =
-                                JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                    await response.Content.ReadAsStringAsync());
-
+                            var objectResponseWrapper = new ObjectResponseWrapper();
+                            var objectResponseSuccess = false;
+                            var objectResponseIsValid = false;
+                            
+                            while (!objectResponseSuccess && !objectResponseIsValid)
+                            {
+                                try
+                                {
+                                    objectResponseWrapper =
+                                        JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                            await response.Content.ReadAsStringAsync());
+                                    objectResponseSuccess = true;
+                                    if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                                    {
+                                        objectResponseIsValid = true;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    objectResponseIsValid = false;
+                                    objectResponseSuccess = false;
+                                    Thread.Sleep(1000*60);
+                                    response = await apiClient.PostAsync(
+                                        path
+                                        , json);
+                                }
+                            }
+                            
                             if (objectResponseWrapper?.PageContent.Count == 0)
                             {
                                 continue;
@@ -270,30 +293,23 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     throw new Exception(error.Message);
                                 }
                                 
-                                TlogWrapper tLogResponseWrapper = new TlogWrapper();
-                                var tlogResponsePulledSuccessfully = false;
-                                var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
-                                while (!tlogResponsePulledSuccessfully && retryCount < 20)
+                                var tLogResponseWrapper = new TlogWrapper();
+                                var tlogResponseSuccess = false;
+                                
+                                while (!tlogResponseSuccess)
                                 {
                                     try
                                     {
                                         tLogResponseWrapper =
                                             JsonConvert.DeserializeObject<TlogWrapper>(
                                                 await tlogResponse.Content.ReadAsStringAsync());
-                                        tlogResponsePulledSuccessfully = true;
+                                        tlogResponseSuccess = true;
                                     }
                                     catch (Exception e)
                                     {
-                                        retryCount++;
                                         Thread.Sleep(1000*60);
                                         tlogResponse = await apiClient.GetAsync(tlogPath);
                                     }
-                                }
-
-                                if (retryCount >= 20)
-                                {
-                                    //critical failure
-                                    var db = tlogResponse;
                                 }
                                 
                                 var tlogItemRecordMap = new Dictionary<string, object>();
@@ -714,7 +730,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var hasMore = false;
@@ -758,10 +774,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
-                            using (var response = await apiClient.PostAsync(
+                            var response = await apiClient.PostAsync(
                                 path
-                                , json))
-                            {
+                                , json);
+                            
                                 if (!response.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
@@ -769,10 +785,33 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     throw new Exception(error.Message);
                                 }
 
-                                var objectResponseWrapper =
-                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                        await response.Content.ReadAsStringAsync());
-
+                                var objectResponseWrapper = new ObjectResponseWrapper();
+                                var objectResponseSuccess = false;
+                                var objectResponseIsValid = false;
+                            
+                                while (!objectResponseSuccess && !objectResponseIsValid)
+                                {
+                                    try
+                                    {
+                                        objectResponseWrapper =
+                                            JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                                await response.Content.ReadAsStringAsync());
+                                        objectResponseSuccess = true;
+                                        if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                                        {
+                                            objectResponseIsValid = true;
+                                        }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        objectResponseIsValid = false;
+                                        objectResponseSuccess = false;
+                                        Thread.Sleep(1000*60);
+                                        response = await apiClient.PostAsync(
+                                            path
+                                            , json);
+                                    }
+                                }
                                 if (objectResponseWrapper?.PageContent.Count == 0)
                                 {
                                     continue;
@@ -814,21 +853,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         throw new Exception(error.Message);
                                     }
 
-                                    TlogWrapper tLogResponseWrapper = new TlogWrapper();
-                                    var tlogResponsePulledSuccessfully = false;
-                                    var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
-                                    while (!tlogResponsePulledSuccessfully && retryCount < 20)
+                                    var tLogResponseWrapper = new TlogWrapper();
+                                    var tlogResponseSuccess = false;
+                                    while (!tlogResponseSuccess) 
                                     {
                                         try
                                         {
                                             tLogResponseWrapper =
                                                 JsonConvert.DeserializeObject<TlogWrapper>(
                                                     await tlogResponse.Content.ReadAsStringAsync());
-                                            tlogResponsePulledSuccessfully = true;
+                                            tlogResponseSuccess = true;
                                         }
                                         catch (Exception e)
                                         {
-                                            retryCount++;
                                             Thread.Sleep(1000*60);
                                             tlogResponse = await apiClient.GetAsync(tlogPath);
                                         }
@@ -890,7 +927,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     currPage++;
                                     hasMore = true;
                                 }
-                            }
+                            
                         } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
                 }
@@ -1016,7 +1053,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var hasMore = false;
@@ -1060,139 +1097,153 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
-                            using (var response = await apiClient.PostAsync(
+                            var response = await apiClient.PostAsync(
                                 path
-                                , json))
+                                , json);
+                            
+                            if (!response.IsSuccessStatusCode)
                             {
-                                if (!response.IsSuccessStatusCode)
+                                var error = JsonConvert.DeserializeObject<ApiError>(
+                                    await response.Content.ReadAsStringAsync());
+                                throw new Exception(error.Message);
+                            }
+
+                            var objectResponseWrapper = new ObjectResponseWrapper();
+                            var objectResponseSuccess = false;
+                            var objectResponseIsValid = false;
+                        
+                            while (!objectResponseSuccess && !objectResponseIsValid)
+                            {
+                                try
+                                {
+                                    objectResponseWrapper =
+                                        JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                            await response.Content.ReadAsStringAsync());
+                                    objectResponseSuccess = true;
+                                    if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                                    {
+                                        objectResponseIsValid = true;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    objectResponseIsValid = false;
+                                    objectResponseSuccess = false;
+                                    Thread.Sleep(1000*60);
+                                    response = await apiClient.PostAsync(
+                                        path
+                                        , json);
+                                }
+                            }
+
+                            List<Record> returnRecords = new List<Record>() { };
+                            
+                            var pageContent = limit > 0
+                                ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
+                                : objectResponseWrapper?.PageContent;
+                            
+                            await pageContent.ParallelForEachAsync(async objectResponse =>
+                            {
+                                var recordMap = new Dictionary<string, object>();
+
+                                foreach (var objectProperty in objectResponse)
+                                {
+                                    try
+                                    {
+                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                    }
+                                    catch
+                                    {
+                                        recordMap[objectProperty.Key] = "";
+                                    }
+                                }
+
+                                var thisTlogId = recordMap["tlogId"];
+
+                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                if (!tlogResponse.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await response.Content.ReadAsStringAsync());
+                                        await tlogResponse.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var objectResponseWrapper =
-                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                        await response.Content.ReadAsStringAsync());
-
-                                if (objectResponseWrapper?.PageContent.Count == 0)
+                                var tLogResponseWrapper = new TlogWrapper();
+                                var tlogResponseSuccess = false;
+                                while (!tlogResponseSuccess)
                                 {
-                                    continue;
+                                    try
+                                    {
+                                        tLogResponseWrapper =
+                                            JsonConvert.DeserializeObject<TlogWrapper>(
+                                                await tlogResponse.Content.ReadAsStringAsync());
+                                        tlogResponseSuccess = true;
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Thread.Sleep(1000*60);
+                                        tlogResponse = await apiClient.GetAsync(tlogPath);
+                                    }
                                 }
 
-                                List<Record> returnRecords = new List<Record>() { };
-                                
-                                var pageContent = limit > 0
-                                    ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
-                                    : objectResponseWrapper?.PageContent;
-                                
-                                await pageContent.ParallelForEachAsync(async objectResponse =>
-                                {
-                                    var recordMap = new Dictionary<string, object>();
+                                var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
 
-                                    foreach (var objectProperty in objectResponse)
+                                if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
+                                {
+                                    foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
                                     {
                                         try
                                         {
-                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                            tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                            tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] =
+                                                loyaltyAccount.Id ?? "";
+                                            tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
+                                                loyaltyAccount.AccountId ?? "";
+                                            tlogLoyaltyAccountRecordMap["pointsAwarded"] =
+                                                loyaltyAccount.PointsAwarded ?? "";
+                                            tlogLoyaltyAccountRecordMap["pointsRedeemed"] =
+                                                loyaltyAccount.PointsRedeemed ?? "";
+                                            tlogLoyaltyAccountRecordMap["programType"] =
+                                                loyaltyAccount.ProgramType ?? "";
+                                            
+                                            recordCount++;
+                                            if (recordCount > limit && limit > 0)
+                                            {
+                                                hasMore = false;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                returnRecords.Add(new Record
+                                                {
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
+                                                });
+                                            }
                                         }
                                         catch
                                         {
-                                            recordMap[objectProperty.Key] = "";
                                         }
                                     }
-
-                                    var thisTlogId = recordMap["tlogId"];
-
-                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                    if (!tlogResponse.IsSuccessStatusCode)
-                                    {
-                                        var error = JsonConvert.DeserializeObject<ApiError>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
-                                        throw new Exception(error.Message);
-                                    }
-
-                                    TlogWrapper tLogResponseWrapper = new TlogWrapper();
-                                    var tlogResponsePulledSuccessfully = false;
-                                    var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
-                                    while (!tlogResponsePulledSuccessfully && retryCount < 20)
-                                    {
-                                        try
-                                        {
-                                            tLogResponseWrapper =
-                                                JsonConvert.DeserializeObject<TlogWrapper>(
-                                                    await tlogResponse.Content.ReadAsStringAsync());
-                                            tlogResponsePulledSuccessfully = true;
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            retryCount++;
-                                            Thread.Sleep(1000*60);
-                                            tlogResponse = await apiClient.GetAsync(tlogPath);
-                                        }
-                                    }
-
-                                    var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
-
-                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
-                                    {
-                                        foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
-                                        {
-                                            try
-                                            {
-                                                tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                                tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] =
-                                                    loyaltyAccount.Id ?? "";
-                                                tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
-                                                    loyaltyAccount.AccountId ?? "";
-                                                tlogLoyaltyAccountRecordMap["pointsAwarded"] =
-                                                    loyaltyAccount.PointsAwarded ?? "";
-                                                tlogLoyaltyAccountRecordMap["pointsRedeemed"] =
-                                                    loyaltyAccount.PointsRedeemed ?? "";
-                                                tlogLoyaltyAccountRecordMap["programType"] =
-                                                    loyaltyAccount.ProgramType ?? "";
-                                                
-                                                recordCount++;
-                                                if (recordCount > limit && limit > 0)
-                                                {
-                                                    hasMore = false;
-                                                    break;
-                                                }
-                                                else
-                                                {
-                                                    returnRecords.Add(new Record
-                                                    {
-                                                        Action = Record.Types.Action.Upsert,
-                                                        DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
-                                                    });
-                                                }
-                                            }
-                                            catch
-                                            {
-                                            }
-                                        }
-
-                                        
-                                    }
-                                }, maxDegreeOfParallelism: degreeOfParallelism);
-
-                                foreach (var record in returnRecords)
-                                {
-                                    yield return record;
                                 }
-                                
-                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                                {
-                                    hasMore = false;
-                                }
-                                else
-                                {
-                                    currPage++;
-                                    hasMore = true;
-                                }
+                            }, maxDegreeOfParallelism: degreeOfParallelism);
+
+                            foreach (var record in returnRecords)
+                            {
+                                yield return record;
+                            }
+                            
+                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            {
+                                hasMore = false;
+                            }
+                            else
+                            {
+                                currPage++;
+                                hasMore = true;
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
@@ -1250,7 +1301,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_LoyaltyAccounts_7Days : TransactionDocumentEndpoint_LoyaltyAccounts
         {
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
@@ -1327,7 +1378,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var hasMore = false;
@@ -1372,153 +1423,168 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
-                            using (var response = await apiClient.PostAsync(
+                            var response = await apiClient.PostAsync(
                                 path
-                                , json))
+                                , json);
+                            
+                            if (!response.IsSuccessStatusCode)
                             {
-                                if (!response.IsSuccessStatusCode)
+                                var error = JsonConvert.DeserializeObject<ApiError>(
+                                    await response.Content.ReadAsStringAsync());
+                                throw new Exception(error.Message);
+                            }
+
+                            var objectResponseWrapper = new ObjectResponseWrapper();
+                            var objectResponseSuccess = false;
+                            var objectResponseIsValid = false;
+                            
+                            while (!objectResponseSuccess && !objectResponseIsValid)
+                            {
+                                try
+                                {
+                                    objectResponseWrapper =
+                                        JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                            await response.Content.ReadAsStringAsync());
+                                    objectResponseSuccess = true;
+                                    if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                                    {
+                                        objectResponseIsValid = true;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    objectResponseIsValid = false;
+                                    objectResponseSuccess = false;
+                                    Thread.Sleep(1000*60);
+                                    response = await apiClient.PostAsync(
+                                        path
+                                        , json);
+                                }
+                            }
+
+                            List<Record> returnRecords = new List<Record>() { };
+                            var pageContent = limit > 0
+                                ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
+                                : objectResponseWrapper?.PageContent;
+
+                            await pageContent.ParallelForEachAsync(async objectResponse =>
+                            {
+                                var recordMap = new Dictionary<string, object>();
+                                
+                                foreach (var objectProperty in objectResponse)
+                                {
+                                    try
+                                    {
+                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
+                                    }
+                                    catch
+                                    {
+                                        recordMap[objectProperty.Key] = "";
+                                    }
+                                }
+
+                                var thisTlogId = recordMap["tlogId"];
+
+                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+
+                                var tlogResponse = await apiClient.GetAsync(tlogPath);
+
+                                if (!tlogResponse.IsSuccessStatusCode)
                                 {
                                     var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await response.Content.ReadAsStringAsync());
+                                        await tlogResponse.Content.ReadAsStringAsync());
                                     throw new Exception(error.Message);
                                 }
 
-                                var objectResponseWrapper =
-                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                        await response.Content.ReadAsStringAsync());
-
-                                if (objectResponseWrapper?.PageContent.Count == 0)
+                                var tLogResponseWrapper = new TlogWrapper();
+                                var tlogResponseSuccess = false;
+                                while (!tlogResponseSuccess)
                                 {
-                                    continue;
+                                    try
+                                    {
+                                        tLogResponseWrapper =
+                                            JsonConvert.DeserializeObject<TlogWrapper>(
+                                                await tlogResponse.Content.ReadAsStringAsync());
+                                        tlogResponseSuccess = true;
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Thread.Sleep(1000*60);
+                                        tlogResponse = await apiClient.GetAsync(tlogPath);
+                                    }
                                 }
+
+                                var tlogItemRecordMap = new Dictionary<string, object>();
+
+                                tlogItemRecordMap["tlogId"] = recordMap["tlogId"];
                                 
-
-                                List<Record> returnRecords = new List<Record>() { };
-                                var pageContent = limit > 0
-                                    ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
-                                    : objectResponseWrapper?.PageContent;
-
-                                await pageContent.ParallelForEachAsync(async objectResponse =>
+                                var items = limit > 0
+                                    ? tLogResponseWrapper.Tlog.Items.Take(safeLimit-(int)recordCount)
+                                    : tLogResponseWrapper.Tlog.Items;
+                                
+                                foreach (var item in items)
                                 {
-                                    var recordMap = new Dictionary<string, object>();
-                                    
-                                    foreach (var objectProperty in objectResponse)
+                                    tlogItemRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
+                                        ? "null"
+                                        : item.Id;
+                                    if (item.ItemTaxes == null)
                                     {
-                                        try
-                                        {
-                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                        }
-                                        catch
-                                        {
-                                            recordMap[objectProperty.Key] = "";
-                                        }
+                                        tlogItemRecordMap["itemTaxSequenceNumber"] = "1";
+                                        tlogItemRecordMap["itemTaxId"] = "0";
+                                        tlogItemRecordMap["itemTaxName"] = "null";
+                                        tlogItemRecordMap["itemTaxType"] = "null";
+                                        tlogItemRecordMap["itemTaxableAmount"] = "0";
+                                        tlogItemRecordMap["itemTaxAmount"] = "0";
+                                        tlogItemRecordMap["itemTaxIsRefund"] = false;
+                                        tlogItemRecordMap["itemTaxPercent"] = "0";
+                                        tlogItemRecordMap["itemTaxIsVoided"] =false;
                                     }
-
-                                    var thisTlogId = recordMap["tlogId"];
-
-                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                    if (!tlogResponse.IsSuccessStatusCode)
+                                    else
                                     {
-                                        var error = JsonConvert.DeserializeObject<ApiError>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
-                                        throw new Exception(error.Message);
-                                    }
-
-                                    TlogWrapper tLogResponseWrapper = new TlogWrapper();
-                                    var tlogResponsePulledSuccessfully = false;
-                                    var retryCount = 0; //note for future adjustments: it is common to see outages of 10min or more with NCR.
-                                    while (!tlogResponsePulledSuccessfully && retryCount < 20)
-                                    {
-                                        try
+                                        foreach (var tax in item.ItemTaxes)
                                         {
-                                            tLogResponseWrapper =
-                                                JsonConvert.DeserializeObject<TlogWrapper>(
-                                                    await tlogResponse.Content.ReadAsStringAsync());
-                                            tlogResponsePulledSuccessfully = true;
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            retryCount++;
-                                            Thread.Sleep(1000*60);
-                                            tlogResponse = await apiClient.GetAsync(tlogPath);
-                                        }
-                                    }
-
-                                    var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                    tlogItemRecordMap["tlogId"] = recordMap["tlogId"];
-                                    
-                                    var items = limit > 0
-                                        ? tLogResponseWrapper.Tlog.Items.Take(safeLimit-(int)recordCount)
-                                        : tLogResponseWrapper.Tlog.Items;
-                                    
-                                    foreach (var item in items)
-                                    {
-                                        tlogItemRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
-                                            ? "null"
-                                            : item.Id;
-                                        if (item.ItemTaxes == null)
-                                        {
-                                            tlogItemRecordMap["itemTaxSequenceNumber"] = "1";
-                                            tlogItemRecordMap["itemTaxId"] = "0";
-                                            tlogItemRecordMap["itemTaxName"] = "null";
-                                            tlogItemRecordMap["itemTaxType"] = "null";
-                                            tlogItemRecordMap["itemTaxableAmount"] = "0";
-                                            tlogItemRecordMap["itemTaxAmount"] = "0";
-                                            tlogItemRecordMap["itemTaxIsRefund"] = false;
-                                            tlogItemRecordMap["itemTaxPercent"] = "0";
-                                            tlogItemRecordMap["itemTaxIsVoided"] =false;
-                                        }
-                                        else
-                                        {
-                                            foreach (var tax in item.ItemTaxes)
+                                            tlogItemRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                            tlogItemRecordMap["itemTaxId"] = tax.Id ?? "";
+                                            tlogItemRecordMap["itemTaxName"] = tax.Name ?? "";
+                                            tlogItemRecordMap["itemTaxType"] = tax.TaxType ?? "";
+                                            tlogItemRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                            tlogItemRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
+                                            tlogItemRecordMap["itemTaxIsRefund"] = tax.IsRefund;
+                                            tlogItemRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
+                                            tlogItemRecordMap["itemTaxIsVoided"] = tax.IsVoided;
+                                            
+                                            recordCount++;
+                                            if (recordCount > limit && limit > 0)
                                             {
-                                                tlogItemRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
-                                                tlogItemRecordMap["itemTaxId"] = tax.Id ?? "";
-                                                tlogItemRecordMap["itemTaxName"] = tax.Name ?? "";
-                                                tlogItemRecordMap["itemTaxType"] = tax.TaxType ?? "";
-                                                tlogItemRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
-                                                tlogItemRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
-                                                tlogItemRecordMap["itemTaxIsRefund"] = tax.IsRefund;
-                                                tlogItemRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
-                                                tlogItemRecordMap["itemTaxIsVoided"] = tax.IsVoided;
-                                                
-                                                recordCount++;
-                                                if (recordCount > limit && limit > 0)
+                                                hasMore = false;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                returnRecords.Add(new Record
                                                 {
-                                                    hasMore = false;
-                                                    break;
-                                                }
-                                                else
-                                                {
-                                                    returnRecords.Add(new Record
-                                                    {
-                                                        Action = Record.Types.Action.Upsert,
-                                                        DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                                    });
-                                                }
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                                });
                                             }
                                         }
                                     }
-                                }, maxDegreeOfParallelism: degreeOfParallelism);
-                                
-                                foreach (var record in returnRecords)
-                                {
-                                    yield return record;
                                 }
-                                
-                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                                {
-                                    hasMore = false;
-                                }
-                                else
-                                {
-                                    currPage++;
-                                    hasMore = true;
-                                }
+                            }, maxDegreeOfParallelism: degreeOfParallelism);
+                            
+                            foreach (var record in returnRecords)
+                            {
+                                yield return record;
+                            }
+                            
+                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            {
+                                hasMore = false;
+                            }
+                            else
+                            {
+                                currPage++;
+                                hasMore = true;
                             }
                          } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
@@ -1583,7 +1649,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             TransactionDocumentEndpoint_TransactionItemTaxes_7Days :
                 TransactionDocumentEndpoint_TransactionItemTaxes
         {
-            public async override IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
