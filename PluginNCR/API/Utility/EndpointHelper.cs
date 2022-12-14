@@ -149,11 +149,11 @@ namespace PluginNCR.API.Utility
                                 throw new Exception(error.Message);
                             }
 
-                            var tLogResponseWrapper = new TlogWrapper();
+                            var tLogResponseWrapper = new TLogWrapper();
                             try
                             {
                                 tLogResponseWrapper =
-                                    JsonConvert.DeserializeObject<TlogWrapper>(
+                                    JsonConvert.DeserializeObject<TLogWrapper>(
                                         await tlogResponse.Content.ReadAsStringAsync());
                             }
                             catch(Exception e)

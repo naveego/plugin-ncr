@@ -123,7 +123,7 @@ namespace PluginNCR.DataContracts
 
    
 
-    public class TlogWrapper
+    public class TLogWrapper
     {
         [JsonProperty("transactionCategory", NullValueHandling = NullValueHandling.Ignore)]
         public string TransactionCategory { get; set; }

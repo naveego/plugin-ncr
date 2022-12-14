@@ -167,7 +167,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var hasMore = false;
@@ -175,96 +176,104 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
-                var safeLimit = limit > 0 ? (int)limit : Int32.MaxValue;
-                var queryDate = startDate;
+                var safeLimit = limit > 0 ? (int) limit : Int32.MaxValue;
+                var queryStartDate = startDate;
                 var queryEndDate = endDate;
                 var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
-
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
                 var tempSiteList = await apiClient.GetSiteIds();
-                var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                var initSites = tempSiteList.Replace(" ", "").Split(',');
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
+                var incompletePageQueries = new List<Tuple<string, string>> { };
+                var incompleteTLogPaths = new List<string> { };
 
-                foreach (var site in workingSiteList)
+                foreach (var site in initSites.ToList())
                 {
-                    var timeAtSiteChange = DateTime.Now;
-                    if (limit > 0 && recordCount >= limit)
-                    {
-                        break;
-                    }
                     readQuery.SiteInfoIds = new List<string>() {site};
-                    currDayOffset = 1;
+
+                    currDayOffset = 0;
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.DateWrapper.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        if (limit > 0 && recordCount >= limit)
+                        {
+                            break;
+                        }
+
+                        readQuery.DateWrapper.DateTime =
+                            DateTime.Parse(queryStartDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
                         do //while hasMore
                         {
+                            if (limit > 0 && recordCount >= limit)
+                            {
+                                break;
+                            }
+                            
+                            var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
-                            
+
                             HttpResponseMessage response = null;
-                            
-                            response = await apiClient.PostAsync(
-                                path
-                                , json);
-                            
+                            try
+                            {
+                                response = await apiClient.PostAsync(
+                                    path
+                                    , json);
+                            }
+                            catch (Exception e)
+                            {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
+
                             if (!response.IsSuccessStatusCode)
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
                             }
 
                             var objectResponseWrapper = new ObjectResponseWrapper();
-                            var objectResponseSuccess = false;
-                            var objectResponseIsValid = false;
-                            
-                            while (!objectResponseSuccess && !objectResponseIsValid)
+
+                            try
                             {
-                                try
+                                objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
+                                if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                 {
-                                    objectResponseWrapper =
-                                        JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                            await response.Content.ReadAsStringAsync());
-                                    objectResponseSuccess = true;
-                                    if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
-                                    {
-                                        objectResponseIsValid = true;
-                                    }
-                                }
-                                catch (Exception e)
-                                {
-                                    objectResponseIsValid = false;
-                                    objectResponseSuccess = false;
-                                    Thread.Sleep(1000*60);
-                                    response = await apiClient.PostAsync(
-                                        path
-                                        , json);
+                                    incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                    pageIncomplete = true;
                                 }
                             }
-                            
-                            if (objectResponseWrapper?.PageContent.Count == 0)
+                            catch (Exception e)
                             {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
+
+                            if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
+                            {
+                                currPage++;
                                 continue;
                             }
 
-                            var pageContent = limit > 0 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int)recordCount) : 
-                                objectResponseWrapper?.PageContent;
-                            
+                            var pageContent = limit > 0
+                                ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
+                                : objectResponseWrapper?.PageContent;
+
                             List<Record> returnRecords = new List<Record>() { };
-                            
+
                             await pageContent.ParallelForEachAsync(async objectResponse =>
                             {
+                                var tlogIncomplete = false;
                                 var recordMap = new Dictionary<string, object>();
-                                
+
                                 foreach (var objectProperty in objectResponse)
                                 {
                                     try
@@ -278,312 +287,331 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
-                                var closeDateTime = recordMap["closeDateTimeUtc"].ToString() ?? "";
-                                var receivedDateTime = recordMap["receivedDateTimeUtc"].ToString() ?? "";
-                                var endTransactionDateTimeUtc = recordMap["endTransactionDateTimeUtc"].ToString() ?? "";
-
                                 var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
 
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
+                                HttpResponseMessage tlogResponse = null;
+                                try
+                                {
+                                    tlogResponse = await apiClient.GetAsync(tlogPath);
+                                }
+                                catch (Exception e)
+                                {
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
+                                }
 
                                 if (!tlogResponse.IsSuccessStatusCode)
                                 {
-                                    var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
-                                    throw new Exception(error.Message);
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
                                 }
-                                
-                                var tLogResponseWrapper = new TlogWrapper();
-                                var tlogResponseSuccess = false;
-                                
-                                while (!tlogResponseSuccess)
-                                {
-                                    try
-                                    {
-                                        tLogResponseWrapper =
-                                            JsonConvert.DeserializeObject<TlogWrapper>(
-                                                await tlogResponse.Content.ReadAsStringAsync());
-                                        tlogResponseSuccess = true;
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Thread.Sleep(1000*60);
-                                        tlogResponse = await apiClient.GetAsync(tlogPath);
-                                    }
-                                }
-                                
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-                                
+
+                                var tLogResponseWrapper = new TLogWrapper();
                                 try
                                 {
-                                    tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                    tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
-                                    tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
-                                    tlogItemRecordMap["touchPointGroup"] =
-                                        tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
-                                    
-                                    
-                                    tlogItemRecordMap["closeDateTimeUtc"] = recordMap["closeDateTimeUtc"].ToString() ?? "";
-                                    tlogItemRecordMap["receivedDateTimeUtc"] = recordMap["receivedDateTimeUtc"].ToString() ?? "";
-                                    tlogItemRecordMap["endTransactionDateTimeUtc"] = recordMap["endTransactionDateTimeUtc"].ToString() ?? "";
-
-                                    var date_time = tLogResponseWrapper.DateWrapper.DateTime;
-                                    tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
-                                    tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
-                                    tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
-                                    tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
-
-                                    if (tLogResponseWrapper.Tlog.Customer != null)
+                                    tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TLogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                    if (string.IsNullOrEmpty(tLogResponseWrapper.Id))
                                     {
-                                        tlogItemRecordMap["customerId"] =
-                                            tLogResponseWrapper.Tlog.Customer.Id ?? "null";
-                                        tlogItemRecordMap["customerEntryMethod"] =
-                                            tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
-                                        tlogItemRecordMap["customerIdentifierData"] =
-                                            tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] =
-                                            tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        incompleteTLogPaths.Add(tlogPath);
+                                        tlogIncomplete = true;
                                     }
-                                    else
-                                    {
-                                        tlogItemRecordMap["customerId"] = "null";
-                                        tlogItemRecordMap["customerEntryMethod"] = "null";
-                                        tlogItemRecordMap["customerIdentifierData"] = "null";
-                                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
-                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
+                                }
 
-                                    tlogItemRecordMap["tlog_isSuspended"] =
-                                        tLogResponseWrapper.Tlog.IsSuspended.ToString();
-                                    tlogItemRecordMap["tlog_isTrainingMode"] =
-                                        tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
-                                    tlogItemRecordMap["tlog_isResumed"] = tLogResponseWrapper.Tlog.IsResumed.ToString();
-                                    tlogItemRecordMap["tlog_isRecalled"] =
-                                        tLogResponseWrapper.Tlog.IsRecalled.ToString();
-                                    tlogItemRecordMap["tlog_isDeleted"] = tLogResponseWrapper.Tlog.IsDeleted.ToString();
-                                    tlogItemRecordMap["tlog_isVoided"] = tLogResponseWrapper.Tlog.IsVoided.ToString();
-                                }
-                                catch
+                                if (!tlogIncomplete)
                                 {
-                                    //noop
-                                }
-                                if (tLogResponseWrapper.Tlog.TotalTaxes != null && tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
-                                {
-                                    var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
-                            
-                                    tlogItemRecordMap["taxId"] = tax.Id ?? "";
-                                    tlogItemRecordMap["taxName"] = tax.Name ?? "";
-                                    tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
-                                    tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
-                                    tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
-                                    tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
-                                    tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
-                                    tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
-                                }
-                                var items = limit > 0
-                                    ? tLogResponseWrapper.Tlog.Items.Take(safeLimit-(int)recordCount)
-                                    : tLogResponseWrapper.Tlog.Items;
-                                
-                                foreach (var item in items)
-                                {
-                                    bool validItem = true;
+                                    var tlogItemRecordMap = new Dictionary<string, object>();
+
                                     try
                                     {
-                                        tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
-                                            ? "null"
-                                            : item.Id;
+                                        tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                        tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                                        tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
+                                        tlogItemRecordMap["touchPointGroup"] =
+                                            tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
 
-                                        tlogItemRecordMap["IsItemNotOnFile"] = item.IsItemNotOnFile.ToString();
 
-                                        tlogItemRecordMap["productId"] =
-                                            String.IsNullOrWhiteSpace(item.ProductId)
-                                                ? "null"
-                                                : item.ProductId;
+                                        tlogItemRecordMap["closeDateTimeUtc"] =
+                                            recordMap["closeDateTimeUtc"].ToString() ?? "";
+                                        tlogItemRecordMap["receivedDateTimeUtc"] =
+                                            recordMap["receivedDateTimeUtc"].ToString() ?? "";
+                                        tlogItemRecordMap["endTransactionDateTimeUtc"] =
+                                            recordMap["endTransactionDateTimeUtc"].ToString() ?? "";
 
-                                        tlogItemRecordMap["departmentId"] =
-                                            String.IsNullOrWhiteSpace(item.DepartmentId)
-                                                ? "null"
-                                                : item.DepartmentId;
+                                        var date_time = tLogResponseWrapper.DateWrapper.DateTime;
+                                        tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
+                                        tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
+                                        tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
+                                        tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
 
-                                        if (item.Quantity != null)
+                                        if (tLogResponseWrapper.Tlog.Customer != null)
                                         {
-                                            tlogItemRecordMap["quantity"] =
-                                                string.IsNullOrWhiteSpace(item.Quantity.Quantity)
-                                                    ? "0"
-                                                    : item.Quantity.Quantity;
-                                            tlogItemRecordMap["quantityUnitOfMeasurement"] =
-                                                item.Quantity.UnitOfMeasurement ?? "";
-                                            tlogItemRecordMap["quantityEntryMethod"] = item.Quantity.EntryMethod ?? "";
+                                            tlogItemRecordMap["customerId"] =
+                                                tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                                            tlogItemRecordMap["customerEntryMethod"] =
+                                                tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                                            tlogItemRecordMap["customerIdentifierData"] =
+                                                tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] =
+                                                tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                                        }
+                                        else
+                                        {
+                                            tlogItemRecordMap["customerId"] = "null";
+                                            tlogItemRecordMap["customerEntryMethod"] = "null";
+                                            tlogItemRecordMap["customerIdentifierData"] = "null";
+                                            tlogItemRecordMap["customerInfoValidationMeans"] = "null";
                                         }
 
-                                        if (item.RegularUnitPrice != null)
+                                        tlogItemRecordMap["tlog_isSuspended"] =
+                                            tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                                        tlogItemRecordMap["tlog_isTrainingMode"] =
+                                            tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                                        tlogItemRecordMap["tlog_isResumed"] =
+                                            tLogResponseWrapper.Tlog.IsResumed.ToString();
+                                        tlogItemRecordMap["tlog_isRecalled"] =
+                                            tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                                        tlogItemRecordMap["tlog_isDeleted"] =
+                                            tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                                        tlogItemRecordMap["tlog_isVoided"] =
+                                            tLogResponseWrapper.Tlog.IsVoided.ToString();
+                                    }
+                                    catch
+                                    {
+                                        //noop
+                                    }
+
+                                    if (tLogResponseWrapper.Tlog.TotalTaxes != null &&
+                                        tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                                    {
+                                        var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+
+                                        tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                                        tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                                        tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                                        tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                        tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                                        tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                                        tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                                        tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                    }
+
+                                    var items = limit > 0
+                                        ? tLogResponseWrapper.Tlog.Items.Take(safeLimit - (int) recordCount)
+                                        : tLogResponseWrapper.Tlog.Items;
+
+                                    foreach (var item in items)
+                                    {
+                                        bool validItem = true;
+                                        try
                                         {
-                                            tlogItemRecordMap["regularUnitPrice"] =
-                                                string.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
-                                                    ? "0"
-                                                    : item.RegularUnitPrice.Amount.ToString();
+                                            tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                                                ? "null"
+                                                : item.Id;
 
-                                            if (item.RegularUnitPrice.UnitPriceQuantity != null)
+                                            tlogItemRecordMap["IsItemNotOnFile"] = item.IsItemNotOnFile.ToString();
+
+                                            tlogItemRecordMap["productId"] =
+                                                String.IsNullOrWhiteSpace(item.ProductId)
+                                                    ? "null"
+                                                    : item.ProductId;
+
+                                            tlogItemRecordMap["departmentId"] =
+                                                String.IsNullOrWhiteSpace(item.DepartmentId)
+                                                    ? "null"
+                                                    : item.DepartmentId;
+
+                                            if (item.Quantity != null)
                                             {
-                                                tlogItemRecordMap["regularUnitPrice.quantity"] =
-                                                    item.RegularUnitPrice.UnitPriceQuantity.Quantity.ToString() ?? "";
+                                                tlogItemRecordMap["quantity"] =
+                                                    string.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                                        ? "0"
+                                                        : item.Quantity.Quantity;
+                                                tlogItemRecordMap["quantityUnitOfMeasurement"] =
+                                                    item.Quantity.UnitOfMeasurement ?? "";
+                                                tlogItemRecordMap["quantityEntryMethod"] =
+                                                    item.Quantity.EntryMethod ?? "";
+                                            }
 
-                                                tlogItemRecordMap["regularUnitPrice.unitOfMeasurement"] =
-                                                    item.RegularUnitPrice.UnitPriceQuantity.UnitOfMeasurement ?? "";
+                                            if (item.RegularUnitPrice != null)
+                                            {
+                                                tlogItemRecordMap["regularUnitPrice"] =
+                                                    string.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.RegularUnitPrice.Amount.ToString();
+
+                                                if (item.RegularUnitPrice.UnitPriceQuantity != null)
+                                                {
+                                                    tlogItemRecordMap["regularUnitPrice.quantity"] =
+                                                        item.RegularUnitPrice.UnitPriceQuantity.Quantity.ToString() ??
+                                                        "";
+
+                                                    tlogItemRecordMap["regularUnitPrice.unitOfMeasurement"] =
+                                                        item.RegularUnitPrice.UnitPriceQuantity.UnitOfMeasurement ?? "";
+                                                }
+                                                else
+                                                {
+                                                    tlogItemRecordMap["regularUnitPrice.quantity"] = "";
+                                                    tlogItemRecordMap[
+                                                        "regularUnitPrice.unitOfMeasurement"] = "";
+                                                }
                                             }
                                             else
                                             {
-                                                tlogItemRecordMap["regularUnitPrice.quantity"] = "";
-                                                tlogItemRecordMap[
-                                                    "regularUnitPrice.unitOfMeasurement"] = "";
+                                                tlogItemRecordMap["regularUnitPrice"] = "0";
                                             }
-                                        }
-                                        else
-                                        {
-                                            tlogItemRecordMap["regularUnitPrice"] = "0";
-                                        }
 
-                                        if (item.RegularUnitPrice != null)
-                                        {
-                                            tlogItemRecordMap["extendedUnitPrice"] =
-                                                string.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
-                                                    ? "0"
-                                                    : item.ExtendedUnitPrice.Amount.ToString();
-
-                                            if (item.ExtendedUnitPrice.UnitPriceQuantity != null)
+                                            if (item.RegularUnitPrice != null)
                                             {
-                                                tlogItemRecordMap["extendedUnitPrice.quantity"] =
-                                                    item.ExtendedUnitPrice.UnitPriceQuantity.Quantity.ToString() ?? "";
+                                                tlogItemRecordMap["extendedUnitPrice"] =
+                                                    string.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                        ? "0"
+                                                        : item.ExtendedUnitPrice.Amount.ToString();
 
-                                                tlogItemRecordMap["extendedUnitPrice.unitOfMeasurement"] =
-                                                    item.ExtendedUnitPrice.UnitPriceQuantity.UnitOfMeasurement ?? "";
+                                                if (item.ExtendedUnitPrice.UnitPriceQuantity != null)
+                                                {
+                                                    tlogItemRecordMap["extendedUnitPrice.quantity"] =
+                                                        item.ExtendedUnitPrice.UnitPriceQuantity.Quantity.ToString() ??
+                                                        "";
+
+                                                    tlogItemRecordMap["extendedUnitPrice.unitOfMeasurement"] =
+                                                        item.ExtendedUnitPrice.UnitPriceQuantity.UnitOfMeasurement ??
+                                                        "";
+                                                }
+                                                else
+                                                {
+                                                    tlogItemRecordMap["extendedUnitPrice.quantity"] = "";
+                                                    tlogItemRecordMap[
+                                                        "extendedUnitPrice.unitOfMeasurement"] = "";
+                                                }
                                             }
                                             else
                                             {
-                                                tlogItemRecordMap["extendedUnitPrice.quantity"] = "";
-                                                tlogItemRecordMap[
-                                                    "extendedUnitPrice.unitOfMeasurement"] = "";
+                                                tlogItemRecordMap["regularUnitPrice"] = "0";
                                             }
-                                        }
-                                        else
-                                        {
-                                            tlogItemRecordMap["regularUnitPrice"] = "0";
-                                        }
-                                        
-                                        if (item.ActualAmount != null)
-                                        {
-                                            tlogItemRecordMap["actualAmount"] =
-                                                String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
-                                                    ? "0"
-                                                    : item.ActualAmount.Amount;
-                                        }
-                                        else
-                                        {
-                                            tlogItemRecordMap["actualAmount"] = "0";
-                                        }
 
-                                        if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
-                                        {
-                                            tlogItemRecordMap["discountAmount"] =
-                                                String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog
-                                                    .TLogTotals.DiscountAmount.Amount)
-                                                    ? "0"
-                                                    : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount
-                                                        .Amount;
-                                        }
-                                        else
-                                        {
-                                            tlogItemRecordMap["discountAmount"] = "0";
-                                        }
-
-                                        tlogItemRecordMap["item_isReturn"] = item.IsReturn;
-                                        tlogItemRecordMap["item_isVoided"] = item.IsVoided;
-                                        tlogItemRecordMap["item_isRefund"] = item.IsRefund;
-                                        tlogItemRecordMap["item_isRefused"] = item.IsRefused;
-                                        tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
-                                        tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
-
-                                        if (item.ItemDiscounts != null)
-                                        {
-                                            //Concat list for safety - original request unclear
-                                            tlogItemRecordMap["discountType"] = string.Join(",",
-                                                item.ItemDiscounts.Select(x => x.DiscountType));
-                                        }
-                                        else
-                                        {
-                                            tlogItemRecordMap["discountType"] = "";
-                                        }
-
-                                        // Placeholder rows - all null data by design
-                                        // These were cols in previous hive that no longer exist
-
-                                        tlogItemRecordMap["03record"] = "null";
-                                        tlogItemRecordMap["rtntype"] = "null";
-                                        tlogItemRecordMap["fscard"] = "null";
-                                        tlogItemRecordMap["rtnsurchperc"] = "null";
-                                        tlogItemRecordMap["multunit"] = "null";
-                                        tlogItemRecordMap["notaxamt"] = "null";
-                                        tlogItemRecordMap["ignore_transaction"] = "null";
-                                        tlogItemRecordMap["non_merchandise"] = "null";
-                                        tlogItemRecordMap["subtract"] = "null";
-                                        tlogItemRecordMap["negative"] = "null";
-                                        tlogItemRecordMap["upcharge"] = "null";
-                                        tlogItemRecordMap["additive"] = "null";
-                                        tlogItemRecordMap["delivery_charges"] = "null";
-                                        tlogItemRecordMap["manual_discount"] = "null";
-                                        tlogItemRecordMap["percent_discount"] = "null";
-                                        tlogItemRecordMap["cost_plus_item_dept"] = "null";
-                                        tlogItemRecordMap["foodstampable_item"] = "null";
-                                        tlogItemRecordMap["store_promo"] = "null";
-                                        tlogItemRecordMap["plu_transaction_discount"] = "null";
-                                        tlogItemRecordMap["department_transaction_discount"] = "null";
-                                        tlogItemRecordMap["promo_type_given"] = "null";
-                                        tlogItemRecordMap["promo_type_reduction_given"] = "null";
-                                        tlogItemRecordMap["promo_type_offer_given"] = "null";
-                                        tlogItemRecordMap["multi_saver"] = "null";
-                                        tlogItemRecordMap["ext_promo"] = "null";
-                                        tlogItemRecordMap["not_net_promo"] = "null";
-                                        tlogItemRecordMap["member_discount"] = "null";
-                                        tlogItemRecordMap["discount_flag"] = "null";
-                                        tlogItemRecordMap["points_given_as_a_reward"] = "null";
-                                        tlogItemRecordMap["customer_acct_discount"] = "null";
-                                        tlogItemRecordMap["extended_trs"] = "null";
-                                        tlogItemRecordMap["auto_discount"] = "null";
-                                        tlogItemRecordMap["delayed_promo"] = "null";
-                                        tlogItemRecordMap["report_as_tender"] = "null";
-                                        tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
-                                        tlogItemRecordMap["row_str"] = "null";
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        validItem = false;
-                                    }
-
-                                    if (validItem)
-                                    {
-                                        recordCount++;
-                                        if (recordCount > limit && limit > 0)
-                                        {
-                                            hasMore = false;
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            returnRecords.Add(new Record
+                                            if (item.ActualAmount != null)
                                             {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                            });
+                                                tlogItemRecordMap["actualAmount"] =
+                                                    String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                                        ? "0"
+                                                        : item.ActualAmount.Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["actualAmount"] = "0";
+                                            }
+
+                                            if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
+                                            {
+                                                tlogItemRecordMap["discountAmount"] =
+                                                    String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog
+                                                        .TLogTotals.DiscountAmount.Amount)
+                                                        ? "0"
+                                                        : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount
+                                                            .Amount;
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["discountAmount"] = "0";
+                                            }
+
+                                            tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                                            tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                                            tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                                            tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                                            tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                                            tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
+
+                                            if (item.ItemDiscounts != null)
+                                            {
+                                                //Concat list for safety - original request unclear
+                                                tlogItemRecordMap["discountType"] = string.Join(",",
+                                                    item.ItemDiscounts.Select(x => x.DiscountType));
+                                            }
+                                            else
+                                            {
+                                                tlogItemRecordMap["discountType"] = "";
+                                            }
+
+                                            // Placeholder rows - all null data by design
+                                            // These were cols in previous hive that no longer exist
+
+                                            tlogItemRecordMap["03record"] = "null";
+                                            tlogItemRecordMap["rtntype"] = "null";
+                                            tlogItemRecordMap["fscard"] = "null";
+                                            tlogItemRecordMap["rtnsurchperc"] = "null";
+                                            tlogItemRecordMap["multunit"] = "null";
+                                            tlogItemRecordMap["notaxamt"] = "null";
+                                            tlogItemRecordMap["ignore_transaction"] = "null";
+                                            tlogItemRecordMap["non_merchandise"] = "null";
+                                            tlogItemRecordMap["subtract"] = "null";
+                                            tlogItemRecordMap["negative"] = "null";
+                                            tlogItemRecordMap["upcharge"] = "null";
+                                            tlogItemRecordMap["additive"] = "null";
+                                            tlogItemRecordMap["delivery_charges"] = "null";
+                                            tlogItemRecordMap["manual_discount"] = "null";
+                                            tlogItemRecordMap["percent_discount"] = "null";
+                                            tlogItemRecordMap["cost_plus_item_dept"] = "null";
+                                            tlogItemRecordMap["foodstampable_item"] = "null";
+                                            tlogItemRecordMap["store_promo"] = "null";
+                                            tlogItemRecordMap["plu_transaction_discount"] = "null";
+                                            tlogItemRecordMap["department_transaction_discount"] = "null";
+                                            tlogItemRecordMap["promo_type_given"] = "null";
+                                            tlogItemRecordMap["promo_type_reduction_given"] = "null";
+                                            tlogItemRecordMap["promo_type_offer_given"] = "null";
+                                            tlogItemRecordMap["multi_saver"] = "null";
+                                            tlogItemRecordMap["ext_promo"] = "null";
+                                            tlogItemRecordMap["not_net_promo"] = "null";
+                                            tlogItemRecordMap["member_discount"] = "null";
+                                            tlogItemRecordMap["discount_flag"] = "null";
+                                            tlogItemRecordMap["points_given_as_a_reward"] = "null";
+                                            tlogItemRecordMap["customer_acct_discount"] = "null";
+                                            tlogItemRecordMap["extended_trs"] = "null";
+                                            tlogItemRecordMap["auto_discount"] = "null";
+                                            tlogItemRecordMap["delayed_promo"] = "null";
+                                            tlogItemRecordMap["report_as_tender"] = "null";
+                                            tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
+                                            tlogItemRecordMap["row_str"] = "null";
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            validItem = false;
+                                        }
+
+                                        if (validItem)
+                                        {
+                                            recordCount++;
+                                            if (recordCount > limit && limit > 0)
+                                            {
+                                                hasMore = false;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                returnRecords.Add(new Record
+                                                {
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                                });
+                                            }
                                         }
                                     }
                                 }
                             }, maxDegreeOfParallelism: degreeOfParallelism);
-                            
+
                             foreach (var record in returnRecords)
                             {
                                 yield return record;
                             }
-                            
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+
+                            if (currPage >= 9 || !pageIncomplete && objectResponseWrapper?.LastPage.ToLower() == "true")
                             {
                                 hasMore = false;
                             }
@@ -592,23 +620,413 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 currPage++;
                                 hasMore = true;
                             }
-                            
-                         } while (hasMore && (limit == 0 || (int)recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
+                        } while (hasMore && (limit == 0 || (int) recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
+                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                }
+                
+                foreach (var incompletePath in incompleteTLogPaths)
+                {
+                    var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
+                    
+                    await foreach (var record in incompleteQueryResults)
+                    {
+                        yield return record;
+                    }
+                }
+
+                foreach (var incompletePageQuery in incompletePageQueries)
+                {
+                    var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
+                    
+                    await foreach (var record in incompleteQueryResults)
+                    {
+                        yield return record;
+                    }
+                }
+                
+            }
+
+            private async IAsyncEnumerable<Record> ReadIncompleteQuery(IApiClient apiClient, string tLogPath)
+            {
+                var tLogResponseWrapper = new TLogWrapper();
+                var tlogIncomplete = true;
+                var recordMap = new Dictionary<string, object>();
+
+
+                HttpResponseMessage tlogResponse = null;
+                var retryCount = 0;
+                while (tlogIncomplete && retryCount <= 20)
+                {
+                    retryCount++;
+                    try
+                    {
+                        tlogResponse = await apiClient.GetAsync(tLogPath);
+                    }
+                    catch (Exception e)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    if (!tlogResponse.IsSuccessStatusCode)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    try
+                    {
+                        tLogResponseWrapper =
+                            JsonConvert.DeserializeObject<TLogWrapper>(
+                                await tlogResponse.Content.ReadAsStringAsync());
+                        if (!string.IsNullOrEmpty(tLogResponseWrapper.Id))
+                        {
+                            tlogIncomplete = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    if (tlogIncomplete && retryCount <= 20)
+                    {
+                        Thread.Sleep(1000 * retryCount * retryCount);
+                    }
+                }
+
+                var tlogItemRecordMap = new Dictionary<string, object>();
+
+                try
+                {
+                    tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                    tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
+                    tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
+                    tlogItemRecordMap["touchPointGroup"] =
+                        tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
+
+
+                    tlogItemRecordMap["closeDateTimeUtc"] =
+                        recordMap["closeDateTimeUtc"].ToString() ?? "";
+                    tlogItemRecordMap["receivedDateTimeUtc"] =
+                        recordMap["receivedDateTimeUtc"].ToString() ?? "";
+                    tlogItemRecordMap["endTransactionDateTimeUtc"] =
+                        recordMap["endTransactionDateTimeUtc"].ToString() ?? "";
+
+                    var date_time = tLogResponseWrapper.DateWrapper.DateTime;
+                    tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
+                    tlogItemRecordMap["ticketmonth"] = date_time.Substring(5, 2);
+                    tlogItemRecordMap["ticketday"] = date_time.Substring(8, 2);
+                    tlogItemRecordMap["ticketyear"] = date_time.Substring(0, 4);
+
+                    if (tLogResponseWrapper.Tlog.Customer != null)
+                    {
+                        tlogItemRecordMap["customerId"] =
+                            tLogResponseWrapper.Tlog.Customer.Id ?? "null";
+                        tlogItemRecordMap["customerEntryMethod"] =
+                            tLogResponseWrapper.Tlog.Customer.EntryMethod ?? "null";
+                        tlogItemRecordMap["customerIdentifierData"] =
+                            tLogResponseWrapper.Tlog.Customer.IdentifierData ?? "null";
+                        tlogItemRecordMap["customerInfoValidationMeans"] =
+                            tLogResponseWrapper.Tlog.Customer.InfoValidationMeans ?? "null";
+                    }
+                    else
+                    {
+                        tlogItemRecordMap["customerId"] = "null";
+                        tlogItemRecordMap["customerEntryMethod"] = "null";
+                        tlogItemRecordMap["customerIdentifierData"] = "null";
+                        tlogItemRecordMap["customerInfoValidationMeans"] = "null";
+                    }
+
+                    tlogItemRecordMap["tlog_isSuspended"] =
+                        tLogResponseWrapper.Tlog.IsSuspended.ToString();
+                    tlogItemRecordMap["tlog_isTrainingMode"] =
+                        tLogResponseWrapper.Tlog.IsTrainingMode.ToString();
+                    tlogItemRecordMap["tlog_isResumed"] =
+                        tLogResponseWrapper.Tlog.IsResumed.ToString();
+                    tlogItemRecordMap["tlog_isRecalled"] =
+                        tLogResponseWrapper.Tlog.IsRecalled.ToString();
+                    tlogItemRecordMap["tlog_isDeleted"] =
+                        tLogResponseWrapper.Tlog.IsDeleted.ToString();
+                    tlogItemRecordMap["tlog_isVoided"] =
+                        tLogResponseWrapper.Tlog.IsVoided.ToString();
+                }
+                catch
+                {
+                    //noop
+                }
+
+                if (tLogResponseWrapper.Tlog.TotalTaxes != null &&
+                    tLogResponseWrapper.Tlog.TotalTaxes.Count > 0)
+                {
+                    var tax = tLogResponseWrapper.Tlog.TotalTaxes[0];
+
+                    tlogItemRecordMap["taxId"] = tax.Id ?? "";
+                    tlogItemRecordMap["taxName"] = tax.Name ?? "";
+                    tlogItemRecordMap["taxType"] = tax.TaxType ?? "";
+                    tlogItemRecordMap["taxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                    tlogItemRecordMap["taxAmount"] = tax.Amount.Amount ?? "";
+                    tlogItemRecordMap["taxIsRefund"] = tax.IsRefund;
+                    tlogItemRecordMap["taxIsVoided"] = tax.IsVoided;
+                    tlogItemRecordMap["taxSequenceNumber"] = tax.SequenceNumber ?? "";
+                }
+
+                var items = tLogResponseWrapper.Tlog.Items;
+
+                foreach (var item in items)
+                {
+                    bool validItem = true;
+                    try
+                    {
+                        tlogItemRecordMap["id"] = String.IsNullOrWhiteSpace(item.Id)
+                            ? "null"
+                            : item.Id;
+
+                        tlogItemRecordMap["IsItemNotOnFile"] = item.IsItemNotOnFile.ToString();
+
+                        tlogItemRecordMap["productId"] =
+                            String.IsNullOrWhiteSpace(item.ProductId)
+                                ? "null"
+                                : item.ProductId;
+
+                        tlogItemRecordMap["departmentId"] =
+                            String.IsNullOrWhiteSpace(item.DepartmentId)
+                                ? "null"
+                                : item.DepartmentId;
+
+                        if (item.Quantity != null)
+                        {
+                            tlogItemRecordMap["quantity"] =
+                                string.IsNullOrWhiteSpace(item.Quantity.Quantity)
+                                    ? "0"
+                                    : item.Quantity.Quantity;
+                            tlogItemRecordMap["quantityUnitOfMeasurement"] =
+                                item.Quantity.UnitOfMeasurement ?? "";
+                            tlogItemRecordMap["quantityEntryMethod"] =
+                                item.Quantity.EntryMethod ?? "";
+                        }
+
+                        if (item.RegularUnitPrice != null)
+                        {
+                            tlogItemRecordMap["regularUnitPrice"] =
+                                string.IsNullOrWhiteSpace(item.RegularUnitPrice.Amount)
+                                    ? "0"
+                                    : item.RegularUnitPrice.Amount.ToString();
+
+                            if (item.RegularUnitPrice.UnitPriceQuantity != null)
+                            {
+                                tlogItemRecordMap["regularUnitPrice.quantity"] =
+                                    item.RegularUnitPrice.UnitPriceQuantity.Quantity.ToString() ??
+                                    "";
+
+                                tlogItemRecordMap["regularUnitPrice.unitOfMeasurement"] =
+                                    item.RegularUnitPrice.UnitPriceQuantity.UnitOfMeasurement ?? "";
+                            }
+                            else
+                            {
+                                tlogItemRecordMap["regularUnitPrice.quantity"] = "";
+                                tlogItemRecordMap[
+                                    "regularUnitPrice.unitOfMeasurement"] = "";
+                            }
+                        }
+                        else
+                        {
+                            tlogItemRecordMap["regularUnitPrice"] = "0";
+                        }
+
+                        if (item.RegularUnitPrice != null)
+                        {
+                            tlogItemRecordMap["extendedUnitPrice"] =
+                                string.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                    ? "0"
+                                    : item.ExtendedUnitPrice.Amount.ToString();
+
+                            if (item.ExtendedUnitPrice.UnitPriceQuantity != null)
+                            {
+                                tlogItemRecordMap["extendedUnitPrice.quantity"] =
+                                    item.ExtendedUnitPrice.UnitPriceQuantity.Quantity.ToString() ??
+                                    "";
+
+                                tlogItemRecordMap["extendedUnitPrice.unitOfMeasurement"] =
+                                    item.ExtendedUnitPrice.UnitPriceQuantity.UnitOfMeasurement ??
+                                    "";
+                            }
+                            else
+                            {
+                                tlogItemRecordMap["extendedUnitPrice.quantity"] = "";
+                                tlogItemRecordMap[
+                                    "extendedUnitPrice.unitOfMeasurement"] = "";
+                            }
+                        }
+                        else
+                        {
+                            tlogItemRecordMap["regularUnitPrice"] = "0";
+                        }
+
+                        if (item.ActualAmount != null)
+                        {
+                            tlogItemRecordMap["actualAmount"] =
+                                String.IsNullOrWhiteSpace(item.ActualAmount.Amount)
+                                    ? "0"
+                                    : item.ActualAmount.Amount;
+                        }
+                        else
+                        {
+                            tlogItemRecordMap["actualAmount"] = "0";
+                        }
+
+                        if (tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount != null)
+                        {
+                            tlogItemRecordMap["discountAmount"] =
+                                String.IsNullOrWhiteSpace(tLogResponseWrapper.Tlog
+                                    .TLogTotals.DiscountAmount.Amount)
+                                    ? "0"
+                                    : tLogResponseWrapper.Tlog.TLogTotals.DiscountAmount
+                                        .Amount;
+                        }
+                        else
+                        {
+                            tlogItemRecordMap["discountAmount"] = "0";
+                        }
+
+                        tlogItemRecordMap["item_isReturn"] = item.IsReturn;
+                        tlogItemRecordMap["item_isVoided"] = item.IsVoided;
+                        tlogItemRecordMap["item_isRefund"] = item.IsRefund;
+                        tlogItemRecordMap["item_isRefused"] = item.IsRefused;
+                        tlogItemRecordMap["item_isPriceLookup"] = item.IsPriceLookup;
+                        tlogItemRecordMap["item_isOverridden"] = item.IsOverridden;
+
+                        if (item.ItemDiscounts != null)
+                        {
+                            //Concat list for safety - original request unclear
+                            tlogItemRecordMap["discountType"] = string.Join(",",
+                                item.ItemDiscounts.Select(x => x.DiscountType));
+                        }
+                        else
+                        {
+                            tlogItemRecordMap["discountType"] = "";
+                        }
+
+                        // Placeholder rows - all null data by design
+                        // These were cols in previous hive that no longer exist
+
+                        tlogItemRecordMap["03record"] = "null";
+                        tlogItemRecordMap["rtntype"] = "null";
+                        tlogItemRecordMap["fscard"] = "null";
+                        tlogItemRecordMap["rtnsurchperc"] = "null";
+                        tlogItemRecordMap["multunit"] = "null";
+                        tlogItemRecordMap["notaxamt"] = "null";
+                        tlogItemRecordMap["ignore_transaction"] = "null";
+                        tlogItemRecordMap["non_merchandise"] = "null";
+                        tlogItemRecordMap["subtract"] = "null";
+                        tlogItemRecordMap["negative"] = "null";
+                        tlogItemRecordMap["upcharge"] = "null";
+                        tlogItemRecordMap["additive"] = "null";
+                        tlogItemRecordMap["delivery_charges"] = "null";
+                        tlogItemRecordMap["manual_discount"] = "null";
+                        tlogItemRecordMap["percent_discount"] = "null";
+                        tlogItemRecordMap["cost_plus_item_dept"] = "null";
+                        tlogItemRecordMap["foodstampable_item"] = "null";
+                        tlogItemRecordMap["store_promo"] = "null";
+                        tlogItemRecordMap["plu_transaction_discount"] = "null";
+                        tlogItemRecordMap["department_transaction_discount"] = "null";
+                        tlogItemRecordMap["promo_type_given"] = "null";
+                        tlogItemRecordMap["promo_type_reduction_given"] = "null";
+                        tlogItemRecordMap["promo_type_offer_given"] = "null";
+                        tlogItemRecordMap["multi_saver"] = "null";
+                        tlogItemRecordMap["ext_promo"] = "null";
+                        tlogItemRecordMap["not_net_promo"] = "null";
+                        tlogItemRecordMap["member_discount"] = "null";
+                        tlogItemRecordMap["discount_flag"] = "null";
+                        tlogItemRecordMap["points_given_as_a_reward"] = "null";
+                        tlogItemRecordMap["customer_acct_discount"] = "null";
+                        tlogItemRecordMap["extended_trs"] = "null";
+                        tlogItemRecordMap["auto_discount"] = "null";
+                        tlogItemRecordMap["delayed_promo"] = "null";
+                        tlogItemRecordMap["report_as_tender"] = "null";
+                        tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
+                        tlogItemRecordMap["row_str"] = "null";
+                    }
+                    catch (Exception e)
+                    {
+                        validItem = false;
+                    }
+                    if (validItem)
+                    {
+                        yield return new Record
+                        {
+                            Action = Record.Types.Action.Upsert,
+                            DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                        };
+                    }
+                }
+            }
+
+            private async IAsyncEnumerable<Record> ReadIncompletePage(IApiClient apiClient, Tuple<string, string> post)
+            {
+                var pageIncomplete = false;
+                var retryCount = 0;
+                HttpResponseMessage pageResult = null;
+                var objectResponseWrapper = new ObjectResponseWrapper();
+                
+                var path = post.Item1;
+                var postBody = post.Item2;
+                
+                while (!pageIncomplete && retryCount < 20)
+                {
+                    retryCount++;
+                    try
+                    {
+                        pageResult = await apiClient.PostAsync(path, postBody);
+                    
+                        objectResponseWrapper =
+                            JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                await pageResult.Content.ReadAsStringAsync());
+                        
+                        if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                        {
+                            pageIncomplete = true;
+                        }
+                        else
+                        {
+                            pageIncomplete = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        pageIncomplete = true;
+                    }
+                    if (pageIncomplete && retryCount <= 20)
+                    {
+                        retryCount++;
+                        Thread.Sleep(1000 * retryCount * retryCount);
+                    }
+                }
+                    
+                foreach (var tLogMetaData in objectResponseWrapper.PageContent)
+                {
+                    var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
+                    var tLogResponse = ReadIncompleteQuery(apiClient, tLogId);
+
+                    await foreach (var record in tLogResponse)
+                    {
+                        yield return record;
+                    }
                 }
             }
         }
 
         private class TransactionDocumentEndpoint_Historical : TransactionDocumentEndpoint
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
                 var queryEndDate = await apiClient.GetEndDate();
-                
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate, isDiscoverRead);
+
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
+                    isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -616,14 +1034,17 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_Yesterday : TransactionDocumentEndpoint
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday, queryDateYesterday, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
+                    queryDateYesterday, isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -634,14 +1055,16 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_7Days : TransactionDocumentEndpoint
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
+                var queryStartDate = DateTime.Now.AddDays(-8).ToString("yyyy-MM-dd");
                 var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
                                    "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
+                    isDiscoverRead);
 
 
                 await foreach (var record in records)
@@ -653,12 +1076,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_Today : TransactionDocumentEndpoint
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryDateToday = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday,
+                    isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -669,7 +1094,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_Tenders : Endpoint
         {
-             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
+            public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
                 List<string> staticSchemaProperties = new List<string>()
                 {
@@ -730,7 +1155,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var hasMore = false;
@@ -739,8 +1165,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
-                var safeLimit = limit > 0 ? (int)limit : Int32.MaxValue;
-                
+                var safeLimit = limit > 0 ? (int) limit : Int32.MaxValue;
+
                 var queryDate = startDate;
                 var queryEndDate = endDate;
                 var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
@@ -754,123 +1180,139 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
 
+                var incompletePageQueries = new List<Tuple<string, string>> { };
+                var incompleteTLogPaths = new List<string> { };
+                    
                 foreach (var site in workingSiteList)
                 {
                     if (limit > 0 && recordCount >= limit)
                     {
                         break;
                     }
+
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.DateWrapper.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.DateWrapper.DateTime =
+                            DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
                         do //while hasMore
                         {
+                            var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
-                            var response = await apiClient.PostAsync(
-                                path
-                                , json);
-                            
-                                if (!response.IsSuccessStatusCode)
-                                {
-                                    var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await response.Content.ReadAsStringAsync());
-                                    throw new Exception(error.Message);
-                                }
+                            HttpResponseMessage response = null;
+                            try
+                            {
+                                response = await apiClient.PostAsync(
+                                    path
+                                    , json);
+                            }
+                            catch (Exception e)
+                            {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
 
-                                var objectResponseWrapper = new ObjectResponseWrapper();
-                                var objectResponseSuccess = false;
-                                var objectResponseIsValid = false;
-                            
-                                while (!objectResponseSuccess && !objectResponseIsValid)
+                            var objectResponseWrapper = new ObjectResponseWrapper();
+
+                            try
+                            {
+                                objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
+                                if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                                {
+                                    incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                    pageIncomplete = true;
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
+
+                            if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
+                            {
+                                currPage++;
+                                continue;
+                            }
+
+                            List<Record> returnRecords = new List<Record>() { };
+
+                            var pageContent = limit > 0
+                                ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
+                                : objectResponseWrapper?.PageContent;
+
+
+                            await pageContent.ParallelForEachAsync(async objectResponse =>
+                            {
+                                var tlogIncomplete = false;
+                                var recordMap = new Dictionary<string, object>();
+
+                                foreach (var objectProperty in objectResponse)
                                 {
                                     try
                                     {
-                                        objectResponseWrapper =
-                                            JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                                await response.Content.ReadAsStringAsync());
-                                        objectResponseSuccess = true;
-                                        if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
-                                        {
-                                            objectResponseIsValid = true;
-                                        }
+                                        recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
                                     }
-                                    catch (Exception e)
+                                    catch
                                     {
-                                        objectResponseIsValid = false;
-                                        objectResponseSuccess = false;
-                                        Thread.Sleep(1000*60);
-                                        response = await apiClient.PostAsync(
-                                            path
-                                            , json);
+                                        recordMap[objectProperty.Key] = "";
                                     }
                                 }
-                                if (objectResponseWrapper?.PageContent.Count == 0)
+
+                                var thisTlogId = recordMap["tlogId"];
+                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+                                
+                                HttpResponseMessage tlogResponse = null;
+                                try
                                 {
-                                    continue;
+                                    tlogResponse = await apiClient.GetAsync(tlogPath);
+                                }
+                                catch (Exception e)
+                                {
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
                                 }
 
-                                List<Record> returnRecords = new List<Record>() { };
-                                
-                                var pageContent = limit > 0
-                                    ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
-                                    : objectResponseWrapper?.PageContent;
-                                
-                                
-                                await pageContent.ParallelForEachAsync(async objectResponse =>
+                                if (!tlogResponse.IsSuccessStatusCode)
                                 {
-                                    var recordMap = new Dictionary<string, object>();
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
+                                }
 
-                                    foreach (var objectProperty in objectResponse)
-                                    {
-                                        try
-                                        {
-                                            recordMap[objectProperty.Key] = objectProperty.Value.ToString() ?? "";
-                                        }
-                                        catch
-                                        {
-                                            recordMap[objectProperty.Key] = "";
-                                        }
-                                    }
-
-                                    var thisTlogId = recordMap["tlogId"];
-
-                                    var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                    var tlogResponse = await apiClient.GetAsync(tlogPath);
-
-                                    if (!tlogResponse.IsSuccessStatusCode)
-                                    {
-                                        var error = JsonConvert.DeserializeObject<ApiError>(
+                                var tLogResponseWrapper = new TLogWrapper();
+                                try
+                                {
+                                    tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TLogWrapper>(
                                             await tlogResponse.Content.ReadAsStringAsync());
-                                        throw new Exception(error.Message);
-                                    }
-
-                                    var tLogResponseWrapper = new TlogWrapper();
-                                    var tlogResponseSuccess = false;
-                                    while (!tlogResponseSuccess) 
+                                    if (string.IsNullOrEmpty(tLogResponseWrapper.Id))
                                     {
-                                        try
-                                        {
-                                            tLogResponseWrapper =
-                                                JsonConvert.DeserializeObject<TlogWrapper>(
-                                                    await tlogResponse.Content.ReadAsStringAsync());
-                                            tlogResponseSuccess = true;
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Thread.Sleep(1000*60);
-                                            tlogResponse = await apiClient.GetAsync(tlogPath);
-                                        }
+                                        incompleteTLogPaths.Add(tlogPath);
+                                        tlogIncomplete = true;
                                     }
+                                }
+                                catch (Exception e)
+                                {
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
+                                }
 
+                                if (tlogIncomplete)
+                                {
                                     var tlogTenderRecordMap = new Dictionary<string, object>();
 
                                     if (tLogResponseWrapper.Tlog.Tenders.Count > 0)
@@ -889,7 +1331,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                     tender.CardLastFourDigits ?? "";
                                                 tlogTenderRecordMap["name"] = tender.Name ?? "";
                                                 tlogTenderRecordMap["id"] = tender.Id ?? "";
-                                                tlogTenderRecordMap["maskedCardNumber"] = tender.MaskedCardNumber ?? "";
+                                                tlogTenderRecordMap["maskedCardNumber"] =
+                                                    tender.MaskedCardNumber ?? "";
 
                                                 recordCount++;
                                                 if (recordCount > limit && limit > 0)
@@ -903,7 +1346,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                     {
                                                         Action = Record.Types.Action.Upsert,
                                                         DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
-                                                    }); 
+                                                    });
                                                 }
                                             }
                                             catch
@@ -911,38 +1354,190 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             }
                                         }
                                     }
-                                }, maxDegreeOfParallelism: degreeOfParallelism);
+                                }
+                            }, maxDegreeOfParallelism: degreeOfParallelism);
 
-                                foreach (var record in returnRecords)
-                                {
-                                    yield return record;
-                                }
-                                
-                                if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
-                                {
-                                    hasMore = false;
-                                }
-                                else
-                                {
-                                    currPage++;
-                                    hasMore = true;
-                                }
-                            
+                            foreach (var record in returnRecords)
+                            {
+                                yield return record;
+                            }
+
+                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            {
+                                hasMore = false;
+                            }
+                            else
+                            {
+                                currPage++;
+                                hasMore = true;
+                            }
+
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
+                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                        
+                    foreach (var incompletePath in incompleteTLogPaths)
+                    {
+                        var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
+                    
+                        await foreach (var record in incompleteQueryResults)
+                        {
+                            yield return record;
+                        }
+                    }
+
+                    foreach (var incompletePageQuery in incompletePageQueries)
+                    {
+                        var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
+                    
+                        await foreach (var record in incompleteQueryResults)
+                        {
+                            yield return record;
+                        }
+                    }
+                }
+            }
+            private async IAsyncEnumerable<Record> ReadIncompleteQuery(IApiClient apiClient, string tLogPath)
+            {
+                var tLogResponseWrapper = new TLogWrapper();
+                var tlogIncomplete = true;
+                var recordMap = new Dictionary<string, object>();
+
+                HttpResponseMessage tlogResponse = null;
+                var retryCount = 0;
+                while (tlogIncomplete && retryCount <= 20)
+                {
+                    retryCount++;
+                    try
+                    {
+                        tlogResponse = await apiClient.GetAsync(tLogPath);
+                    }
+                    catch (Exception e)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    if (!tlogResponse.IsSuccessStatusCode)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    try
+                    {
+                        tLogResponseWrapper =
+                            JsonConvert.DeserializeObject<TLogWrapper>(
+                                await tlogResponse.Content.ReadAsStringAsync());
+                        if (!string.IsNullOrEmpty(tLogResponseWrapper.Id))
+                        {
+                            tlogIncomplete = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    if (tlogIncomplete && retryCount <= 20)
+                    {
+                        Thread.Sleep(1000 * retryCount * retryCount);
+                    }
+                }
+
+                if (!tlogIncomplete)
+                {
+                    var tlogTenderRecordMap = new Dictionary<string, object>();
+
+                    if (tLogResponseWrapper.Tlog.Tenders.Count > 0)
+                    {
+                        foreach (var tender in tLogResponseWrapper.Tlog.Tenders)
+                        {
+                            tlogTenderRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                            tlogTenderRecordMap["type"] = tender.Type ?? "";
+                            tlogTenderRecordMap["usage"] = tender.Usage ?? "";
+                            tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
+                            tlogTenderRecordMap["tender_isVoided"] = tender.IsVoided;
+                            tlogTenderRecordMap["typeLabel"] = tender.TypeLabel ?? "";
+                            tlogTenderRecordMap["cardLastFourDigits"] =
+                                tender.CardLastFourDigits ?? "";
+                            tlogTenderRecordMap["name"] = tender.Name ?? "";
+                            tlogTenderRecordMap["id"] = tender.Id ?? "";
+                            tlogTenderRecordMap["maskedCardNumber"] = tender.MaskedCardNumber ?? "";
+
+                            yield return new Record
+                            {
+                                Action = Record.Types.Action.Upsert,
+                                DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
+                            };
+                        }
+                    }
+                }
+            }
+            private async IAsyncEnumerable<Record> ReadIncompletePage(IApiClient apiClient, Tuple<string, string> post)
+            {
+                var pageIncomplete = false;
+                var retryCount = 0;
+                HttpResponseMessage pageResult = null;
+                var objectResponseWrapper = new ObjectResponseWrapper();
+                
+                var path = post.Item1;
+                var postBody = post.Item2;
+                
+                while (!pageIncomplete && retryCount < 20)
+                {
+                    retryCount++;
+                    try
+                    {
+                        pageResult = await apiClient.PostAsync(path, postBody);
+                    
+                        objectResponseWrapper =
+                            JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                await pageResult.Content.ReadAsStringAsync());
+                        
+                        if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                        {
+                            pageIncomplete = true;
+                        }
+                        else
+                        {
+                            pageIncomplete = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        pageIncomplete = true;
+                    }
+                    if (pageIncomplete && retryCount <= 20)
+                    {
+                        retryCount++;
+                        Thread.Sleep(1000 * retryCount * retryCount);
+                    }
+                }
+                    
+                foreach (var tLogMetaData in objectResponseWrapper.PageContent)
+                {
+                    var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
+                    var tLogResponse = ReadIncompleteQuery(apiClient, tLogId);
+
+                    await foreach (var record in tLogResponse)
+                    {
+                        yield return record;
+                    }
                 }
             }
         }
+
         private class TransactionDocumentEndpoint_Tenders_Historical : TransactionDocumentEndpoint_Tenders
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
                 var queryEndDate = await apiClient.GetEndDate();
-                
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate, isDiscoverRead);
+
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
+                    isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -953,12 +1548,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_Tenders_Today : TransactionDocumentEndpoint_Tenders
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryDateToday = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday,
+                    isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -969,13 +1566,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_Tenders_Yesterday : TransactionDocumentEndpoint_Tenders
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                
-                var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday, queryDateYesterday, isDiscoverRead);
+
+                var queryDateYesterday = DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd");
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
+                    queryDateYesterday, isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -986,14 +1585,16 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_Tenders_7Days : TransactionDocumentEndpoint_Tenders
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
+                var queryStartDate = DateTime.Now.AddDays(-8).ToString("yyyy-MM-dd");
                 var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
                                    "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
+                    isDiscoverRead);
 
 
                 await foreach (var record in records)
@@ -1053,99 +1654,110 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
-
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
-                var safeLimit = limit > 0 ? (int)limit : Int32.MaxValue;
-                
+                var safeLimit = limit > 0 ? (int) limit : Int32.MaxValue;
                 var queryDate = startDate;
                 var queryEndDate = endDate;
                 var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
-
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
-
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
-
+                var incompletePageQueries = new List<Tuple<string, string>> { };
+                var incompleteTLogPaths = new List<string> { };
+                    
                 foreach (var site in workingSiteList)
                 {
                     if (limit > 0 && recordCount >= limit)
                     {
                         break;
                     }
+
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.DateWrapper.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        readQuery.DateWrapper.DateTime =
+                            DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
                         do //while hasMore
                         {
+                            if (limit > 0 && recordCount >= limit)
+                            {
+                                break;
+                            }
+                                
+                            var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
-                            var response = await apiClient.PostAsync(
-                                path
-                                , json);
-                            
+                            HttpResponseMessage response = null;
+                            try
+                            {
+                                response = await apiClient.PostAsync(
+                                    path
+                                    , json);
+                            }
+                            catch (Exception e)
+                            {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
                             if (!response.IsSuccessStatusCode)
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
                             }
 
                             var objectResponseWrapper = new ObjectResponseWrapper();
-                            var objectResponseSuccess = false;
-                            var objectResponseIsValid = false;
-                        
-                            while (!objectResponseSuccess && !objectResponseIsValid)
+
+                            try
                             {
-                                try
+                                objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
+                                if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                 {
-                                    objectResponseWrapper =
-                                        JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                            await response.Content.ReadAsStringAsync());
-                                    objectResponseSuccess = true;
-                                    if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
-                                    {
-                                        objectResponseIsValid = true;
-                                    }
+                                    incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                    pageIncomplete = true;
                                 }
-                                catch (Exception e)
-                                {
-                                    objectResponseIsValid = false;
-                                    objectResponseSuccess = false;
-                                    Thread.Sleep(1000*60);
-                                    response = await apiClient.PostAsync(
-                                        path
-                                        , json);
-                                }
+                            }
+                            catch (Exception e)
+                            {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
+                                
+                            if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
+                            {
+                                currPage++;
+                                continue;
                             }
 
                             List<Record> returnRecords = new List<Record>() { };
-                            
+
                             var pageContent = limit > 0
-                                ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
+                                ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
-                            
+
                             await pageContent.ParallelForEachAsync(async objectResponse =>
                             {
                                 var recordMap = new Dictionary<string, object>();
-
+                                var tlogIncomplete = false;
+                                    
                                 foreach (var objectProperty in objectResponse)
                                 {
                                     try
@@ -1159,73 +1771,83 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
-
                                 var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
 
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
+                                HttpResponseMessage tlogResponse = null;
+                                try
+                                {
+                                    tlogResponse = await apiClient.GetAsync(tlogPath);
+                                }
+                                catch (Exception e)
+                                {
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
+                                }
                                 if (!tlogResponse.IsSuccessStatusCode)
                                 {
-                                    var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
-                                    throw new Exception(error.Message);
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
                                 }
 
-                                var tLogResponseWrapper = new TlogWrapper();
-                                var tlogResponseSuccess = false;
-                                while (!tlogResponseSuccess)
+                                var tLogResponseWrapper = new TLogWrapper();
+                                try
                                 {
-                                    try
+                                    tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TLogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                    if (string.IsNullOrEmpty(tLogResponseWrapper.Id))
                                     {
-                                        tLogResponseWrapper =
-                                            JsonConvert.DeserializeObject<TlogWrapper>(
-                                                await tlogResponse.Content.ReadAsStringAsync());
-                                        tlogResponseSuccess = true;
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Thread.Sleep(1000*60);
-                                        tlogResponse = await apiClient.GetAsync(tlogPath);
+                                        incompleteTLogPaths.Add(tlogPath);
+                                        tlogIncomplete = true;
                                     }
                                 }
-
-                                var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
-
-                                if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
+                                catch (Exception e)
                                 {
-                                    foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
+                                }
+
+                                if (!tlogIncomplete)
+                                {
+                                    var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
+
+                                    if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
                                     {
-                                        try
+                                        foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
                                         {
-                                            tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                            tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] =
-                                                loyaltyAccount.Id ?? "";
-                                            tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
-                                                loyaltyAccount.AccountId ?? "";
-                                            tlogLoyaltyAccountRecordMap["pointsAwarded"] =
-                                                loyaltyAccount.PointsAwarded ?? "";
-                                            tlogLoyaltyAccountRecordMap["pointsRedeemed"] =
-                                                loyaltyAccount.PointsRedeemed ?? "";
-                                            tlogLoyaltyAccountRecordMap["programType"] =
-                                                loyaltyAccount.ProgramType ?? "";
-                                            
-                                            recordCount++;
-                                            if (recordCount > limit && limit > 0)
+                                            try
                                             {
-                                                hasMore = false;
-                                                break;
-                                            }
-                                            else
-                                            {
-                                                returnRecords.Add(new Record
+                                                tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                                tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] =
+                                                    loyaltyAccount.Id ?? "";
+                                                tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
+                                                    loyaltyAccount.AccountId ?? "";
+                                                tlogLoyaltyAccountRecordMap["pointsAwarded"] =
+                                                    loyaltyAccount.PointsAwarded ?? "";
+                                                tlogLoyaltyAccountRecordMap["pointsRedeemed"] =
+                                                    loyaltyAccount.PointsRedeemed ?? "";
+                                                tlogLoyaltyAccountRecordMap["programType"] =
+                                                    loyaltyAccount.ProgramType ?? "";
+
+                                                recordCount++;
+                                                if (recordCount > limit && limit > 0)
                                                 {
-                                                    Action = Record.Types.Action.Upsert,
-                                                    DataJson = JsonConvert.SerializeObject(tlogLoyaltyAccountRecordMap)
-                                                });
+                                                    hasMore = false;
+                                                    break;
+                                                }
+                                                else
+                                                {
+                                                    returnRecords.Add(new Record
+                                                    {
+                                                        Action = Record.Types.Action.Upsert,
+                                                        DataJson = JsonConvert.SerializeObject(
+                                                            tlogLoyaltyAccountRecordMap)
+                                                    });
+                                                }
                                             }
-                                        }
-                                        catch
-                                        {
+                                            catch
+                                            {
+                                            }
                                         }
                                     }
                                 }
@@ -1235,7 +1857,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             {
                                 yield return record;
                             }
-                            
+
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
@@ -1246,20 +1868,176 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 hasMore = true;
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
+                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                        
+                    foreach (var incompletePath in incompleteTLogPaths)
+                    {
+                        var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
+                    
+                        await foreach (var record in incompleteQueryResults)
+                        {
+                            yield return record;
+                        }
+                    }
+
+                    foreach (var incompletePageQuery in incompletePageQueries)
+                    {
+                        var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
+                    
+                        await foreach (var record in incompleteQueryResults)
+                        {
+                            yield return record;
+                        }
+                    }
+                }
+            }
+
+            private async IAsyncEnumerable<Record> ReadIncompleteQuery(IApiClient apiClient, string tLogPath)
+            {
+                var tLogResponseWrapper = new TLogWrapper();
+                var tlogIncomplete = true;
+                var recordMap = new Dictionary<string, object>();
+
+                HttpResponseMessage tlogResponse = null;
+                var retryCount = 0;
+                while (tlogIncomplete && retryCount <= 20)
+                {
+                    retryCount++;
+                    try
+                    {
+                        tlogResponse = await apiClient.GetAsync(tLogPath);
+                    }
+                    catch (Exception e)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    if (!tlogResponse.IsSuccessStatusCode)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    try
+                    {
+                        tLogResponseWrapper =
+                            JsonConvert.DeserializeObject<TLogWrapper>(
+                                await tlogResponse.Content.ReadAsStringAsync());
+                        if (!string.IsNullOrEmpty(tLogResponseWrapper.Id))
+                        {
+                            tlogIncomplete = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    if (tlogIncomplete && retryCount <= 20)
+                    {
+                        Thread.Sleep(1000 * retryCount * retryCount);
+                    }
+                }
+
+                if (!tlogIncomplete)
+                {
+
+                    var tlogLoyaltyAccountRecordMap = new Dictionary<string, object>();
+
+                    if (tLogResponseWrapper.Tlog.LoyaltyAccount.Count > 0)
+                    {
+                        foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
+                        {
+                            tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                            tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] =
+                                loyaltyAccount.Id ?? "";
+                            tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
+                                loyaltyAccount.AccountId ?? "";
+                            tlogLoyaltyAccountRecordMap["pointsAwarded"] =
+                                loyaltyAccount.PointsAwarded ?? "";
+                            tlogLoyaltyAccountRecordMap["pointsRedeemed"] =
+                                loyaltyAccount.PointsRedeemed ?? "";
+                            tlogLoyaltyAccountRecordMap["programType"] =
+                                loyaltyAccount.ProgramType ?? "";
+
+                            yield return (new Record
+                            {
+                                Action = Record.Types.Action.Upsert,
+                                DataJson = JsonConvert.SerializeObject(
+                                    tlogLoyaltyAccountRecordMap)
+                            });
+                        }
+                    }
+                }
+            }
+
+            private async IAsyncEnumerable<Record> ReadIncompletePage(IApiClient apiClient, Tuple<string, string> post)
+            {
+                var pageIncomplete = false;
+                var retryCount = 0;
+                HttpResponseMessage pageResult = null;
+                var objectResponseWrapper = new ObjectResponseWrapper();
+                
+                var path = post.Item1;
+                var postBody = post.Item2;
+                
+                while (!pageIncomplete && retryCount < 20)
+                {
+                    retryCount++;
+                    try
+                    {
+                        pageResult = await apiClient.PostAsync(path, postBody);
+                    
+                        objectResponseWrapper =
+                            JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                await pageResult.Content.ReadAsStringAsync());
+                        
+                        if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                        {
+                            pageIncomplete = true;
+                        }
+                        else
+                        {
+                            pageIncomplete = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        pageIncomplete = true;
+                    }
+                    if (pageIncomplete && retryCount <= 20)
+                    {
+                        retryCount++;
+                        Thread.Sleep(1000 * retryCount * retryCount);
+                    }
+                }
+                    
+                foreach (var tLogMetaData in objectResponseWrapper.PageContent)
+                {
+                    var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
+                    var tLogResponse = ReadIncompleteQuery(apiClient, tLogId);
+
+                    await foreach (var record in tLogResponse)
+                    {
+                        yield return record;
+                    }
                 }
             }
         }
-        private class TransactionDocumentEndpoint_LoyaltyAccounts_Historical : TransactionDocumentEndpoint_LoyaltyAccounts
+
+        private class
+            TransactionDocumentEndpoint_LoyaltyAccounts_Historical : TransactionDocumentEndpoint_LoyaltyAccounts
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
                 var queryEndDate = await apiClient.GetEndDate();
-                
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate, isDiscoverRead);
+
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
+                    isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -1267,14 +2045,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
-        private class TransactionDocumentEndpoint_LoyaltyAccounts_Today : TransactionDocumentEndpoint_LoyaltyAccounts
+
+        private class
+            TransactionDocumentEndpoint_LoyaltyAccounts_Today : TransactionDocumentEndpoint_LoyaltyAccounts
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryDateToday = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday,
+                    isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -1283,14 +2065,17 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday : TransactionDocumentEndpoint_LoyaltyAccounts
+        private class
+            TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday : TransactionDocumentEndpoint_LoyaltyAccounts
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday, queryDateYesterday, isDiscoverRead);
+                var queryDateYesterday = DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd");
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
+                    queryDateYesterday, isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -1299,15 +2084,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_LoyaltyAccounts_7Days : TransactionDocumentEndpoint_LoyaltyAccounts
+        private class
+            TransactionDocumentEndpoint_LoyaltyAccounts_7Days : TransactionDocumentEndpoint_LoyaltyAccounts
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
+                var queryStartDate = DateTime.Now.AddDays(-8).ToString("yyyy-MM-dd");
                 var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
                                    "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
+                    isDiscoverRead);
 
 
                 await foreach (var record in records)
@@ -1378,28 +2166,26 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
-
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
-                var safeLimit = limit > 0 ? (int)limit : Int32.MaxValue;
-                
+                var safeLimit = limit > 0 ? (int) limit : Int32.MaxValue;
                 var queryDate = startDate;
                 var queryEndDate = endDate;
                 var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
-
                 var readQuery =
                     JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
-
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
-
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
+                var incompletePageQueries = new List<Tuple<string, string>> { };
+                var incompleteTLogPaths = new List<string> { };
 
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
 
@@ -1409,68 +2195,87 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         break;
                     }
+
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 1;
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.DateWrapper.DateTime = DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                        if (limit > 0 && recordCount >= limit)
+                        {
+                            break;
+                        }
+                            
+                        readQuery.DateWrapper.DateTime =
+                            DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
                         do //while hasMore
                         {
+                            if (limit > 0 && recordCount >= limit)
+                            {
+                                break;
+                            }
+                                
+                            var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
-
                             var json = JsonConvert.SerializeObject(readQuery);
-                            var response = await apiClient.PostAsync(
-                                path
-                                , json);
-                            
+                                
+                            HttpResponseMessage response = null;
+                            try
+                            {
+                                response = await apiClient.PostAsync(
+                                    path
+                                    , json);
+                            }
+                            catch (Exception e)
+                            {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
                             if (!response.IsSuccessStatusCode)
                             {
-                                var error = JsonConvert.DeserializeObject<ApiError>(
-                                    await response.Content.ReadAsStringAsync());
-                                throw new Exception(error.Message);
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
                             }
 
                             var objectResponseWrapper = new ObjectResponseWrapper();
-                            var objectResponseSuccess = false;
-                            var objectResponseIsValid = false;
-                            
-                            while (!objectResponseSuccess && !objectResponseIsValid)
+
+                            try
                             {
-                                try
+                                objectResponseWrapper =
+                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                        await response.Content.ReadAsStringAsync());
+                                if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                 {
-                                    objectResponseWrapper =
-                                        JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                            await response.Content.ReadAsStringAsync());
-                                    objectResponseSuccess = true;
-                                    if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
-                                    {
-                                        objectResponseIsValid = true;
-                                    }
-                                }
-                                catch (Exception e)
-                                {
-                                    objectResponseIsValid = false;
-                                    objectResponseSuccess = false;
-                                    Thread.Sleep(1000*60);
-                                    response = await apiClient.PostAsync(
-                                        path
-                                        , json);
+                                    incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                    pageIncomplete = true;
                                 }
                             }
+                            catch (Exception e)
+                            {
+                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                pageIncomplete = true;
+                            }
+                            
+                            if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
+                            {
+                                currPage++;
+                                continue;
+                            }
+                            
+                            var pageContent = limit > 0
+                                ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
+                                : objectResponseWrapper?.PageContent;
 
                             List<Record> returnRecords = new List<Record>() { };
-                            var pageContent = limit > 0
-                                ? objectResponseWrapper?.PageContent.Take(safeLimit-(int)recordCount)
-                                : objectResponseWrapper?.PageContent;
 
                             await pageContent.ParallelForEachAsync(async objectResponse =>
                             {
+                                var tlogIncomplete = false;
                                 var recordMap = new Dictionary<string, object>();
-                                
+
                                 foreach (var objectProperty in objectResponse)
                                 {
                                     try
@@ -1484,99 +2289,90 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
-
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-
-                                var tlogResponse = await apiClient.GetAsync(tlogPath);
-
+                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;HttpResponseMessage tlogResponse = null;
+                                try
+                                {
+                                    tlogResponse = await apiClient.GetAsync(tlogPath);
+                                }
+                                catch (Exception e)
+                                {
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
+                                }
                                 if (!tlogResponse.IsSuccessStatusCode)
                                 {
-                                    var error = JsonConvert.DeserializeObject<ApiError>(
-                                        await tlogResponse.Content.ReadAsStringAsync());
-                                    throw new Exception(error.Message);
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
                                 }
 
-                                var tLogResponseWrapper = new TlogWrapper();
-                                var tlogResponseSuccess = false;
-                                while (!tlogResponseSuccess)
+                                var tLogResponseWrapper = new TLogWrapper();
+                                try
                                 {
-                                    try
+                                    tLogResponseWrapper =
+                                        JsonConvert.DeserializeObject<TLogWrapper>(
+                                            await tlogResponse.Content.ReadAsStringAsync());
+                                    if (string.IsNullOrEmpty(tLogResponseWrapper.Id))
                                     {
-                                        tLogResponseWrapper =
-                                            JsonConvert.DeserializeObject<TlogWrapper>(
-                                                await tlogResponse.Content.ReadAsStringAsync());
-                                        tlogResponseSuccess = true;
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Thread.Sleep(1000*60);
-                                        tlogResponse = await apiClient.GetAsync(tlogPath);
+                                        incompleteTLogPaths.Add(tlogPath);
+                                        tlogIncomplete = true;
                                     }
                                 }
-
-                                var tlogItemRecordMap = new Dictionary<string, object>();
-
-                                tlogItemRecordMap["tlogId"] = recordMap["tlogId"];
+                                catch (Exception e)
+                                {
+                                    incompleteTLogPaths.Add(tlogPath);
+                                    tlogIncomplete = true;
+                                }
                                 
+
+                                var tLogTaxRecordMap = new Dictionary<string, object>();
+
+                                tLogTaxRecordMap["tlogId"] = recordMap["tlogId"];
+
                                 var items = limit > 0
-                                    ? tLogResponseWrapper.Tlog.Items.Take(safeLimit-(int)recordCount)
+                                    ? tLogResponseWrapper.Tlog.Items.Take(safeLimit - (int) recordCount)
                                     : tLogResponseWrapper.Tlog.Items;
-                                
+
                                 foreach (var item in items)
                                 {
-                                    tlogItemRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
+                                    tLogTaxRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
                                         ? "null"
                                         : item.Id;
-                                    if (item.ItemTaxes == null)
+                                    foreach (var tax in item.ItemTaxes)
                                     {
-                                        tlogItemRecordMap["itemTaxSequenceNumber"] = "1";
-                                        tlogItemRecordMap["itemTaxId"] = "0";
-                                        tlogItemRecordMap["itemTaxName"] = "null";
-                                        tlogItemRecordMap["itemTaxType"] = "null";
-                                        tlogItemRecordMap["itemTaxableAmount"] = "0";
-                                        tlogItemRecordMap["itemTaxAmount"] = "0";
-                                        tlogItemRecordMap["itemTaxIsRefund"] = false;
-                                        tlogItemRecordMap["itemTaxPercent"] = "0";
-                                        tlogItemRecordMap["itemTaxIsVoided"] =false;
-                                    }
-                                    else
-                                    {
-                                        foreach (var tax in item.ItemTaxes)
+                                        tLogTaxRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                        tLogTaxRecordMap["itemTaxId"] = tax.Id ?? "";
+                                        tLogTaxRecordMap["itemTaxName"] = tax.Name ?? "";
+                                        tLogTaxRecordMap["itemTaxType"] = tax.TaxType ?? "";
+                                        tLogTaxRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                        tLogTaxRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
+                                        tLogTaxRecordMap["itemTaxIsRefund"] = tax.IsRefund;
+                                        tLogTaxRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
+                                        tLogTaxRecordMap["itemTaxIsVoided"] = tax.IsVoided;
+
+                                        recordCount++;
+                                        if (recordCount > limit && limit > 0)
                                         {
-                                            tlogItemRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
-                                            tlogItemRecordMap["itemTaxId"] = tax.Id ?? "";
-                                            tlogItemRecordMap["itemTaxName"] = tax.Name ?? "";
-                                            tlogItemRecordMap["itemTaxType"] = tax.TaxType ?? "";
-                                            tlogItemRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
-                                            tlogItemRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
-                                            tlogItemRecordMap["itemTaxIsRefund"] = tax.IsRefund;
-                                            tlogItemRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
-                                            tlogItemRecordMap["itemTaxIsVoided"] = tax.IsVoided;
-                                            
-                                            recordCount++;
-                                            if (recordCount > limit && limit > 0)
+                                            hasMore = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            returnRecords.Add(new Record
                                             {
-                                                hasMore = false;
-                                                break;
-                                            }
-                                            else
-                                            {
-                                                returnRecords.Add(new Record
-                                                {
-                                                    Action = Record.Types.Action.Upsert,
-                                                    DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                                });
-                                            }
+                                                Action = Record.Types.Action.Upsert,
+                                                DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
+                                            });
                                         }
                                     }
+                                    
                                 }
                             }, maxDegreeOfParallelism: degreeOfParallelism);
-                            
+
                             foreach (var record in returnRecords)
                             {
                                 yield return record;
                             }
-                            
+
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
@@ -1586,8 +2382,165 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 currPage++;
                                 hasMore = true;
                             }
-                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime), DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int)recordCount < limit));
+                        } while (hasMore && (limit == 0 || recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
+                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                        
+                    foreach (var incompletePath in incompleteTLogPaths)
+                    {
+                        var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
+                    
+                        await foreach (var record in incompleteQueryResults)
+                        {
+                            yield return record;
+                        }
+                    }
+
+                    foreach (var incompletePageQuery in incompletePageQueries)
+                    {
+                        var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
+                    
+                        await foreach (var record in incompleteQueryResults)
+                        {
+                            yield return record;
+                        }
+                    }
+                }
+            }
+            private async IAsyncEnumerable<Record> ReadIncompleteQuery(IApiClient apiClient, string tLogPath)
+            {
+                var tLogResponseWrapper = new TLogWrapper();
+                var tlogIncomplete = true;
+                var recordMap = new Dictionary<string, object>();
+
+                HttpResponseMessage tlogResponse = null;
+                var retryCount = 0;
+                while (tlogIncomplete && retryCount <= 20)
+                {
+                    retryCount++;
+                    try
+                    {
+                        tlogResponse = await apiClient.GetAsync(tLogPath);
+                    }
+                    catch (Exception e)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    if (!tlogResponse.IsSuccessStatusCode)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    try
+                    {
+                        tLogResponseWrapper =
+                            JsonConvert.DeserializeObject<TLogWrapper>(
+                                await tlogResponse.Content.ReadAsStringAsync());
+                        if (!string.IsNullOrEmpty(tLogResponseWrapper.Id))
+                        {
+                            tlogIncomplete = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        tlogIncomplete = true;
+                    }
+
+                    if (tlogIncomplete && retryCount <= 20)
+                    {
+                        Thread.Sleep(1000 * retryCount * retryCount);
+                    }
+                }
+
+                if (!tlogIncomplete)
+                {
+                    if (tLogResponseWrapper.Tlog.Tenders.Count > 0)
+                    {
+                        var tLogTaxRecordMap = new Dictionary<string, object>();
+
+                        tLogTaxRecordMap["tlogId"] = recordMap["tlogId"];
+
+                        var items = tLogResponseWrapper.Tlog.Items;
+
+                        foreach (var item in items)
+                        {
+                            tLogTaxRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
+                                ? "null"
+                                : item.Id;
+                                foreach (var tax in item.ItemTaxes)
+                                {
+                                    tLogTaxRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                    tLogTaxRecordMap["itemTaxId"] = tax.Id ?? "";
+                                    tLogTaxRecordMap["itemTaxName"] = tax.Name ?? "";
+                                    tLogTaxRecordMap["itemTaxType"] = tax.TaxType ?? "";
+                                    tLogTaxRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                    tLogTaxRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
+                                    tLogTaxRecordMap["itemTaxIsRefund"] = tax.IsRefund;
+                                    tLogTaxRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
+                                    tLogTaxRecordMap["itemTaxIsVoided"] = tax.IsVoided;
+
+                                    yield return new Record
+                                    {
+                                        Action = Record.Types.Action.Upsert,
+                                        DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
+                                    };
+                                }
+                            
+                        }
+                    }
+                }
+            }
+            private async IAsyncEnumerable<Record> ReadIncompletePage(IApiClient apiClient, Tuple<string, string> post)
+            {
+                var pageIncomplete = false;
+                var retryCount = 0;
+                HttpResponseMessage pageResult = null;
+                var objectResponseWrapper = new ObjectResponseWrapper();
+                
+                var path = post.Item1;
+                var postBody = post.Item2;
+                
+                while (!pageIncomplete && retryCount < 20)
+                {
+                    retryCount++;
+                    try
+                    {
+                        pageResult = await apiClient.PostAsync(path, postBody);
+                    
+                        objectResponseWrapper =
+                            JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                await pageResult.Content.ReadAsStringAsync());
+                        
+                        if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                        {
+                            pageIncomplete = true;
+                        }
+                        else
+                        {
+                            pageIncomplete = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        pageIncomplete = true;
+                    }
+                    if (pageIncomplete && retryCount <= 20)
+                    {
+                        retryCount++;
+                        Thread.Sleep(1000 * retryCount * retryCount);
+                    }
+                }
+                    
+                foreach (var tLogMetaData in objectResponseWrapper.PageContent)
+                {
+                    var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
+                    var tLogResponse = ReadIncompleteQuery(apiClient, tLogId);
+
+                    await foreach (var record in tLogResponse)
+                    {
+                        yield return record;
+                    }
                 }
             }
         }
@@ -1596,14 +2549,16 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             TransactionDocumentEndpoint_TransactionItemTaxes_Historical :
                 TransactionDocumentEndpoint_TransactionItemTaxes
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
                 var queryEndDate = await apiClient.GetEndDate();
-                
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate, isDiscoverRead);
+
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
+                    isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -1611,16 +2566,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class
             TransactionDocumentEndpoint_TransactionItemTaxes_Today :
                 TransactionDocumentEndpoint_TransactionItemTaxes
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryDateToday = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday,
+                    isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -1628,16 +2586,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class
             TransactionDocumentEndpoint_TransactionItemTaxes_Yesterday :
                 TransactionDocumentEndpoint_TransactionItemTaxes
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday, queryDateYesterday, isDiscoverRead);
+                var queryDateYesterday = DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd");
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
+                    queryDateYesterday, isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -1645,17 +2606,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+
         private class
             TransactionDocumentEndpoint_TransactionItemTaxes_7Days :
                 TransactionDocumentEndpoint_TransactionItemTaxes
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema, int limit, string startDate = "", string endDate = "",
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+                int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
+                var queryStartDate = DateTime.Now.AddDays(-8).ToString("yyyy-MM-dd");
                 var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
                                    "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate, isDiscoverRead);
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
+                    isDiscoverRead);
 
 
                 await foreach (var record in records)
@@ -1664,11 +2628,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
+        
+
         public static readonly Dictionary<string, Endpoint> TransactionDocumentEndpoints =
             new Dictionary<string, Endpoint>
             {
                 {
-                    "TransactionDocument_Tenders_HistoricalFromDate", new TransactionDocumentEndpoint_Tenders_Historical
+                    "TransactionDocument_Tenders_HistoricalFromDate",
+                    new TransactionDocumentEndpoint_Tenders_Historical
                     {
                         ShouldGetStaticSchema = true,
                         Id = "TransactionDocument_Tenders_HistoricalFromDate",
@@ -1705,7 +2672,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         PropertiesQuery =
                             "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "{\"businessDay\":{\"dateTime\": \"" +
+                            DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -1731,7 +2699,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         PropertiesQuery =
                             "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "{\"businessDay\":{\"dateTime\": \"" +
+                            DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -1835,7 +2804,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         PropertiesQuery =
                             "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "{\"businessDay\":{\"dateTime\": \"" +
+                            DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -1861,7 +2831,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         PropertiesQuery =
                             "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "{\"businessDay\":{\"dateTime\": \"" +
+                            DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -1876,7 +2847,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_LoyaltyAccounts_HistoricalFromDate", new TransactionDocumentEndpoint_LoyaltyAccounts_Historical
+                    "TransactionDocument_LoyaltyAccounts_HistoricalFromDate",
+                    new TransactionDocumentEndpoint_LoyaltyAccounts_Historical
                     {
                         ShouldGetStaticSchema = true,
                         Id = "TransactionDocument_LoyaltyAccounts_HistoricalFromDate",
@@ -1902,7 +2874,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_LoyaltyAccounts_Yesterday", new TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday
+                    "TransactionDocument_LoyaltyAccounts_Yesterday",
+                    new TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday
                     {
                         ShouldGetStaticSchema = true,
                         Id = "TransactionDocument_LoyaltyAccounts_Yesterday",
@@ -1913,7 +2886,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         PropertiesQuery =
                             "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "{\"businessDay\":{\"dateTime\": \"" +
+                            DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -1928,7 +2902,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_LoyaltyAccounts_7Days", new TransactionDocumentEndpoint_LoyaltyAccounts_7Days
+                    "TransactionDocument_LoyaltyAccounts_7Days",
+                    new TransactionDocumentEndpoint_LoyaltyAccounts_7Days
                     {
                         ShouldGetStaticSchema = true,
                         Id = "TransactionDocument_LoyaltyAccounts_7Days",
@@ -1939,7 +2914,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         PropertiesQuery =
                             "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "{\"businessDay\":{\"dateTime\": \"" +
+                            DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -1954,7 +2930,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_LoyaltyAccounts_Today", new TransactionDocumentEndpoint_LoyaltyAccounts_Today
+                    "TransactionDocument_LoyaltyAccounts_Today",
+                    new TransactionDocumentEndpoint_LoyaltyAccounts_Today
                     {
                         ShouldGetStaticSchema = true,
                         Id = "TransactionDocument_LoyaltyAccounts_Today",
@@ -2058,7 +3035,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionItemTaxes_HistoricalFromDate", new TransactionDocumentEndpoint_TransactionItemTaxes_Historical
+                    "TransactionItemTaxes_HistoricalFromDate",
+                    new TransactionDocumentEndpoint_TransactionItemTaxes_Historical
                     {
                         ShouldGetStaticSchema = true,
                         Id = "TransactionItemTaxes_HistoricalFromDate",
@@ -2084,5 +3062,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 }
             };
+        
     }
 }
