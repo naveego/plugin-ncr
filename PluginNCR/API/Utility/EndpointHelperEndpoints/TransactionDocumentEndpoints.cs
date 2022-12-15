@@ -651,7 +651,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var tLogResponseWrapper = new TLogWrapper();
                 var tlogIncomplete = true;
-                var recordMap = new Dictionary<string, object>();
 
 
                 HttpResponseMessage tlogResponse = null;
@@ -698,7 +697,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 try
                 {
-                    tlogItemRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                    tlogItemRecordMap["tlogId"] = tLogResponseWrapper.Id ?? "";
                     tlogItemRecordMap["siteInfoId"] = tLogResponseWrapper.SiteInfo.Id ?? "";
                     tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
                     tlogItemRecordMap["touchPointGroup"] =
@@ -706,11 +705,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
 
                     tlogItemRecordMap["closeDateTimeUtc"] =
-                        recordMap["closeDateTimeUtc"].ToString() ?? "";
+                        tLogResponseWrapper.CloseDateTimeUtc.ToString() ?? "";
                     tlogItemRecordMap["receivedDateTimeUtc"] =
-                        recordMap["receivedDateTimeUtc"].ToString() ?? "";
+                        tLogResponseWrapper.ReceivedDateTimeUtc.ToString() ?? "";
                     tlogItemRecordMap["endTransactionDateTimeUtc"] =
-                        recordMap["endTransactionDateTimeUtc"].ToString() ?? "";
+                        tLogResponseWrapper.EndTransactionDateTimeUtc.ToString() ?? "";
 
                     var date_time = tLogResponseWrapper.DateWrapper.DateTime;
                     tlogItemRecordMap["ticketdate"] = date_time.Substring(0, 10);
@@ -1060,7 +1059,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-8).ToString("yyyy-MM-dd");
+                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
                 var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
                                    "T00:00:00Z";
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
@@ -1076,7 +1075,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
         private class TransactionDocumentEndpoint_Today : TransactionDocumentEndpoint
         {
-            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
+            public override async IAsyncEnumerable<Record>ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
@@ -1311,7 +1310,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     tlogIncomplete = true;
                                 }
 
-                                if (tlogIncomplete)
+                                if (!tlogIncomplete)
                                 {
                                     var tlogTenderRecordMap = new Dictionary<string, object>();
 
@@ -1375,25 +1374,24 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
                         DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
-                        
-                    foreach (var incompletePath in incompleteTLogPaths)
-                    {
-                        var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
+                }
+                foreach (var incompletePath in incompleteTLogPaths)
+                {
+                    var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
                     
-                        await foreach (var record in incompleteQueryResults)
-                        {
-                            yield return record;
-                        }
+                    await foreach (var record in incompleteQueryResults)
+                    {
+                        yield return record;
                     }
+                }
 
-                    foreach (var incompletePageQuery in incompletePageQueries)
-                    {
-                        var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
+                foreach (var incompletePageQuery in incompletePageQueries)
+                {
+                    var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
                     
-                        await foreach (var record in incompleteQueryResults)
-                        {
-                            yield return record;
-                        }
+                    await foreach (var record in incompleteQueryResults)
+                    {
+                        yield return record;
                     }
                 }
             }
@@ -1401,7 +1399,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var tLogResponseWrapper = new TLogWrapper();
                 var tlogIncomplete = true;
-                var recordMap = new Dictionary<string, object>();
 
                 HttpResponseMessage tlogResponse = null;
                 var retryCount = 0;
@@ -1451,7 +1448,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         foreach (var tender in tLogResponseWrapper.Tlog.Tenders)
                         {
-                            tlogTenderRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                            tlogTenderRecordMap["tlogId"] = tLogResponseWrapper.Id ?? "";
                             tlogTenderRecordMap["type"] = tender.Type ?? "";
                             tlogTenderRecordMap["usage"] = tender.Usage ?? "";
                             tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
@@ -1572,7 +1569,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
 
-                var queryDateYesterday = DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd");
+                var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
                     queryDateYesterday, isDiscoverRead);
 
@@ -1590,7 +1587,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-8).ToString("yyyy-MM-dd");
+                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
                 var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
                                    "T00:00:00Z";
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
@@ -1729,7 +1726,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 objectResponseWrapper =
                                     JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                         await response.Content.ReadAsStringAsync());
-                                if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                                if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                 {
                                     incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                     pageIncomplete = true;
@@ -1870,25 +1867,24 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
                         DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
-                        
-                    foreach (var incompletePath in incompleteTLogPaths)
-                    {
-                        var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
+                }
+                foreach (var incompletePath in incompleteTLogPaths)
+                {
+                    var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
                     
-                        await foreach (var record in incompleteQueryResults)
-                        {
-                            yield return record;
-                        }
+                    await foreach (var record in incompleteQueryResults)
+                    {
+                        yield return record;
                     }
+                }
 
-                    foreach (var incompletePageQuery in incompletePageQueries)
-                    {
-                        var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
+                foreach (var incompletePageQuery in incompletePageQueries)
+                {
+                    var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
                     
-                        await foreach (var record in incompleteQueryResults)
-                        {
-                            yield return record;
-                        }
+                    await foreach (var record in incompleteQueryResults)
+                    {
+                        yield return record;
                     }
                 }
             }
@@ -1897,7 +1893,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var tLogResponseWrapper = new TLogWrapper();
                 var tlogIncomplete = true;
-                var recordMap = new Dictionary<string, object>();
 
                 HttpResponseMessage tlogResponse = null;
                 var retryCount = 0;
@@ -1948,7 +1943,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
                         {
-                            tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                            tlogLoyaltyAccountRecordMap["tlogId"] = tLogResponseWrapper.Id ?? "";
                             tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] =
                                 loyaltyAccount.Id ?? "";
                             tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
@@ -2073,7 +2068,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryDateYesterday = DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd");
+                var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
                     queryDateYesterday, isDiscoverRead);
 
@@ -2091,7 +2086,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-8).ToString("yyyy-MM-dd");
+                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
                 var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
                                    "T00:00:00Z";
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
@@ -2105,7 +2100,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_TransactionItemTaxes : Endpoint
+        private class TransactionDocumentEndpoint_TransactionDocument_ItemTaxes : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
@@ -2322,49 +2317,51 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
                                 }
-                                
 
-                                var tLogTaxRecordMap = new Dictionary<string, object>();
-
-                                tLogTaxRecordMap["tlogId"] = recordMap["tlogId"];
-
-                                var items = limit > 0
-                                    ? tLogResponseWrapper.Tlog.Items.Take(safeLimit - (int) recordCount)
-                                    : tLogResponseWrapper.Tlog.Items;
-
-                                foreach (var item in items)
+                                if (!tlogIncomplete)
                                 {
-                                    tLogTaxRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
-                                        ? "null"
-                                        : item.Id;
-                                    foreach (var tax in item.ItemTaxes)
-                                    {
-                                        tLogTaxRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
-                                        tLogTaxRecordMap["itemTaxId"] = tax.Id ?? "";
-                                        tLogTaxRecordMap["itemTaxName"] = tax.Name ?? "";
-                                        tLogTaxRecordMap["itemTaxType"] = tax.TaxType ?? "";
-                                        tLogTaxRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
-                                        tLogTaxRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
-                                        tLogTaxRecordMap["itemTaxIsRefund"] = tax.IsRefund;
-                                        tLogTaxRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
-                                        tLogTaxRecordMap["itemTaxIsVoided"] = tax.IsVoided;
+                                    var tLogTaxRecordMap = new Dictionary<string, object>();
 
-                                        recordCount++;
-                                        if (recordCount > limit && limit > 0)
+                                    tLogTaxRecordMap["tlogId"] = recordMap["tlogId"];
+
+                                    var items = limit > 0
+                                        ? tLogResponseWrapper.Tlog.Items.Take(safeLimit - (int) recordCount)
+                                        : tLogResponseWrapper.Tlog.Items;
+
+                                    foreach (var item in items)
+                                    {
+                                        tLogTaxRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
+                                            ? "null"
+                                            : item.Id;
+                                        foreach (var tax in item.ItemTaxes)
                                         {
-                                            hasMore = false;
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            returnRecords.Add(new Record
+                                            tLogTaxRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                            tLogTaxRecordMap["itemTaxId"] = tax.Id ?? "";
+                                            tLogTaxRecordMap["itemTaxName"] = tax.Name ?? "";
+                                            tLogTaxRecordMap["itemTaxType"] = tax.TaxType ?? "";
+                                            tLogTaxRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                            tLogTaxRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
+                                            tLogTaxRecordMap["itemTaxIsRefund"] = tax.IsRefund;
+                                            tLogTaxRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
+                                            tLogTaxRecordMap["itemTaxIsVoided"] = tax.IsVoided;
+
+                                            recordCount++;
+                                            if (recordCount > limit && limit > 0)
                                             {
-                                                Action = Record.Types.Action.Upsert,
-                                                DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
-                                            });
+                                                hasMore = false;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                returnRecords.Add(new Record
+                                                {
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
+                                                });
+                                            }
                                         }
+                                        
                                     }
-                                    
                                 }
                             }, maxDegreeOfParallelism: degreeOfParallelism);
 
@@ -2385,25 +2382,24 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
                         DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
-                        
-                    foreach (var incompletePath in incompleteTLogPaths)
-                    {
-                        var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
+                }
+                foreach (var incompletePath in incompleteTLogPaths)
+                {
+                    var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
                     
-                        await foreach (var record in incompleteQueryResults)
-                        {
-                            yield return record;
-                        }
+                    await foreach (var record in incompleteQueryResults)
+                    {
+                        yield return record;
                     }
+                }
 
-                    foreach (var incompletePageQuery in incompletePageQueries)
-                    {
-                        var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
+                foreach (var incompletePageQuery in incompletePageQueries)
+                {
+                    var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
                     
-                        await foreach (var record in incompleteQueryResults)
-                        {
-                            yield return record;
-                        }
+                    await foreach (var record in incompleteQueryResults)
+                    {
+                        yield return record;
                     }
                 }
             }
@@ -2411,7 +2407,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var tLogResponseWrapper = new TLogWrapper();
                 var tlogIncomplete = true;
-                var recordMap = new Dictionary<string, object>();
 
                 HttpResponseMessage tlogResponse = null;
                 var retryCount = 0;
@@ -2459,7 +2454,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         var tLogTaxRecordMap = new Dictionary<string, object>();
 
-                        tLogTaxRecordMap["tlogId"] = recordMap["tlogId"];
+                        tLogTaxRecordMap["tlogId"] = tLogResponseWrapper.Id ?? "";
 
                         var items = tLogResponseWrapper.Tlog.Items;
 
@@ -2546,8 +2541,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
         }
 
         private class
-            TransactionDocumentEndpoint_TransactionItemTaxes_Historical :
-                TransactionDocumentEndpoint_TransactionItemTaxes
+            TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Historical :
+                TransactionDocumentEndpoint_TransactionDocument_ItemTaxes
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -2568,8 +2563,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
         }
 
         private class
-            TransactionDocumentEndpoint_TransactionItemTaxes_Today :
-                TransactionDocumentEndpoint_TransactionItemTaxes
+            TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Today :
+                TransactionDocumentEndpoint_TransactionDocument_ItemTaxes
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -2588,15 +2583,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
         }
 
         private class
-            TransactionDocumentEndpoint_TransactionItemTaxes_Yesterday :
-                TransactionDocumentEndpoint_TransactionItemTaxes
+            TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Yesterday :
+                TransactionDocumentEndpoint_TransactionDocument_ItemTaxes
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryDateYesterday = DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd");
+                var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
                     queryDateYesterday, isDiscoverRead);
 
@@ -2608,14 +2603,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
         }
 
         private class
-            TransactionDocumentEndpoint_TransactionItemTaxes_7Days :
-                TransactionDocumentEndpoint_TransactionItemTaxes
+            TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_7Days :
+                TransactionDocumentEndpoint_TransactionDocument_ItemTaxes
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-8).ToString("yyyy-MM-dd");
+                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
                 var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
                                    "T00:00:00Z";
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
@@ -2957,11 +2952,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionItemTaxes_Today", new TransactionDocumentEndpoint_TransactionItemTaxes_Today
+                    "TransactionDocument_ItemTaxes_Today", new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Today
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionItemTaxes_Today",
-                        Name = "TransactionItemTaxes_Today",
+                        Id = "TransactionDocument_ItemTaxes_Today",
+                        Name = "TransactionDocument_ItemTaxes_Today",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
@@ -2983,11 +2978,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionItemTaxes_Yesterday", new TransactionDocumentEndpoint_TransactionItemTaxes_Yesterday
+                    "TransactionDocument_ItemTaxes_Yesterday", new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Yesterday
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionItemTaxes_Yesterday",
-                        Name = "TransactionItemTaxes_Yesterday",
+                        Id = "TransactionDocument_ItemTaxes_Yesterday",
+                        Name = "TransactionDocument_ItemTaxes_Yesterday",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
@@ -3009,11 +3004,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionItemTaxes_7Days", new TransactionDocumentEndpoint_TransactionItemTaxes_7Days
+                    "TransactionDocument_ItemTaxes_7Days", new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_7Days
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionItemTaxes_7Days",
-                        Name = "TransactionItemTaxes_7Days",
+                        Id = "TransactionDocument_ItemTaxes_7Days",
+                        Name = "TransactionDocument_ItemTaxes_7Days",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
@@ -3035,12 +3030,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionItemTaxes_HistoricalFromDate",
-                    new TransactionDocumentEndpoint_TransactionItemTaxes_Historical
+                    "TransactionDocument_ItemTaxes_HistoricalFromDate",
+                    new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Historical
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionItemTaxes_HistoricalFromDate",
-                        Name = "TransactionItemTaxes_HistoricalFromDate",
+                        Id = "TransactionDocument_ItemTaxes_HistoricalFromDate",
+                        Name = "TransactionDocument_ItemTaxes_HistoricalFromDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",

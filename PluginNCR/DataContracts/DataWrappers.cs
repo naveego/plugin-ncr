@@ -151,6 +151,12 @@ namespace PluginNCR.DataContracts
         
         [JsonProperty("closeDateTimeUtc")]
         public DateWrapper CloseDateTimeUtc { get; set; }
+        
+        [JsonProperty("receivedDateTimeUtc")]
+        public string ReceivedDateTimeUtc { get; set; }
+        
+        [JsonProperty("endTransactionDateTimeUtc")]
+        public string EndTransactionDateTimeUtc { get; set; }
     }
 
     
