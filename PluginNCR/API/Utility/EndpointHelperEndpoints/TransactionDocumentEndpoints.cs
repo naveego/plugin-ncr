@@ -26,6 +26,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
     {
         private class TransactionDocumentEndpoint : Endpoint
         {
+            private Queue<Record> privateRecords = new Queue<Record>() { };
+            private bool finishedReading = false; 
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
                 List<string> staticSchemaProperties = new List<string>()
@@ -167,10 +169,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 return schema;
             }
 
+            public async IAsyncEnumerable<Record> RecordConsumer()
+            {
+                while (!finishedReading)
+                {
+                    yield return privateRecords.Dequeue();
+                }
+            }
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
+                Logger.Info("Starting read");
                 var hasMore = false;
                 var endpoint = EndpointHelper.GetEndpointForSchema(schema);
                 var currPage = 0;
@@ -191,17 +201,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in initSites.ToList())
                 {
+                    Logger.Info($"Starting site: {site}");
                     readQuery.SiteInfoIds = new List<string>() {site};
 
                     currDayOffset = 0;
 
                     do //while queryDate != queryEndDate
                     {
-                        if (limit > 0 && recordCount >= limit)
-                        {
-                            break;
-                        }
-
                         readQuery.DateWrapper.DateTime =
                             DateTime.Parse(queryStartDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
@@ -209,10 +215,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                         do //while hasMore
                         {
-                            if (limit > 0 && recordCount >= limit)
-                            {
-                                break;
-                            }
                             
                             var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
@@ -222,6 +224,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             HttpResponseMessage response = null;
                             try
                             {
+                                Logger.Info($"Reading site: {site}");
                                 response = await apiClient.PostAsync(
                                     path
                                     , json);
@@ -237,24 +240,28 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-
+                            
                             var objectResponseWrapper = new ObjectResponseWrapper();
-
-                            try
+                            
+                            if(!pageIncomplete)
                             {
-                                objectResponseWrapper =
-                                    JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                        await response.Content.ReadAsStringAsync());
-                                if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
+
+                                try
+                                {
+                                    objectResponseWrapper =
+                                        JsonConvert.DeserializeObject<ObjectResponseWrapper>(
+                                            await response.Content.ReadAsStringAsync());
+                                    if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                                    {
+                                        incompletePageQueries.Add(new Tuple<string, string>(path, json));
+                                        pageIncomplete = true;
+                                    }
+                                }
+                                catch (Exception e)
                                 {
                                     incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                     pageIncomplete = true;
                                 }
-                            }
-                            catch (Exception e)
-                            {
-                                incompletePageQueries.Add(new Tuple<string, string>(path, json));
-                                pageIncomplete = true;
                             }
 
                             if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
@@ -269,7 +276,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             List<Record> returnRecords = new List<Record>() { };
 
-                            await pageContent.ParallelForEachAsync(async objectResponse =>
+                            foreach(var objectResponse in pageContent)
                             {
                                 var tlogIncomplete = false;
                                 var recordMap = new Dictionary<string, object>();
@@ -292,6 +299,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 HttpResponseMessage tlogResponse = null;
                                 try
                                 {
+                                    Logger.Info($"Reading tlog: {thisTlogId.ToString()}");
                                     tlogResponse = await apiClient.GetAsync(tlogPath);
                                 }
                                 catch (Exception e)
@@ -326,6 +334,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (!tlogIncomplete)
                                 {
+                                    Logger.Info($"Tlog received: {thisTlogId.ToString()}");
                                     var tlogItemRecordMap = new Dictionary<string, object>();
 
                                     try
@@ -591,24 +600,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             if (recordCount > limit && limit > 0)
                                             {
                                                 hasMore = false;
-                                                break;
                                             }
                                             else
                                             {
-                                                returnRecords.Add(new Record
+                                                Logger.Info($"Returning tlog: {thisTlogId.ToString()}");
+                                                yield return new Record
                                                 {
                                                     Action = Record.Types.Action.Upsert,
                                                     DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                                });
+                                                };
                                             }
                                         }
                                     }
                                 }
-                            }, maxDegreeOfParallelism: degreeOfParallelism);
-
-                            foreach (var record in returnRecords)
-                            {
-                                yield return record;
                             }
 
                             if (currPage >= 9 || !pageIncomplete && objectResponseWrapper?.LastPage.ToLower() == "true")
@@ -620,7 +624,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 currPage++;
                                 hasMore = true;
                             }
+                            Logger.Info("Page upload completed");
                         } while (hasMore && (limit == 0 || (int) recordCount < limit));
+                        Logger.Info("Site upload completed");
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
                         DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
                 }
@@ -1184,10 +1190,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     
                 foreach (var site in workingSiteList)
                 {
-                    if (limit > 0 && recordCount >= limit)
-                    {
-                        break;
-                    }
 
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
@@ -1255,7 +1257,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 : objectResponseWrapper?.PageContent;
 
 
-                            await pageContent.ParallelForEachAsync(async objectResponse =>
+                            foreach(var objectResponse in pageContent)
                             {
                                 var tlogIncomplete = false;
                                 var recordMap = new Dictionary<string, object>();
@@ -1318,47 +1320,35 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         foreach (var tender in tLogResponseWrapper.Tlog.Tenders)
                                         {
-                                            try
-                                            {
-                                                tlogTenderRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                                tlogTenderRecordMap["type"] = tender.Type ?? "";
-                                                tlogTenderRecordMap["usage"] = tender.Usage ?? "";
-                                                tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
-                                                tlogTenderRecordMap["tender_isVoided"] = tender.IsVoided;
-                                                tlogTenderRecordMap["typeLabel"] = tender.TypeLabel ?? "";
-                                                tlogTenderRecordMap["cardLastFourDigits"] =
-                                                    tender.CardLastFourDigits ?? "";
-                                                tlogTenderRecordMap["name"] = tender.Name ?? "";
-                                                tlogTenderRecordMap["id"] = tender.Id ?? "";
-                                                tlogTenderRecordMap["maskedCardNumber"] =
-                                                    tender.MaskedCardNumber ?? "";
+                                            tlogTenderRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                            tlogTenderRecordMap["type"] = tender.Type ?? "";
+                                            tlogTenderRecordMap["usage"] = tender.Usage ?? "";
+                                            tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
+                                            tlogTenderRecordMap["tender_isVoided"] = tender.IsVoided;
+                                            tlogTenderRecordMap["typeLabel"] = tender.TypeLabel ?? "";
+                                            tlogTenderRecordMap["cardLastFourDigits"] =
+                                                tender.CardLastFourDigits ?? "";
+                                            tlogTenderRecordMap["name"] = tender.Name ?? "";
+                                            tlogTenderRecordMap["id"] = tender.Id ?? "";
+                                            tlogTenderRecordMap["maskedCardNumber"] =
+                                                tender.MaskedCardNumber ?? "";
 
-                                                recordCount++;
-                                                if (recordCount > limit && limit > 0)
-                                                {
-                                                    hasMore = false;
-                                                    break;
-                                                }
-                                                else
-                                                {
-                                                    returnRecords.Add(new Record
-                                                    {
-                                                        Action = Record.Types.Action.Upsert,
-                                                        DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
-                                                    });
-                                                }
-                                            }
-                                            catch
+                                            recordCount++;
+                                            if (recordCount > limit && limit > 0)
                                             {
+                                                hasMore = false;
+                                            }
+                                            else
+                                            {
+                                                yield return new Record
+                                                {
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
+                                                };
                                             }
                                         }
                                     }
                                 }
-                            }, maxDegreeOfParallelism: degreeOfParallelism);
-
-                            foreach (var record in returnRecords)
-                            {
-                                yield return record;
                             }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
@@ -1675,10 +1665,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     
                 foreach (var site in workingSiteList)
                 {
-                    if (limit > 0 && recordCount >= limit)
-                    {
-                        break;
-                    }
 
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
@@ -1691,12 +1677,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         currPage = 0;
 
                         do //while hasMore
-                        {
-                            if (limit > 0 && recordCount >= limit)
-                            {
-                                break;
-                            }
-                                
+                        {  
                             var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
 
@@ -1750,7 +1731,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
 
-                            await pageContent.ParallelForEachAsync(async objectResponse =>
+                            foreach(var objectResponse in pageContent)
                             {
                                 var recordMap = new Dictionary<string, object>();
                                 var tlogIncomplete = false;
@@ -1812,48 +1793,43 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     {
                                         foreach (var loyaltyAccount in tLogResponseWrapper.Tlog.LoyaltyAccount)
                                         {
-                                            try
-                                            {
-                                                tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
-                                                tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] =
-                                                    loyaltyAccount.Id ?? "";
-                                                tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
-                                                    loyaltyAccount.AccountId ?? "";
-                                                tlogLoyaltyAccountRecordMap["pointsAwarded"] =
-                                                    loyaltyAccount.PointsAwarded ?? "";
-                                                tlogLoyaltyAccountRecordMap["pointsRedeemed"] =
-                                                    loyaltyAccount.PointsRedeemed ?? "";
-                                                tlogLoyaltyAccountRecordMap["programType"] =
-                                                    loyaltyAccount.ProgramType ?? "";
+                                            tlogLoyaltyAccountRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
+                                            tlogLoyaltyAccountRecordMap["loyaltyAccountRow"] =
+                                                loyaltyAccount.Id ?? "";
+                                            tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
+                                                loyaltyAccount.AccountId ?? "";
+                                            tlogLoyaltyAccountRecordMap["pointsAwarded"] =
+                                                loyaltyAccount.PointsAwarded ?? "";
+                                            tlogLoyaltyAccountRecordMap["pointsRedeemed"] =
+                                                loyaltyAccount.PointsRedeemed ?? "";
+                                            tlogLoyaltyAccountRecordMap["programType"] =
+                                                loyaltyAccount.ProgramType ?? "";
 
-                                                recordCount++;
-                                                if (recordCount > limit && limit > 0)
-                                                {
-                                                    hasMore = false;
-                                                    break;
-                                                }
-                                                else
-                                                {
-                                                    returnRecords.Add(new Record
-                                                    {
-                                                        Action = Record.Types.Action.Upsert,
-                                                        DataJson = JsonConvert.SerializeObject(
-                                                            tlogLoyaltyAccountRecordMap)
-                                                    });
-                                                }
-                                            }
-                                            catch
+                                            recordCount++;
+                                            if (recordCount > limit && limit > 0)
                                             {
+                                                hasMore = false;
+                                            }
+                                            else
+                                            {
+                                                yield return new Record
+                                                {
+                                                    Action = Record.Types.Action.Upsert,
+                                                    DataJson = JsonConvert.SerializeObject(
+                                                        tlogLoyaltyAccountRecordMap)
+                                                };
                                             }
                                         }
                                     }
                                 }
-                            }, maxDegreeOfParallelism: degreeOfParallelism);
-
-                            foreach (var record in returnRecords)
-                            {
-                                yield return record;
                             }
+
+                            ;
+
+                            // foreach (var record in returnRecords)
+                            // {
+                            //     yield return record;
+                            // }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
@@ -2186,33 +2162,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in workingSiteList)
                 {
-                    if (limit > 0 && recordCount >= limit)
-                    {
-                        break;
-                    }
 
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 1;
 
                     do //while queryDate != queryEndDate
-                    {
-                        if (limit > 0 && recordCount >= limit)
-                        {
-                            break;
-                        }
-                            
+                    { 
                         readQuery.DateWrapper.DateTime =
                             DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
                         do //while hasMore
-                        {
-                            if (limit > 0 && recordCount >= limit)
-                            {
-                                break;
-                            }
-                                
+                        { 
                             var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
                             var json = JsonConvert.SerializeObject(readQuery);
@@ -2266,7 +2228,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                             List<Record> returnRecords = new List<Record>() { };
 
-                            await pageContent.ParallelForEachAsync(async objectResponse =>
+                            foreach(var objectResponse in pageContent)
                             {
                                 var tlogIncomplete = false;
                                 var recordMap = new Dictionary<string, object>();
@@ -2349,26 +2311,25 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             if (recordCount > limit && limit > 0)
                                             {
                                                 hasMore = false;
-                                                break;
                                             }
                                             else
                                             {
-                                                returnRecords.Add(new Record
+                                                yield return new Record
                                                 {
                                                     Action = Record.Types.Action.Upsert,
                                                     DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
-                                                });
+                                                };
                                             }
                                         }
                                         
                                     }
                                 }
-                            }, maxDegreeOfParallelism: degreeOfParallelism);
-
-                            foreach (var record in returnRecords)
-                            {
-                                yield return record;
                             }
+
+                            // foreach (var record in returnRecords)
+                            // {
+                            //     yield return record;
+                            // }
 
                             if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
