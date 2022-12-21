@@ -597,25 +597,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         if (validItem)
                                         {
                                             recordCount++;
-                                            if (recordCount > limit && limit > 0)
+                                            Logger.Info($"Returning tlog: {thisTlogId.ToString()}");
+                                            yield return new Record
                                             {
-                                                hasMore = false;
-                                            }
-                                            else
-                                            {
-                                                Logger.Info($"Returning tlog: {thisTlogId.ToString()}");
-                                                yield return new Record
-                                                {
-                                                    Action = Record.Types.Action.Upsert,
-                                                    DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
-                                                };
-                                            }
+                                                Action = Record.Types.Action.Upsert,
+                                                DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
+                                            };
+                                            
                                         }
                                     }
                                 }
                             }
 
-                            if (currPage >= 9 || !pageIncomplete && objectResponseWrapper?.LastPage.ToLower() == "true")
+                            if (recordCount > limit && limit > 0 || currPage >= 9 || !pageIncomplete && objectResponseWrapper?.LastPage.ToLower() == "true")
                             {
                                 hasMore = false;
                             }
@@ -1334,24 +1328,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 tender.MaskedCardNumber ?? "";
 
                                             recordCount++;
-                                            if (recordCount > limit && limit > 0)
+                                            yield return new Record
                                             {
-                                                hasMore = false;
-                                            }
-                                            else
-                                            {
-                                                yield return new Record
-                                                {
-                                                    Action = Record.Types.Action.Upsert,
-                                                    DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
-                                                };
-                                            }
+                                                Action = Record.Types.Action.Upsert,
+                                                DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
+                                            };
+                                            
                                         }
                                     }
                                 }
                             }
 
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            if (recordCount > limit && limit > 0 || objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
                             }
@@ -1806,19 +1794,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 loyaltyAccount.ProgramType ?? "";
 
                                             recordCount++;
-                                            if (recordCount > limit && limit > 0)
+                                            yield return new Record
                                             {
-                                                hasMore = false;
-                                            }
-                                            else
-                                            {
-                                                yield return new Record
-                                                {
-                                                    Action = Record.Types.Action.Upsert,
-                                                    DataJson = JsonConvert.SerializeObject(
-                                                        tlogLoyaltyAccountRecordMap)
-                                                };
-                                            }
+                                                Action = Record.Types.Action.Upsert,
+                                                DataJson = JsonConvert.SerializeObject(
+                                                    tlogLoyaltyAccountRecordMap)
+                                            };
+                                            
                                         }
                                     }
                                 }
@@ -1831,7 +1813,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             //     yield return record;
                             // }
 
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            if (recordCount > limit && limit > 0 || objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
                             }
@@ -2164,7 +2146,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 {
 
                     readQuery.SiteInfoIds = new List<string>() {site};
-                    currDayOffset = 1;
+                    currDayOffset = 0;
 
                     do //while queryDate != queryEndDate
                     { 
@@ -2204,7 +2186,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 objectResponseWrapper =
                                     JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                         await response.Content.ReadAsStringAsync());
-                                if (!objectResponseWrapper.TotalResults.IsNullOrEmpty())
+                                if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                 {
                                     incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                     pageIncomplete = true;
@@ -2308,20 +2290,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tLogTaxRecordMap["itemTaxIsVoided"] = tax.IsVoided;
 
                                             recordCount++;
-                                            if (recordCount > limit && limit > 0)
+                                            yield return new Record
                                             {
-                                                hasMore = false;
-                                            }
-                                            else
-                                            {
-                                                yield return new Record
-                                                {
-                                                    Action = Record.Types.Action.Upsert,
-                                                    DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
-                                                };
-                                            }
+                                                Action = Record.Types.Action.Upsert,
+                                                DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
+                                            };
+                                            
                                         }
-                                        
                                     }
                                 }
                             }
@@ -2331,7 +2306,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             //     yield return record;
                             // }
 
-                            if (objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            if (recordCount > limit && limit > 0 || objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
                             }
