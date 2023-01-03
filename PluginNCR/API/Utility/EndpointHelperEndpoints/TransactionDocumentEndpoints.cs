@@ -274,9 +274,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
 
-                            List<Record> returnRecords = new List<Record>() { };
-
-                            foreach(var objectResponse in pageContent)
+                            await foreach (var objectResponse in pageContent.AsParallel()
+                                .WithExecutionMode(ParallelExecutionMode.ForceParallelism))
                             {
                                 var tlogIncomplete = false;
                                 var recordMap = new Dictionary<string, object>();
@@ -458,11 +457,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 if (item.RegularUnitPrice.UnitPriceQuantity != null)
                                                 {
                                                     tlogItemRecordMap["regularUnitPrice.quantity"] =
-                                                        item.RegularUnitPrice.UnitPriceQuantity.Quantity.ToString() ??
+                                                        item.RegularUnitPrice.UnitPriceQuantity.Quantity
+                                                            .ToString() ??
                                                         "";
 
                                                     tlogItemRecordMap["regularUnitPrice.unitOfMeasurement"] =
-                                                        item.RegularUnitPrice.UnitPriceQuantity.UnitOfMeasurement ?? "";
+                                                        item.RegularUnitPrice.UnitPriceQuantity.UnitOfMeasurement ??
+                                                        "";
                                                 }
                                                 else
                                                 {
@@ -486,11 +487,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 if (item.ExtendedUnitPrice.UnitPriceQuantity != null)
                                                 {
                                                     tlogItemRecordMap["extendedUnitPrice.quantity"] =
-                                                        item.ExtendedUnitPrice.UnitPriceQuantity.Quantity.ToString() ??
+                                                        item.ExtendedUnitPrice.UnitPriceQuantity.Quantity
+                                                            .ToString() ??
                                                         "";
 
                                                     tlogItemRecordMap["extendedUnitPrice.unitOfMeasurement"] =
-                                                        item.ExtendedUnitPrice.UnitPriceQuantity.UnitOfMeasurement ??
+                                                        item.ExtendedUnitPrice.UnitPriceQuantity
+                                                            .UnitOfMeasurement ??
                                                         "";
                                                 }
                                                 else
@@ -603,12 +606,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 Action = Record.Types.Action.Upsert,
                                                 DataJson = JsonConvert.SerializeObject(tlogItemRecordMap)
                                             };
-                                            
+
                                         }
                                     }
                                 }
                             }
-
                             if (recordCount > limit && limit > 0 || currPage >= 9 || !pageIncomplete && objectResponseWrapper?.LastPage.ToLower() == "true")
                             {
                                 hasMore = false;
@@ -1243,15 +1245,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 currPage++;
                                 continue;
                             }
-
-                            List<Record> returnRecords = new List<Record>() { };
-
+                            
                             var pageContent = limit > 0
                                 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
 
 
-                            foreach(var objectResponse in pageContent)
+                            await foreach (var objectResponse in pageContent.AsParallel()
+                                .WithExecutionMode(ParallelExecutionMode.ForceParallelism))
                             {
                                 var tlogIncomplete = false;
                                 var recordMap = new Dictionary<string, object>();
@@ -1713,13 +1714,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 continue;
                             }
 
-                            List<Record> returnRecords = new List<Record>() { };
-
                             var pageContent = limit > 0
                                 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
 
-                            foreach(var objectResponse in pageContent)
+                            await foreach (var objectResponse in pageContent.AsParallel()
+                                .WithExecutionMode(ParallelExecutionMode.ForceParallelism))
                             {
                                 var recordMap = new Dictionary<string, object>();
                                 var tlogIncomplete = false;
@@ -1805,13 +1805,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     }
                                 }
                             }
-
-                            ;
-
-                            // foreach (var record in returnRecords)
-                            // {
-                            //     yield return record;
-                            // }
 
                             if (recordCount > limit && limit > 0 || objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
@@ -2208,9 +2201,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
 
-                            List<Record> returnRecords = new List<Record>() { };
-
-                            foreach(var objectResponse in pageContent)
+                            await foreach (var objectResponse in pageContent.AsParallel()
+                                .WithExecutionMode(ParallelExecutionMode.ForceParallelism))
                             {
                                 var tlogIncomplete = false;
                                 var recordMap = new Dictionary<string, object>();
@@ -2300,12 +2292,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     }
                                 }
                             }
-
-                            // foreach (var record in returnRecords)
-                            // {
-                            //     yield return record;
-                            // }
-
                             if (recordCount > limit && limit > 0 || objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
@@ -2399,24 +2385,24 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             tLogTaxRecordMap["itemId"] = String.IsNullOrWhiteSpace(item.Id)
                                 ? "null"
                                 : item.Id;
-                                foreach (var tax in item.ItemTaxes)
-                                {
-                                    tLogTaxRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
-                                    tLogTaxRecordMap["itemTaxId"] = tax.Id ?? "";
-                                    tLogTaxRecordMap["itemTaxName"] = tax.Name ?? "";
-                                    tLogTaxRecordMap["itemTaxType"] = tax.TaxType ?? "";
-                                    tLogTaxRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
-                                    tLogTaxRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
-                                    tLogTaxRecordMap["itemTaxIsRefund"] = tax.IsRefund;
-                                    tLogTaxRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
-                                    tLogTaxRecordMap["itemTaxIsVoided"] = tax.IsVoided;
+                            foreach (var tax in item.ItemTaxes)
+                            {
+                                tLogTaxRecordMap["itemTaxSequenceNumber"] = tax.SequenceNumber ?? "";
+                                tLogTaxRecordMap["itemTaxId"] = tax.Id ?? "";
+                                tLogTaxRecordMap["itemTaxName"] = tax.Name ?? "";
+                                tLogTaxRecordMap["itemTaxType"] = tax.TaxType ?? "";
+                                tLogTaxRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
+                                tLogTaxRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
+                                tLogTaxRecordMap["itemTaxIsRefund"] = tax.IsRefund;
+                                tLogTaxRecordMap["itemTaxPercent"] = tax.TaxPercent ?? "";
+                                tLogTaxRecordMap["itemTaxIsVoided"] = tax.IsVoided;
 
-                                    yield return new Record
-                                    {
-                                        Action = Record.Types.Action.Upsert,
-                                        DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
-                                    };
-                                }
+                                yield return new Record
+                                {
+                                    Action = Record.Types.Action.Upsert,
+                                    DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
+                                };
+                            }
                             
                         }
                     }

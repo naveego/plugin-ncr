@@ -235,7 +235,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_ItemTaxes_Yesterday");
+            var schema = GetTestSchema("TransactionDocument_Yesterday");
 
             var connectRequest = GetConnectSettings();
 
