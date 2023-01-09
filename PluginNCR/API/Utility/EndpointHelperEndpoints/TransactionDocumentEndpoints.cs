@@ -201,7 +201,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in initSites.ToList())
                 {
-                    Logger.Info($"Starting site: {site}");
+                    Logger.Debug($"Starting site: {site}");
                     readQuery.SiteInfoIds = new List<string>() {site};
 
                     currDayOffset = 0;
@@ -224,7 +224,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             HttpResponseMessage response = null;
                             try
                             {
-                                Logger.Info($"Reading site: {site}");
+                                Logger.Debug($"Reading site: {site}");
                                 response = await apiClient.PostAsync(
                                     path
                                     , json);
@@ -298,7 +298,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 HttpResponseMessage tlogResponse = null;
                                 try
                                 {
-                                    Logger.Info($"Reading tlog: {thisTlogId.ToString()}");
+                                    Logger.Debug($"Reading tlog: {thisTlogId.ToString()}");
                                     tlogResponse = await apiClient.GetAsync(tlogPath);
                                 }
                                 catch (Exception e)
@@ -333,7 +333,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 if (!tlogIncomplete)
                                 {
-                                    Logger.Info($"Tlog received: {thisTlogId.ToString()}");
+                                    Logger.Debug($"Tlog received: {thisTlogId.ToString()}");
                                     var tlogItemRecordMap = new Dictionary<string, object>();
 
                                     try
@@ -600,7 +600,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         if (validItem)
                                         {
                                             recordCount++;
-                                            Logger.Info($"Returning tlog: {thisTlogId.ToString()}");
+                                            Logger.Debug($"Returning tlog: {thisTlogId.ToString()}");
                                             yield return new Record
                                             {
                                                 Action = Record.Types.Action.Upsert,
@@ -620,9 +620,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 currPage++;
                                 hasMore = true;
                             }
-                            Logger.Info("Page upload completed");
+                            Logger.Debug("Page upload completed");
                         } while (hasMore && (limit == 0 || (int) recordCount < limit));
-                        Logger.Info("Site upload completed");
+                        Logger.Debug("Site upload completed");
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
                         DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
                 }
