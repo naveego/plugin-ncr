@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace PluginNCR.Helper
@@ -53,7 +52,7 @@ namespace PluginNCR.Helper
             {
                 throw new Exception("the Auth Method property must be set");
             }
-            
+
             if (String.IsNullOrEmpty(NepOrganization))
             {
                 throw new Exception("the NepOrganization property must be set");
@@ -90,7 +89,7 @@ namespace PluginNCR.Helper
             {
                 throw new Exception("Error: empty csv of site IDs found. Example value: 2304, 2315, 2340");
             }
-            
+
             Regex dateValidationRgx = new Regex(@"^(19|20)\d\d-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$");
 
             if (!dateValidationRgx.IsMatch(QueryStartDate))
@@ -107,7 +106,7 @@ namespace PluginNCR.Helper
                 {
                     throw new Exception("the QueryEndDate property must match yyyy-MM-dd format");
                 }
-                
+
                 if (DateTime.Compare(DateTime.Parse(QueryEndDate), DateTime.Parse(QueryStartDate)) == -1)
                 {
                     throw new Exception("the QueryEndDate must be equal to or after QueryStartDate");
@@ -116,7 +115,7 @@ namespace PluginNCR.Helper
 
             try
             {
-                if (Int32.Parse(DegreeOfParallelism) <= 0)
+                if (int.Parse(DegreeOfParallelism) <= 0)
                 {
                     throw new Exception("degree of parallelism must be a positive integer value");
                 }
@@ -125,7 +124,7 @@ namespace PluginNCR.Helper
             {
                 throw new Exception("unable to parse given degree of parallelism. This should be a single number greater than zero");
             }
-            
+
         }
     }
 }

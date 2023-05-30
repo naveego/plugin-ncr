@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -18,7 +17,7 @@ namespace PluginNCR.API.Factory
         private Settings Settings { get; set; }
         private string Token { get; set; }
         private DateTime ExpiresAt { get; set; }
-        
+
         public ApiAuthenticator(HttpClient client, Settings settings)
         {
             Client = client;
@@ -80,41 +79,41 @@ namespace PluginNCR.API.Factory
                     var messageBytes = Encoding.UTF8.GetBytes(toSign);
                     var rawHmac = hmacsha512.ComputeHash(messageBytes);
                     var hmac = Convert.ToBase64String(rawHmac);
-                    
+
                     return $"AccessKey {shared_key}:{hmac}";
                 }
-                
+
                 //If not accesskey, create token
                 var client = new HttpClient();
                 // generate request
                 var authUri = new Uri(
                     "https://gateway.ncrplatform.com/security/authentication/login");
-                
+
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Post,
                     RequestUri = authUri,
                     //Content = new StringContent(json, Encoding.UTF8, "application/json")
                 };
-                
+
                 request.Headers.Add("nep-correlation-id", Settings.NepCorrelationId);
                 request.Headers.Add("nep-application-key", Settings.NepApplicationKey);
                 request.Headers.Add("nep-organization", Settings.NepOrganization);
                 request.Headers.Date = DateTimeOffset.UtcNow;
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-                
+
                 var authenticationString = $"{Settings.ProvUsername}:{Settings.ProvPassword}";
                 var base64EncodedAuthenticationString =
                     Convert.ToBase64String(Encoding.UTF8.GetBytes(authenticationString));
                 request.Headers.Add("Authorization", $"Basic {base64EncodedAuthenticationString}");
-                
+
                 //var response = await Client.PostAsync(AuthUrl, body);
                 var response = await client.SendAsync(request);
-                
+
                 response.EnsureSuccessStatusCode();
-                
+
                 var content = JsonConvert.DeserializeObject<TokenResponse>(await response.Content.ReadAsStringAsync());
-                    
+
                 // update expiration and saved token
                 ExpiresAt = DateTime.Now.AddSeconds(content.RemainingTime);
                 // Token = content.AccessToken;

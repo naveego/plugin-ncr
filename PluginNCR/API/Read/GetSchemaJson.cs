@@ -25,7 +25,7 @@ namespace PluginNCR.API.Read
                     "PollingInterval"
                 }}
             };
-            
+
             return JsonConvert.SerializeObject(schemaJsonObj);
         }
     }

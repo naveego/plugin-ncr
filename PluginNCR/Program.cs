@@ -21,7 +21,7 @@ namespace PluginNCR
                     Logger.Error(null, $"died: {eventArgs.ExceptionObject}");
                     Logger.CloseAndFlush();
                 };
-                
+
                 // create new server and start it
                 Server server = new Server
                 {

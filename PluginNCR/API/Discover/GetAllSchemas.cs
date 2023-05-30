@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+// using System.Linq; // TESTING: Uncomment for testing
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -48,11 +47,11 @@ namespace PluginNCR.API.Discover
                 return schema;
             }
 
-            // add sample and count - uncomment if needed, but we do not since this adds load time
+            // // TESTING: add sample and count - uncomment for integration testing, but we do not since this adds load time
             // var records = Read.Read.ReadRecordsAsync(apiClient, schema, sampleSize);
             // schema.Sample.AddRange(await records.ToListAsync());
             // schema.Count = await GetCountOfRecords(apiClient, endpoint);
-            
+
              return schema;
         }
 
@@ -69,11 +68,10 @@ namespace PluginNCR.API.Discover
             }
 
             var query = endpoint.PropertiesQuery;
-            
+
             StringContent propertiesQuery = new StringContent(query, Encoding.UTF8, "application/json");
             // invoke properties api
 
-            
             var response = await apiClient.SendAsync(Constants.BaseApiUrl + endpoint.PropertiesPath, propertiesQuery);
 
             if (!response.IsSuccessStatusCode)
@@ -87,7 +85,7 @@ namespace PluginNCR.API.Discover
                     await response.Content.ReadAsStringAsync());
 
             var properties = new List<Property>();
-            
+
             foreach (var srcProperty in objectPropertiesResponse.PageContent[0].GetType().GetProperties())
             {
                 var property = new Property();
@@ -96,21 +94,20 @@ namespace PluginNCR.API.Discover
                 property.Name = srcProperty.Name;
                 property.Type = GetPropertyType(srcProperty.PropertyType.ToString());
                 property.TypeAtSource = srcProperty.PropertyType.ToString();
-                
-                
+
                 switch (property.Name.ToLower())
                 {
-                    case ("tlogid"):
-                    case ("touchpointid"):
-                    case ("siteinfood"):
-                    case ("employeeids"):
+                    case "tlogid":
+                    case "touchpointid":
+                    case "siteinfood":
+                    case "employeeids":
                         property.IsKey = true;
                         break;
                 }
-                
+
                 properties.Add(property);
             }
-            
+
             schema.Properties.Clear();
             schema.Properties.AddRange(properties);
 

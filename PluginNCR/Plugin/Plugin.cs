@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using System.Web;
 using Grpc.Core;
 using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
@@ -13,7 +10,6 @@ using Newtonsoft.Json;
 using PluginNCR.API.Discover;
 using PluginNCR.API.Factory;
 using PluginNCR.API.Read;
-using PluginNCR.DataContracts;
 using PluginNCR.Helper;
 
 namespace PluginNCR.Plugin
@@ -34,7 +30,7 @@ namespace PluginNCR.Plugin
                 WriteConfigured = false
             };
         }
-        
+
         /// <summary>
         /// Configures the plugin
         /// </summary>
@@ -45,12 +41,12 @@ namespace PluginNCR.Plugin
         {
             Logger.Debug("Got configure request");
             Logger.Debug(JsonConvert.SerializeObject(request, Formatting.Indented));
-            
+
             // ensure all directories are created
             Directory.CreateDirectory(request.TemporaryDirectory);
             Directory.CreateDirectory(request.PermanentDirectory);
             Directory.CreateDirectory(request.LogDirectory);
-            
+
             // configure logger
             Logger.SetLogLevel(request.LogLevel);
             Logger.Init(request.LogDirectory);
@@ -59,7 +55,7 @@ namespace PluginNCR.Plugin
 
             return Task.FromResult(new ConfigureResponse());
         }
-        
+
 
         /// <summary>
         /// Establishes a connection with Campaigner.
@@ -73,13 +69,13 @@ namespace PluginNCR.Plugin
             // Logger.SetLogLevel(Logger.LogLevel.Debug);
 
             Logger.SetLogPrefix("connect");
-            
+
             // validate settings passed in
             try
             {
                 _server.Settings = JsonConvert.DeserializeObject<Settings>(request.SettingsJson);
-                
-                
+
+
                 _server.Settings.Validate();
             }
             catch (Exception e)
@@ -175,7 +171,7 @@ namespace PluginNCR.Plugin
             Logger.Info("Discovering Schemas...");
 
             var sampleSize = checked((int) request.SampleSize);
-            
+
             //prevent unlimited sample size query
             if (sampleSize == 0)
             {
@@ -235,7 +231,7 @@ namespace PluginNCR.Plugin
         public override Task<ConfigureRealTimeResponse> ConfigureRealTime(ConfigureRealTimeRequest request, ServerCallContext context)
         {
             Logger.Info("Configuring real time...");
-            
+
             var schemaJson = Read.GetSchemaJson();
             var uiJson = Read.GetUIJson();
 
@@ -255,7 +251,7 @@ namespace PluginNCR.Plugin
                     }
                 });
             }
-            
+
             return Task.FromResult(new ConfigureRealTimeResponse
             {
                 Form = new ConfigurationFormResponse
@@ -269,7 +265,7 @@ namespace PluginNCR.Plugin
                 }
             });
         }
-        
+
         /// <summary>
         /// Publishes a stream of data for a given schema
         /// </summary>
@@ -289,9 +285,8 @@ namespace PluginNCR.Plugin
                 long recordsCount = 0;
 
                 Logger.SetLogPrefix(jobId);
-                
-                Logger.Debug(JsonConvert.SerializeObject(request.RealTimeStateJson, Formatting.Indented));
 
+                Logger.Debug(JsonConvert.SerializeObject(request.RealTimeStateJson, Formatting.Indented));
 
                 var records = Read.ReadRecordsAsync(_apiClient, schema, limit);
 
@@ -315,10 +310,10 @@ namespace PluginNCR.Plugin
                 Logger.Error(e, e.Message, context);
             }
         }
-        
-        
 
-        
+
+
+
 
         /// <summary>
         /// Handles disconnect requests from the agent

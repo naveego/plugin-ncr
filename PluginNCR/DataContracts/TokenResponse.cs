@@ -6,8 +6,8 @@ namespace PluginNCR.DataContracts
     {
         [JsonProperty("token")]
         public string AccessToken { get; set; }
-        
-        
+
+
         [JsonProperty("remainingTime")]
         public int RemainingTime { get; set; }
     }

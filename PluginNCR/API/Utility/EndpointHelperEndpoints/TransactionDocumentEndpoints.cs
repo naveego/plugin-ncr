@@ -1,21 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Reflection;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Grpc.Core;
 using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using PluginNCR.API.Factory;
 using PluginNCR.DataContracts;
-using PluginNCR.Helper;
 using RestSharp;
 using Dasync.Collections;
 using Microsoft.IdentityModel.Tokens;
@@ -121,61 +114,65 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "taxSequenceNumber"
                 };
 
-                var properties = new List<Property>();
-
-                foreach (var staticProperty in staticSchemaProperties)
+                return await Task.Run(() =>
                 {
-                    var property = new Property();
+                    var properties = new List<Property>();
 
-                    property.Id = staticProperty;
-                    property.Name = staticProperty;
-
-                    switch (staticProperty)
+                    foreach (var staticProperty in staticSchemaProperties)
                     {
-                        case ("tlogId"):
-                        case ("id"):
-                        case ("productId"):
-                            property.IsKey = true;
-                            property.TypeAtSource = "string";
-                            property.Type = PropertyType.String;
-                            break;
-                        case ("taxIsRefund"):
-                        case ("taxIsVoided"):
-                        case ("item_isReturn"):
-                        case ("item_isVoided"):
-                        case ("item_isRefused"):
-                        case ("item_isPriceLookup"):
-                        case ("item_isOverridden"):
-                        case ("item_isRefund"):
-                            property.IsKey = false;
-                            property.TypeAtSource = "bool";
-                            property.Type = PropertyType.Bool;
-                            break;
-                        default:
-                            property.IsKey = false;
-                            property.TypeAtSource = "string";
-                            property.Type = PropertyType.String;
-                            break;
+                        var property = new Property();
+
+                        property.Id = staticProperty;
+                        property.Name = staticProperty;
+
+                        switch (staticProperty)
+                        {
+                            case "tlogId":
+                            case "id":
+                            case "productId":
+                                property.IsKey = true;
+                                property.TypeAtSource = "string";
+                                property.Type = PropertyType.String;
+                                break;
+                            case "taxIsRefund":
+                            case "taxIsVoided":
+                            case "item_isReturn":
+                            case "item_isVoided":
+                            case "item_isRefused":
+                            case "item_isPriceLookup":
+                            case "item_isOverridden":
+                            case "item_isRefund":
+                                property.IsKey = false;
+                                property.TypeAtSource = "bool";
+                                property.Type = PropertyType.Bool;
+                                break;
+                            default:
+                                property.IsKey = false;
+                                property.TypeAtSource = "string";
+                                property.Type = PropertyType.String;
+                                break;
+                        }
+
+                        properties.Add(property);
                     }
 
-                    properties.Add(property);
-                }
+                    schema.Properties.Clear();
+                    schema.Properties.AddRange(properties);
 
-                schema.Properties.Clear();
-                schema.Properties.AddRange(properties);
+                    schema.DataFlowDirection = GetDataFlowDirection();
 
-                schema.DataFlowDirection = GetDataFlowDirection();
-
-                return schema;
+                    return schema;
+                });
             }
 
-            public async IAsyncEnumerable<Record> RecordConsumer()
+            public IEnumerable<Record> RecordConsumer()
             {
                 while (!finishedReading)
                 {
                     yield return privateRecords.Dequeue();
                 }
             }
+
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
@@ -186,12 +183,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
-                var safeLimit = limit > 0 ? (int) limit : Int32.MaxValue;
+                var safeLimit = limit > 0 ? (long) limit : long.MaxValue;
                 var queryStartDate = startDate;
                 var queryEndDate = endDate;
-                var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
-                var readQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+                var degreeOfParallelism = int.Parse(await apiClient.GetDegreeOfParallelism());
+                var readQuery = JsonConvert.DeserializeObject<PostBody>(endpoint!.ReadQuery);
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var initSites = tempSiteList.Replace(" ", "").Split(',');
@@ -215,49 +211,46 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                         do //while hasMore
                         {
-                            
+
                             var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
 
-                            HttpResponseMessage response = null;
+                            HttpResponseMessage? response = null;
                             try
                             {
                                 Logger.Debug($"Reading site: {site}");
-                                response = await apiClient.PostAsync(
-                                    path
-                                    , json);
+                                response = await apiClient.PostAsync(path, json);
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
 
-                            if (!response.IsSuccessStatusCode)
+                            if (response?.IsSuccessStatusCode != true)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                            
+
                             var objectResponseWrapper = new ObjectResponseWrapper();
-                            
-                            if(!pageIncomplete)
-                            {
 
+                            if (!pageIncomplete)
+                            {
                                 try
                                 {
                                     objectResponseWrapper =
                                         JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                            await response.Content.ReadAsStringAsync());
+                                            await response!.Content.ReadAsStringAsync());
                                     if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                     {
                                         incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                         pageIncomplete = true;
                                     }
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                     pageIncomplete = true;
@@ -271,7 +264,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             }
 
                             var pageContent = limit > 0
-                                ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
+                                ? objectResponseWrapper?.PageContent.Take((int)(safeLimit - recordCount))
                                 : objectResponseWrapper?.PageContent;
 
                             await foreach (var objectResponse in pageContent.AsParallel()
@@ -295,19 +288,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 var thisTlogId = recordMap["tlogId"];
                                 var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
 
-                                HttpResponseMessage tlogResponse = null;
+                                HttpResponseMessage? tlogResponse = null;
                                 try
                                 {
                                     Logger.Debug($"Reading tlog: {thisTlogId.ToString()}");
                                     tlogResponse = await apiClient.GetAsync(tlogPath);
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
                                 }
 
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (tlogResponse?.IsSuccessStatusCode != true)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
@@ -318,14 +311,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     tLogResponseWrapper =
                                         JsonConvert.DeserializeObject<TLogWrapper>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
+                                            await tlogResponse!.Content.ReadAsStringAsync());
                                     if (string.IsNullOrEmpty(tLogResponseWrapper.Id))
                                     {
                                         incompleteTLogPaths.Add(tlogPath);
                                         tlogIncomplete = true;
                                     }
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
@@ -411,7 +404,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     }
 
                                     var items = limit > 0
-                                        ? tLogResponseWrapper.Tlog.Items.Take(safeLimit - (int) recordCount)
+                                        ? tLogResponseWrapper.Tlog.Items.Take((int)(safeLimit - recordCount))
                                         : tLogResponseWrapper.Tlog.Items;
 
                                     foreach (var item in items)
@@ -480,11 +473,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             if (item.RegularUnitPrice != null)
                                             {
                                                 tlogItemRecordMap["extendedUnitPrice"] =
-                                                    string.IsNullOrWhiteSpace(item.ExtendedUnitPrice.Amount)
+                                                    string.IsNullOrWhiteSpace(item?.ExtendedUnitPrice?.Amount)
                                                         ? "0"
                                                         : item.ExtendedUnitPrice.Amount.ToString();
 
-                                                if (item.ExtendedUnitPrice.UnitPriceQuantity != null)
+                                                if (item?.ExtendedUnitPrice?.UnitPriceQuantity != null)
                                                 {
                                                     tlogItemRecordMap["extendedUnitPrice.quantity"] =
                                                         item.ExtendedUnitPrice.UnitPriceQuantity.Quantity
@@ -592,7 +585,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
                                             tlogItemRecordMap["row_str"] = "null";
                                         }
-                                        catch (Exception e)
+                                        catch (Exception)
                                         {
                                             validItem = false;
                                         }
@@ -621,16 +614,16 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 hasMore = true;
                             }
                             Logger.Debug("Page upload completed");
-                        } while (hasMore && (limit == 0 || (int) recordCount < limit));
+                        } while (hasMore && (limit == 0 || recordCount < limit));
                         Logger.Debug("Site upload completed");
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
-                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || recordCount < limit));
                 }
-                
+
                 foreach (var incompletePath in incompleteTLogPaths)
                 {
                     var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -640,13 +633,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var incompletePageQuery in incompletePageQueries)
                 {
                     var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
                     }
                 }
-                
+
             }
 
             private async IAsyncEnumerable<Record> ReadIncompleteQuery(IApiClient apiClient, string tLogPath)
@@ -655,7 +648,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var tlogIncomplete = true;
 
 
-                HttpResponseMessage tlogResponse = null;
+                HttpResponseMessage? tlogResponse = null;
                 var retryCount = 0;
                 while (tlogIncomplete && retryCount <= 20)
                 {
@@ -664,12 +657,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         tlogResponse = await apiClient.GetAsync(tLogPath);
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tlogIncomplete = true;
                     }
 
-                    if (!tlogResponse.IsSuccessStatusCode)
+                    if (tlogResponse?.IsSuccessStatusCode != true)
                     {
                         tlogIncomplete = true;
                     }
@@ -678,13 +671,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         tLogResponseWrapper =
                             JsonConvert.DeserializeObject<TLogWrapper>(
-                                await tlogResponse.Content.ReadAsStringAsync());
+                                await tlogResponse!.Content.ReadAsStringAsync());
                         if (!string.IsNullOrEmpty(tLogResponseWrapper.Id))
                         {
                             tlogIncomplete = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tlogIncomplete = true;
                     }
@@ -947,7 +940,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         tlogItemRecordMap["not_netted_promo_frequent_shopper"] = "null";
                         tlogItemRecordMap["row_str"] = "null";
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         validItem = false;
                     }
@@ -966,23 +959,23 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var pageIncomplete = false;
                 var retryCount = 0;
-                HttpResponseMessage pageResult = null;
+                HttpResponseMessage pageResult;
                 var objectResponseWrapper = new ObjectResponseWrapper();
-                
+
                 var path = post.Item1;
                 var postBody = post.Item2;
-                
+
                 while (!pageIncomplete && retryCount < 20)
                 {
                     retryCount++;
                     try
                     {
                         pageResult = await apiClient.PostAsync(path, postBody);
-                    
+
                         objectResponseWrapper =
                             JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                 await pageResult.Content.ReadAsStringAsync());
-                        
+
                         if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                         {
                             pageIncomplete = true;
@@ -992,7 +985,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             pageIncomplete = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         pageIncomplete = true;
                     }
@@ -1002,7 +995,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         Thread.Sleep(1000 * retryCount * retryCount);
                     }
                 }
-                    
+
                 foreach (var tLogMetaData in objectResponseWrapper.PageContent)
                 {
                     var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
@@ -1111,49 +1104,52 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "name"
                 };
 
-                var properties = new List<Property>();
-
-                foreach (var staticProperty in staticSchemaProperties)
+                return await Task.Run(() =>
                 {
-                    var property = new Property();
+                    var properties = new List<Property>();
 
-                    property.Id = staticProperty;
-                    property.Name = staticProperty;
-
-                    switch (staticProperty)
+                    foreach (var staticProperty in staticSchemaProperties)
                     {
-                        case ("tlogId"):
-                        case ("id"):
-                            property.IsKey = true;
-                            property.TypeAtSource = "string";
-                            property.Type = PropertyType.String;
-                            break;
-                        case ("tender_isVoided"):
-                            property.IsKey = false;
-                            property.TypeAtSource = "boolean";
-                            property.Type = PropertyType.Bool;
-                            break;
-                        case ("tenderAmount"):
-                            property.IsKey = false;
-                            property.TypeAtSource = "double";
-                            property.Type = PropertyType.Float;
-                            break;
-                        default:
-                            property.IsKey = false;
-                            property.TypeAtSource = "string";
-                            property.Type = PropertyType.String;
-                            break;
+                        var property = new Property();
+
+                        property.Id = staticProperty;
+                        property.Name = staticProperty;
+
+                        switch (staticProperty)
+                        {
+                            case "tlogId":
+                            case "id":
+                                property.IsKey = true;
+                                property.TypeAtSource = "string";
+                                property.Type = PropertyType.String;
+                                break;
+                            case "tender_isVoided":
+                                property.IsKey = false;
+                                property.TypeAtSource = "boolean";
+                                property.Type = PropertyType.Bool;
+                                break;
+                            case "tenderAmount":
+                                property.IsKey = false;
+                                property.TypeAtSource = "double";
+                                property.Type = PropertyType.Float;
+                                break;
+                            default:
+                                property.IsKey = false;
+                                property.TypeAtSource = "string";
+                                property.Type = PropertyType.String;
+                                break;
+                        }
+
+                        properties.Add(property);
                     }
 
-                    properties.Add(property);
-                }
+                    schema.Properties.Clear();
+                    schema.Properties.AddRange(properties);
 
-                schema.Properties.Clear();
-                schema.Properties.AddRange(properties);
+                    schema.DataFlowDirection = GetDataFlowDirection();
 
-                schema.DataFlowDirection = GetDataFlowDirection();
-
-                return schema;
+                    return schema;
+                });
             }
 
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
@@ -1166,14 +1162,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
-                var safeLimit = limit > 0 ? (int) limit : Int32.MaxValue;
+                var safeLimit = limit > 0 ? (long) limit : long.MaxValue;
 
                 var queryDate = startDate;
                 var queryEndDate = endDate;
-                var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
+                var degreeOfParallelism = int.Parse(await apiClient.GetDegreeOfParallelism());
 
                 var readQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+                    JsonConvert.DeserializeObject<PostBody>(endpoint!.ReadQuery);
 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
@@ -1183,7 +1179,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 var incompletePageQueries = new List<Tuple<string, string>> { };
                 var incompleteTLogPaths = new List<string> { };
-                    
+
                 foreach (var site in workingSiteList)
                 {
 
@@ -1203,19 +1199,17 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
-                            HttpResponseMessage response = null;
+                            HttpResponseMessage? response = null;
                             try
                             {
-                                response = await apiClient.PostAsync(
-                                    path
-                                    , json);
+                                response = await apiClient.PostAsync(path, json);
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                            if (!response.IsSuccessStatusCode)
+                            if (response?.IsSuccessStatusCode != true)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
@@ -1227,14 +1221,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             {
                                 objectResponseWrapper =
                                     JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                        await response.Content.ReadAsStringAsync());
+                                        await response!.Content.ReadAsStringAsync());
                                 if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                 {
                                     incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                     pageIncomplete = true;
                                 }
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
@@ -1245,11 +1239,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 currPage++;
                                 continue;
                             }
-                            
-                            var pageContent = limit > 0
-                                ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
-                                : objectResponseWrapper?.PageContent;
 
+                            var pageContent = limit > 0
+                                ? objectResponseWrapper?.PageContent.Take((int)(safeLimit - recordCount))
+                                : objectResponseWrapper?.PageContent;
 
                             await foreach (var objectResponse in pageContent.AsParallel()
                                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism))
@@ -1271,19 +1264,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 var thisTlogId = recordMap["tlogId"];
                                 var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-                                
-                                HttpResponseMessage tlogResponse = null;
+
+                                HttpResponseMessage? tlogResponse = null;
                                 try
                                 {
                                     tlogResponse = await apiClient.GetAsync(tlogPath);
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
                                 }
 
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (tlogResponse?.IsSuccessStatusCode != true)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
@@ -1294,14 +1287,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     tLogResponseWrapper =
                                         JsonConvert.DeserializeObject<TLogWrapper>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
+                                            await tlogResponse!.Content.ReadAsStringAsync());
                                     if (string.IsNullOrEmpty(tLogResponseWrapper.Id))
                                     {
                                         incompleteTLogPaths.Add(tlogPath);
                                         tlogIncomplete = true;
                                     }
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
@@ -1313,7 +1306,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                     if (tLogResponseWrapper.Tlog.Tenders.Count > 0)
                                     {
-                                        foreach (var tender in tLogResponseWrapper.Tlog.Tenders)
+                                        foreach (var tender in tLogResponseWrapper.Tlog.Tenders.Take((int)(safeLimit - recordCount)))
                                         {
                                             tlogTenderRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                             tlogTenderRecordMap["type"] = tender.Type ?? "";
@@ -1334,13 +1327,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 Action = Record.Types.Action.Upsert,
                                                 DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
                                             };
-                                            
+
                                         }
                                     }
                                 }
                             }
 
-                            if (recordCount > limit && limit > 0 || objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            if (recordCount > limit && limit > 0 || objectResponseWrapper!.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
                             }
@@ -1352,12 +1345,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                         } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
-                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || recordCount < limit));
                 }
                 foreach (var incompletePath in incompleteTLogPaths)
                 {
                     var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -1367,7 +1360,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var incompletePageQuery in incompletePageQueries)
                 {
                     var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -1379,7 +1372,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var tLogResponseWrapper = new TLogWrapper();
                 var tlogIncomplete = true;
 
-                HttpResponseMessage tlogResponse = null;
+                HttpResponseMessage? tlogResponse = null;
                 var retryCount = 0;
                 while (tlogIncomplete && retryCount <= 20)
                 {
@@ -1388,12 +1381,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         tlogResponse = await apiClient.GetAsync(tLogPath);
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tlogIncomplete = true;
                     }
 
-                    if (!tlogResponse.IsSuccessStatusCode)
+                    if (tlogResponse?.IsSuccessStatusCode != true)
                     {
                         tlogIncomplete = true;
                     }
@@ -1402,13 +1395,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         tLogResponseWrapper =
                             JsonConvert.DeserializeObject<TLogWrapper>(
-                                await tlogResponse.Content.ReadAsStringAsync());
+                                await tlogResponse!.Content.ReadAsStringAsync());
                         if (!string.IsNullOrEmpty(tLogResponseWrapper.Id))
                         {
                             tlogIncomplete = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tlogIncomplete = true;
                     }
@@ -1452,23 +1445,23 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var pageIncomplete = false;
                 var retryCount = 0;
-                HttpResponseMessage pageResult = null;
+                HttpResponseMessage pageResult;
                 var objectResponseWrapper = new ObjectResponseWrapper();
-                
+
                 var path = post.Item1;
                 var postBody = post.Item2;
-                
+
                 while (!pageIncomplete && retryCount < 20)
                 {
                     retryCount++;
                     try
                     {
                         pageResult = await apiClient.PostAsync(path, postBody);
-                    
+
                         objectResponseWrapper =
                             JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                 await pageResult.Content.ReadAsStringAsync());
-                        
+
                         if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                         {
                             pageIncomplete = true;
@@ -1478,7 +1471,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             pageIncomplete = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         pageIncomplete = true;
                     }
@@ -1488,7 +1481,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         Thread.Sleep(1000 * retryCount * retryCount);
                     }
                 }
-                    
+
                 foreach (var tLogMetaData in objectResponseWrapper.PageContent)
                 {
                     var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
@@ -1594,40 +1587,43 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "programType"
                 };
 
-                var properties = new List<Property>();
-
-                foreach (var staticProperty in staticSchemaProperties)
+                return await Task.Run(() => 
                 {
-                    var property = new Property();
+                    var properties = new List<Property>();
 
-                    property.Id = staticProperty;
-                    property.Name = staticProperty;
-
-                    switch (staticProperty)
+                    foreach (var staticProperty in staticSchemaProperties)
                     {
-                        case ("tlogId"):
-                        case ("loyaltyAccountRow"):
-                        case ("loyaltyAccountId"):
-                            property.IsKey = true;
-                            property.TypeAtSource = "string";
-                            property.Type = PropertyType.String;
-                            break;
-                        default:
-                            property.IsKey = false;
-                            property.TypeAtSource = "string";
-                            property.Type = PropertyType.String;
-                            break;
+                        var property = new Property();
+
+                        property.Id = staticProperty;
+                        property.Name = staticProperty;
+
+                        switch (staticProperty)
+                        {
+                            case "tlogId":
+                            case "loyaltyAccountRow":
+                            case "loyaltyAccountId":
+                                property.IsKey = true;
+                                property.TypeAtSource = "string";
+                                property.Type = PropertyType.String;
+                                break;
+                            default:
+                                property.IsKey = false;
+                                property.TypeAtSource = "string";
+                                property.Type = PropertyType.String;
+                                break;
+                        }
+
+                        properties.Add(property);
                     }
 
-                    properties.Add(property);
-                }
+                    schema.Properties.Clear();
+                    schema.Properties.AddRange(properties);
 
-                schema.Properties.Clear();
-                schema.Properties.AddRange(properties);
+                    schema.DataFlowDirection = GetDataFlowDirection();
 
-                schema.DataFlowDirection = GetDataFlowDirection();
-
-                return schema;
+                    return schema;
+                });
             }
 
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
@@ -1639,19 +1635,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
-                var safeLimit = limit > 0 ? (int) limit : Int32.MaxValue;
+                var safeLimit = limit > 0 ? (int) limit : int.MaxValue;
                 var queryDate = startDate;
                 var queryEndDate = endDate;
-                var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
+                var degreeOfParallelism = int.Parse(await apiClient.GetDegreeOfParallelism());
                 var readQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+                    JsonConvert.DeserializeObject<PostBody>(endpoint!.ReadQuery);
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
                 var incompletePageQueries = new List<Tuple<string, string>> { };
                 var incompleteTLogPaths = new List<string> { };
-                    
+
                 foreach (var site in workingSiteList)
                 {
 
@@ -1671,19 +1667,17 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             readQuery.PageNumber = currPage;
 
                             var json = JsonConvert.SerializeObject(readQuery);
-                            HttpResponseMessage response = null;
+                            HttpResponseMessage? response = null;
                             try
                             {
-                                response = await apiClient.PostAsync(
-                                    path
-                                    , json);
+                                response = await apiClient.PostAsync(path, json);
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                            if (!response.IsSuccessStatusCode)
+                            if (response?.IsSuccessStatusCode != true)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
@@ -1695,19 +1689,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             {
                                 objectResponseWrapper =
                                     JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                        await response.Content.ReadAsStringAsync());
+                                        await response!.Content.ReadAsStringAsync());
                                 if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                 {
                                     incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                     pageIncomplete = true;
                                 }
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                                
+
                             if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
                             {
                                 currPage++;
@@ -1723,7 +1717,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             {
                                 var recordMap = new Dictionary<string, object>();
                                 var tlogIncomplete = false;
-                                    
+
                                 foreach (var objectProperty in objectResponse)
                                 {
                                     try
@@ -1739,17 +1733,17 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 var thisTlogId = recordMap["tlogId"];
                                 var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
 
-                                HttpResponseMessage tlogResponse = null;
+                                HttpResponseMessage? tlogResponse = null;
                                 try
                                 {
                                     tlogResponse = await apiClient.GetAsync(tlogPath);
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
                                 }
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (tlogResponse?.IsSuccessStatusCode != true)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
@@ -1760,14 +1754,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     tLogResponseWrapper =
                                         JsonConvert.DeserializeObject<TLogWrapper>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
+                                            await tlogResponse!.Content.ReadAsStringAsync());
                                     if (string.IsNullOrEmpty(tLogResponseWrapper.Id))
                                     {
                                         incompleteTLogPaths.Add(tlogPath);
                                         tlogIncomplete = true;
                                     }
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
@@ -1800,13 +1794,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 DataJson = JsonConvert.SerializeObject(
                                                     tlogLoyaltyAccountRecordMap)
                                             };
-                                            
+
                                         }
                                     }
                                 }
                             }
 
-                            if (recordCount > limit && limit > 0 || objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            if (recordCount > limit && limit > 0 || objectResponseWrapper!.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
                             }
@@ -1817,12 +1811,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
-                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || recordCount < limit));
                 }
                 foreach (var incompletePath in incompleteTLogPaths)
                 {
                     var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -1832,7 +1826,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var incompletePageQuery in incompletePageQueries)
                 {
                     var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -1845,7 +1839,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var tLogResponseWrapper = new TLogWrapper();
                 var tlogIncomplete = true;
 
-                HttpResponseMessage tlogResponse = null;
+                HttpResponseMessage? tlogResponse = null;
                 var retryCount = 0;
                 while (tlogIncomplete && retryCount <= 20)
                 {
@@ -1854,12 +1848,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         tlogResponse = await apiClient.GetAsync(tLogPath);
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tlogIncomplete = true;
                     }
 
-                    if (!tlogResponse.IsSuccessStatusCode)
+                    if (tlogResponse?.IsSuccessStatusCode != true)
                     {
                         tlogIncomplete = true;
                     }
@@ -1868,13 +1862,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         tLogResponseWrapper =
                             JsonConvert.DeserializeObject<TLogWrapper>(
-                                await tlogResponse.Content.ReadAsStringAsync());
+                                await tlogResponse!.Content.ReadAsStringAsync());
                         if (!string.IsNullOrEmpty(tLogResponseWrapper.Id))
                         {
                             tlogIncomplete = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tlogIncomplete = true;
                     }
@@ -1921,23 +1915,23 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var pageIncomplete = false;
                 var retryCount = 0;
-                HttpResponseMessage pageResult = null;
+                HttpResponseMessage pageResult;
                 var objectResponseWrapper = new ObjectResponseWrapper();
-                
+
                 var path = post.Item1;
                 var postBody = post.Item2;
-                
+
                 while (!pageIncomplete && retryCount < 20)
                 {
                     retryCount++;
                     try
                     {
                         pageResult = await apiClient.PostAsync(path, postBody);
-                    
+
                         objectResponseWrapper =
                             JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                 await pageResult.Content.ReadAsStringAsync());
-                        
+
                         if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                         {
                             pageIncomplete = true;
@@ -1947,7 +1941,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             pageIncomplete = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         pageIncomplete = true;
                     }
@@ -1957,7 +1951,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         Thread.Sleep(1000 * retryCount * retryCount);
                     }
                 }
-                    
+
                 foreach (var tLogMetaData in objectResponseWrapper.PageContent)
                 {
                     var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
@@ -2070,46 +2064,49 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "itemTaxSequenceNumber"
                 };
 
-                var properties = new List<Property>();
-
-                foreach (var staticProperty in staticSchemaProperties)
+                return await Task.Run(() =>
                 {
-                    var property = new Property();
+                    var properties = new List<Property>();
 
-                    property.Id = staticProperty;
-                    property.Name = staticProperty;
-
-                    switch (staticProperty)
+                    foreach (var staticProperty in staticSchemaProperties)
                     {
-                        case ("tlogId"):
-                        case ("itemId"):
-                        case ("itemTaxId"):
-                            property.IsKey = true;
-                            property.TypeAtSource = "string";
-                            property.Type = PropertyType.String;
-                            break;
-                        case ("itemTaxIsRefund"):
-                        case ("itemTaxIsVoided"):
-                            property.IsKey = false;
-                            property.TypeAtSource = "bool";
-                            property.Type = PropertyType.Bool;
-                            break;
-                        default:
-                            property.IsKey = false;
-                            property.TypeAtSource = "string";
-                            property.Type = PropertyType.String;
-                            break;
+                        var property = new Property();
+
+                        property.Id = staticProperty;
+                        property.Name = staticProperty;
+
+                        switch (staticProperty)
+                        {
+                            case "tlogId":
+                            case "itemId":
+                            case "itemTaxId":
+                                property.IsKey = true;
+                                property.TypeAtSource = "string";
+                                property.Type = PropertyType.String;
+                                break;
+                            case "itemTaxIsRefund":
+                            case "itemTaxIsVoided":
+                                property.IsKey = false;
+                                property.TypeAtSource = "bool";
+                                property.Type = PropertyType.Bool;
+                                break;
+                            default:
+                                property.IsKey = false;
+                                property.TypeAtSource = "string";
+                                property.Type = PropertyType.String;
+                                break;
+                        }
+
+                        properties.Add(property);
                     }
 
-                    properties.Add(property);
-                }
+                    schema.Properties.Clear();
+                    schema.Properties.AddRange(properties);
 
-                schema.Properties.Clear();
-                schema.Properties.AddRange(properties);
+                    schema.DataFlowDirection = GetDataFlowDirection();
 
-                schema.DataFlowDirection = GetDataFlowDirection();
-
-                return schema;
+                    return schema;
+                });
             }
 
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
@@ -2121,12 +2118,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var currPage = 0;
                 var currDayOffset = 0;
                 uint recordCount = 0;
-                var safeLimit = limit > 0 ? (int) limit : Int32.MaxValue;
+                var safeLimit = limit > 0 ? (int) limit : int.MaxValue;
                 var queryDate = startDate;
                 var queryEndDate = endDate;
-                var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
+                var degreeOfParallelism = int.Parse(await apiClient.GetDegreeOfParallelism());
                 var readQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+                    JsonConvert.DeserializeObject<PostBody>(endpoint!.ReadQuery);
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
@@ -2153,20 +2150,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
                             var json = JsonConvert.SerializeObject(readQuery);
-                                
-                            HttpResponseMessage response = null;
+
+                            HttpResponseMessage? response = null;
                             try
                             {
-                                response = await apiClient.PostAsync(
-                                    path
-                                    , json);
+                                response = await apiClient.PostAsync(path, json);
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                            if (!response.IsSuccessStatusCode)
+                            if (response?.IsSuccessStatusCode != true)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
@@ -2178,25 +2173,25 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             {
                                 objectResponseWrapper =
                                     JsonConvert.DeserializeObject<ObjectResponseWrapper>(
-                                        await response.Content.ReadAsStringAsync());
+                                        await response!.Content.ReadAsStringAsync());
                                 if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                                 {
                                     incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                     pageIncomplete = true;
                                 }
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                            
+
                             if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
                             {
                                 currPage++;
                                 continue;
                             }
-                            
+
                             var pageContent = limit > 0
                                 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
@@ -2220,17 +2215,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 }
 
                                 var thisTlogId = recordMap["tlogId"];
-                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;HttpResponseMessage tlogResponse = null;
+                                var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
+                                HttpResponseMessage? tlogResponse = null;
                                 try
                                 {
                                     tlogResponse = await apiClient.GetAsync(tlogPath);
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
                                 }
-                                if (!tlogResponse.IsSuccessStatusCode)
+                                if (tlogResponse?.IsSuccessStatusCode != true)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
@@ -2241,14 +2237,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 {
                                     tLogResponseWrapper =
                                         JsonConvert.DeserializeObject<TLogWrapper>(
-                                            await tlogResponse.Content.ReadAsStringAsync());
+                                            await tlogResponse!.Content.ReadAsStringAsync());
                                     if (string.IsNullOrEmpty(tLogResponseWrapper.Id))
                                     {
                                         incompleteTLogPaths.Add(tlogPath);
                                         tlogIncomplete = true;
                                     }
                                 }
-                                catch (Exception e)
+                                catch (Exception)
                                 {
                                     incompleteTLogPaths.Add(tlogPath);
                                     tlogIncomplete = true;
@@ -2287,12 +2283,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 Action = Record.Types.Action.Upsert,
                                                 DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
                                             };
-                                            
+
                                         }
                                     }
                                 }
                             }
-                            if (recordCount > limit && limit > 0 || objectResponseWrapper.LastPage.ToLower() == "true" || currPage >= 9)
+                            if (recordCount > limit && limit > 0 || objectResponseWrapper!.LastPage.ToLower() == "true" || currPage >= 9)
                             {
                                 hasMore = false;
                             }
@@ -2303,12 +2299,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
                     } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
-                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || recordCount < limit));
                 }
                 foreach (var incompletePath in incompleteTLogPaths)
                 {
                     var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -2318,7 +2314,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var incompletePageQuery in incompletePageQueries)
                 {
                     var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -2330,7 +2326,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var tLogResponseWrapper = new TLogWrapper();
                 var tlogIncomplete = true;
 
-                HttpResponseMessage tlogResponse = null;
+                HttpResponseMessage? tlogResponse = null;
                 var retryCount = 0;
                 while (tlogIncomplete && retryCount <= 20)
                 {
@@ -2339,12 +2335,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         tlogResponse = await apiClient.GetAsync(tLogPath);
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tlogIncomplete = true;
                     }
 
-                    if (!tlogResponse.IsSuccessStatusCode)
+                    if (tlogResponse?.IsSuccessStatusCode != true)
                     {
                         tlogIncomplete = true;
                     }
@@ -2353,13 +2349,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     {
                         tLogResponseWrapper =
                             JsonConvert.DeserializeObject<TLogWrapper>(
-                                await tlogResponse.Content.ReadAsStringAsync());
+                                await tlogResponse!.Content.ReadAsStringAsync());
                         if (!string.IsNullOrEmpty(tLogResponseWrapper.Id))
                         {
                             tlogIncomplete = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tlogIncomplete = true;
                     }
@@ -2403,7 +2399,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
                                 };
                             }
-                            
+
                         }
                     }
                 }
@@ -2412,23 +2408,23 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             {
                 var pageIncomplete = false;
                 var retryCount = 0;
-                HttpResponseMessage pageResult = null;
+                HttpResponseMessage pageResult;
                 var objectResponseWrapper = new ObjectResponseWrapper();
-                
+
                 var path = post.Item1;
                 var postBody = post.Item2;
-                
+
                 while (!pageIncomplete && retryCount < 20)
                 {
                     retryCount++;
                     try
                     {
                         pageResult = await apiClient.PostAsync(path, postBody);
-                    
+
                         objectResponseWrapper =
                             JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                 await pageResult.Content.ReadAsStringAsync());
-                        
+
                         if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                         {
                             pageIncomplete = true;
@@ -2438,7 +2434,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             pageIncomplete = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         pageIncomplete = true;
                     }
@@ -2448,7 +2444,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         Thread.Sleep(1000 * retryCount * retryCount);
                     }
                 }
-                    
+
                 foreach (var tLogMetaData in objectResponseWrapper.PageContent)
                 {
                     var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
@@ -2545,7 +2541,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
-        
+
 
         public static readonly Dictionary<string, Endpoint> TransactionDocumentEndpoints =
             new Dictionary<string, Endpoint>
@@ -2979,6 +2975,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 }
             };
-        
+
     }
 }

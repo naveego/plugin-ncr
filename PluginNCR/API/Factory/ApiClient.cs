@@ -1,13 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
@@ -15,7 +10,6 @@ using Naveego.Sdk.Logging;
 using Newtonsoft.Json;
 using PluginNCR.API.Utility;
 using PluginNCR.Helper;
-using RestSharp;
 
 namespace PluginNCR.API.Factory
 {
@@ -26,14 +20,14 @@ namespace PluginNCR.API.Factory
         [JsonProperty("siteInfoIds")] public string[] SiteInfoIds { get; set; }
         [JsonProperty("pageSize")] public string PageSize { get; set; }
         //[JsonProperty("date")] public string Date { get; set; }
-        
+
         // [JsonProperty("nep-correlation-id")] public string NepCorrelationId { get; set; }
         // [JsonProperty("Authorization")] public string Authorization { get; set; }
         // [JsonProperty("nep-application-key")] public string NepApplicationKey { get; set; }
         // [JsonProperty("date")] public string Date { get; set; }
         // [JsonProperty("nep-organization")] public string NepOrganization { get; set; }
         // [JsonProperty("content-type")] public string ContentType { get; set; }
-        
+
     }
 
     public class BusinessDay
@@ -49,20 +43,20 @@ namespace PluginNCR.API.Factory
 
         private const string ApiKeyParam = "hapikey";
 
-        
-        
+
+
         public ApiClient(HttpClient client, Settings settings)
         {
             Authenticator = new ApiAuthenticator(client, settings);
             Client = client;
             Settings = settings;
-            
+
             Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
         public async Task GetAuthToken()
         {
-            
+
         }
         public async Task<string> GetStartDate()
         {
@@ -73,7 +67,7 @@ namespace PluginNCR.API.Factory
         {
             return Settings.DegreeOfParallelism;
         }
-        
+
         public async Task<string> GetEndDate()
         {
             if (string.IsNullOrWhiteSpace(Settings.QueryEndDate))
@@ -88,7 +82,7 @@ namespace PluginNCR.API.Factory
         {
             return Settings.SiteIDs;
         }
-        
+
         public async Task TestConnection()
         {
             try
@@ -96,12 +90,12 @@ namespace PluginNCR.API.Factory
                 var uriBuilder = new UriBuilder($"{Constants.BaseApiUrl.TrimEnd('/')}/{Utility.Constants.TestConnectionPath.TrimStart('/')}");
                 var query = HttpUtility.ParseQueryString(uriBuilder.Query);
                 var date = DateTimeOffset.UtcNow;
-                
-                
+
+
                 uriBuilder.Query = query.ToString();
-                
+
                 var uri = new Uri(uriBuilder.ToString());
-                
+
                 var json =
                     "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}";
 
@@ -117,12 +111,12 @@ namespace PluginNCR.API.Factory
                 request.Headers.Add("nep-organization", Settings.NepOrganization);
                 request.Headers.Date = date;
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-                
+
                 var token = await Authenticator.GetNewToken(date, uri.PathAndQuery, "POST");
 
                 //accesstoken
                 // request.Headers.Add("Authorization", $"AccessToken {token}");
-                
+
                 request.Headers.Add("Authorization", token);
 
                 //webrequest testing below
@@ -137,7 +131,7 @@ namespace PluginNCR.API.Factory
                 webRequest.Headers["nep-organization"] = Settings.NepOrganization;
 
                 webRequest.Headers["Date"] = date.ToString("ddd, dd MMM yyyy HH:mm:ss") + " GMT";
-                
+
                 var response = new HttpResponseMessage(HttpStatusCode.OK);
                 using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
                 {
@@ -149,7 +143,7 @@ namespace PluginNCR.API.Factory
                     var result = await streamReader.ReadToEndAsync();
                     response.Content = new StringContent(result, Encoding.UTF8, "application/json");
                 }
-                
+
                 //old below
                 // send request
                 // var client = new HttpClient();
@@ -164,14 +158,14 @@ namespace PluginNCR.API.Factory
             }
         }
 
-      
+
         public async Task<HttpResponseMessage> GetAsync(string path)
         {
             var uriBuilder = new UriBuilder(path);
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             uriBuilder.Query = query.ToString();
             var uri = new Uri(uriBuilder.ToString());
-            
+
             var date = DateTimeOffset.UtcNow;
             var token = await Authenticator.GetNewToken(date, uri.PathAndQuery, "GET");
             var webRequest = WebRequest.Create(uri.ToString());
@@ -194,13 +188,13 @@ namespace PluginNCR.API.Factory
                     response.Content = new StringContent(result, Encoding.UTF8, "application/json");
                 }
             }
-            catch (WebException e)
+            catch (WebException)
             {
                 double backOffRetryCount = 1;
                 while (backOffRetryCount <= 10 && !response.IsSuccessStatusCode)
                 {
                     await Task.Delay((int)(Math.Pow(3, backOffRetryCount) * 1000));
-                    
+
                     var webResponse = await webRequest.GetResponseAsync();
                     using (var streamReader = new StreamReader(webResponse.GetResponseStream()))
                     {
@@ -218,9 +212,9 @@ namespace PluginNCR.API.Factory
             var uriBuilder = new UriBuilder(path);
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             var date = DateTimeOffset.UtcNow;
-            
+
             uriBuilder.Query = query.ToString();
-                
+
             var uri = new Uri(uriBuilder.ToString());
 
             var request = new HttpRequestMessage
@@ -229,13 +223,13 @@ namespace PluginNCR.API.Factory
                 RequestUri = uri,
                 Content = json
             };
-            
+
             request.Headers.Add("nep-correlation-id", Settings.NepCorrelationId);
             request.Headers.Add("nep-application-key", Settings.NepApplicationKey);
             request.Headers.Add("nep-organization", Settings.NepOrganization);
             request.Headers.Date = date;
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-                
+
             var token = await Authenticator.GetNewToken(date, uri.PathAndQuery, "POST");
 
             request.Headers.Add("Authorization", $"AccessToken {token}");
@@ -260,14 +254,14 @@ namespace PluginNCR.API.Factory
         {
             try
             {
-                
+
                 var uriBuilder = new UriBuilder($"{Constants.BaseApiUrl.TrimEnd('/')}/{path.TrimStart('/')}");
                 var query = HttpUtility.ParseQueryString(uriBuilder.Query);
                 uriBuilder.Query = query.ToString();
-                
+
                 var date = DateTimeOffset.UtcNow;
                 var token = await Authenticator.GetNewToken(date, path, "POST");
-                
+
                 var uri = new Uri(uriBuilder.ToString());
                 byte[] postBytes = Encoding.UTF8.GetBytes(json?.ToString() ?? "");
                 var webRequest = HttpWebRequest.Create(uri.ToString());
@@ -279,7 +273,7 @@ namespace PluginNCR.API.Factory
                 webRequest.Headers["nep-application-key"] = Settings.NepApplicationKey;
                 webRequest.Headers["nep-organization"] = Settings.NepOrganization;
                 webRequest.Headers["Date"] = date.ToString("ddd, dd MMM yyyy HH:mm:ss") + " GMT";
-                
+
                 var response = new HttpResponseMessage();
                 using (var streamWriter = new StreamWriter(await webRequest.GetRequestStreamAsync()))
                 {
@@ -325,9 +319,9 @@ namespace PluginNCR.API.Factory
                 var query = HttpUtility.ParseQueryString(uriBuilder.Query);
 
                 uriBuilder.Query = query.ToString();
-                
+
                 var uri = new Uri(uriBuilder.ToString());
-                
+
                 var request = new HttpRequestMessage
                 {
                     Method = HttpMethod.Patch,
@@ -346,7 +340,7 @@ namespace PluginNCR.API.Factory
         public async Task<HttpResponseMessage> DeleteAsync(string path)
         {
             throw new NotImplementedException("Delete is not currently supported by the NCR plugin.");
-           
+
         }
     }
 }
