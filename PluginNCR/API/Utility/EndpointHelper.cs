@@ -21,8 +21,10 @@ namespace PluginNCR.API.Utility
 
         static EndpointHelper()
         {
-             TransactionDocumentEndpointHelper.TransactionDocumentEndpoints.ToList().ForEach(x => Endpoints.TryAdd(x.Key, x.Value));
-         
+            TransactionDocumentEndpointHelper.TransactionDocumentEndpoints.ToList()
+                .ForEach(x => Endpoints.TryAdd(x.Key, x.Value));
+            TransactionDocumentReceivedDateEndpointHelper.TransactionDocumentEndpoints.ToList()
+                .ForEach(x => Endpoints.TryAdd(x.Key, x.Value));
         }
 
         public static Dictionary<string, Endpoint> GetAllEndpoints()
@@ -156,7 +158,7 @@ namespace PluginNCR.API.Utility
                                     JsonConvert.DeserializeObject<TLogWrapper>(
                                         await tlogResponse.Content.ReadAsStringAsync());
                             }
-                            catch(Exception e)
+                            catch (Exception e)
                             {
                                 var debug = e.Message;
                             }
@@ -344,7 +346,7 @@ namespace PluginNCR.API.Utility
                                             validItem = false;
                                         }
                                     }
-                                    catch (Exception e)
+                                    catch (Exception)
                                     {
                                         validItem = false;
                                     }

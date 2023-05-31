@@ -22,11 +22,8 @@ namespace PluginNCR.DataContracts
         public List<Dictionary<string, object>> PageContent { get; set; }
     }
 
-    public class PostBody
+    public abstract class BasePostBody
     {
-        [JsonProperty("businessDay", NullValueHandling = NullValueHandling.Ignore)]
-        public DateWrapper DateWrapper { get; set; }
-        
         [JsonProperty("siteInfoIds", NullValueHandling = NullValueHandling.Ignore)]
         public List<string> SiteInfoIds { get; set; }
         
@@ -38,6 +35,18 @@ namespace PluginNCR.DataContracts
         
         [JsonProperty("transactionCategories", NullValueHandling = NullValueHandling.Ignore)]
         public List<string> TransactionCategories { get; set; }
+    }
+
+    public class PostBody : BasePostBody
+    {
+        [JsonProperty("businessDay", NullValueHandling = NullValueHandling.Ignore)]
+        public DateWrapper DateWrapper { get; set; }
+    }
+
+    public class ReceivedDatePostBody : BasePostBody
+    {
+        [JsonProperty("receivedDateTimeUtc", NullValueHandling = NullValueHandling.Ignore)]
+        public DateWrapper DateWrapper { get; set; }
     }
 
     public class ObjectResponse

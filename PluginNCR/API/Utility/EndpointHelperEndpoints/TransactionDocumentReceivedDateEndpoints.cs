@@ -15,9 +15,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 {
-    public class TransactionDocumentEndpointHelper
+    public class TransactionDocumentReceivedDateEndpointHelper
     {
-        private class TransactionDocumentEndpoint : Endpoint
+        private class TransactionDocumentReceivedDateEndpoint : Endpoint
         {
             private Queue<Record> privateRecords = new Queue<Record>() { };
             private bool finishedReading = false; 
@@ -184,7 +184,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var queryEndDate = endDate;
                 var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
                 var readQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+                    JsonConvert.DeserializeObject<ReceivedDatePostBody>(endpoint.ReadQuery);
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var initSites = tempSiteList.Replace(" ", "").Split(',');
@@ -1009,7 +1009,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_Historical : TransactionDocumentEndpoint
+        private class TransactionDocumentEndpoint_Historical_ReceivedDate
+            : TransactionDocumentReceivedDateEndpoint
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1029,7 +1030,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_Yesterday : TransactionDocumentEndpoint
+        private class TransactionDocumentEndpoint_Yesterday_ReceivedDate
+            : TransactionDocumentReceivedDateEndpoint
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1047,7 +1049,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_7Days : TransactionDocumentEndpoint
+        private class TransactionDocumentEndpoint_7Days_ReceivedDate
+            : TransactionDocumentReceivedDateEndpoint
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1068,7 +1071,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_Today : TransactionDocumentEndpoint
+        private class TransactionDocumentEndpoint_Today_ReceivedDate
+            : TransactionDocumentReceivedDateEndpoint
         {
             public override async IAsyncEnumerable<Record>ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1086,7 +1090,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_Tenders : Endpoint
+        private class TransactionDocumentEndpoint_Tenders_ReceivedDate
+            : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
@@ -1166,7 +1171,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
 
                 var readQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+                    JsonConvert.DeserializeObject<ReceivedDatePostBody>(endpoint.ReadQuery);
 
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
@@ -1495,7 +1500,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_Tenders_Historical : TransactionDocumentEndpoint_Tenders
+        private class TransactionDocumentEndpoint_Tenders_Historical_ReceivedDate
+            : TransactionDocumentEndpoint_Tenders_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1515,7 +1521,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_Tenders_Today : TransactionDocumentEndpoint_Tenders
+        private class TransactionDocumentEndpoint_Tenders_Today_ReceivedDate
+            : TransactionDocumentEndpoint_Tenders_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1533,7 +1540,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_Tenders_Yesterday : TransactionDocumentEndpoint_Tenders
+        private class TransactionDocumentEndpoint_Tenders_Yesterday_ReceivedDate
+            : TransactionDocumentEndpoint_Tenders_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1552,7 +1560,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_Tenders_7Days : TransactionDocumentEndpoint_Tenders
+        private class TransactionDocumentEndpoint_Tenders_7Days_ReceivedDate
+            : TransactionDocumentEndpoint_Tenders_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1573,7 +1582,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_LoyaltyAccounts : Endpoint
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_ReceivedDate
+            : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
@@ -1637,7 +1647,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var queryEndDate = endDate;
                 var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
                 var readQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+                    JsonConvert.DeserializeObject<ReceivedDatePostBody>(endpoint.ReadQuery);
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
@@ -1964,8 +1974,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class
-            TransactionDocumentEndpoint_LoyaltyAccounts_Historical : TransactionDocumentEndpoint_LoyaltyAccounts
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_Historical_ReceivedDate
+            : TransactionDocumentEndpoint_LoyaltyAccounts_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -1985,8 +1995,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class
-            TransactionDocumentEndpoint_LoyaltyAccounts_Today : TransactionDocumentEndpoint_LoyaltyAccounts
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_Today_ReceivedDate
+            : TransactionDocumentEndpoint_LoyaltyAccounts_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -2004,8 +2014,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class
-            TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday : TransactionDocumentEndpoint_LoyaltyAccounts
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday_ReceivedDate
+            : TransactionDocumentEndpoint_LoyaltyAccounts_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -2023,8 +2033,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class
-            TransactionDocumentEndpoint_LoyaltyAccounts_7Days : TransactionDocumentEndpoint_LoyaltyAccounts
+        private class TransactionDocumentEndpoint_LoyaltyAccounts_7Days_ReceivedDate
+            : TransactionDocumentEndpoint_LoyaltyAccounts_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit, string startDate = "", string endDate = "",
@@ -2044,7 +2054,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class TransactionDocumentEndpoint_TransactionDocument_ItemTaxes : Endpoint
+        private class TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_ReceivedDate
+            : Endpoint
         {
             public override async Task<Schema> GetStaticSchemaAsync(IApiClient apiClient, Schema schema)
             {
@@ -2119,7 +2130,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var queryEndDate = endDate;
                 var degreeOfParallelism = Int32.Parse(await apiClient.GetDegreeOfParallelism());
                 var readQuery =
-                    JsonConvert.DeserializeObject<PostBody>(endpoint.ReadQuery);
+                    JsonConvert.DeserializeObject<ReceivedDatePostBody>(endpoint.ReadQuery);
                 var path = $"{BasePath.TrimEnd('/')}/{AllPath.TrimStart('/')}";
                 var tempSiteList = await apiClient.GetSiteIds();
                 var workingSiteList = tempSiteList.Replace(" ", "").Split(',');
@@ -2455,9 +2466,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class
-            TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Historical :
-                TransactionDocumentEndpoint_TransactionDocument_ItemTaxes
+        private class TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Historical_ReceivedDate
+            : TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -2477,9 +2487,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class
-            TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Today :
-                TransactionDocumentEndpoint_TransactionDocument_ItemTaxes
+        private class TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Today_ReceivedDate
+            : TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -2497,9 +2506,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class
-            TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Yesterday :
-                TransactionDocumentEndpoint_TransactionDocument_ItemTaxes
+        private class TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Yesterday_ReceivedDate
+            : TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
@@ -2517,9 +2525,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
             }
         }
 
-        private class
-            TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_7Days :
-                TransactionDocumentEndpoint_TransactionDocument_ItemTaxes
+        private class TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_7Days_ReceivedDate
+            : TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_ReceivedDate
         {
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit, string startDate = "", string endDate = "",
@@ -2538,25 +2545,24 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 }
             }
         }
-        
 
         public static readonly Dictionary<string, Endpoint> TransactionDocumentEndpoints =
             new Dictionary<string, Endpoint>
             {
                 {
-                    "TransactionDocument_Tenders_HistoricalFromDate",
-                    new TransactionDocumentEndpoint_Tenders_Historical
+                    "TransactionDocument_Tenders_HistoricalFromDate_ReceivedDate",
+                    new TransactionDocumentEndpoint_Tenders_Historical_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_Tenders_HistoricalFromDate",
-                        Name = "TransactionDocument_Tenders_HistoricalFromDate",
+                        Id = "TransactionDocument_Tenders_HistoricalFromDate_ReceivedDate",
+                        Name = "TransactionDocument_Tenders_HistoricalFromDate_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2571,18 +2577,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_Tenders_Yesterday", new TransactionDocumentEndpoint_Tenders_Yesterday
+                    "TransactionDocument_Tenders_Yesterday_ReceivedDate",
+                    new TransactionDocumentEndpoint_Tenders_Yesterday_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_Tenders_Yesterday",
-                        Name = "TransactionDocument_Tenders_Yesterday",
+                        Id = "TransactionDocument_Tenders_Yesterday_ReceivedDate",
+                        Name = "TransactionDocument_Tenders_Yesterday_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
                             DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
@@ -2598,18 +2605,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_Tenders_7Days", new TransactionDocumentEndpoint_Tenders_7Days
+                    "TransactionDocument_Tenders_7Days_ReceivedDate",
+                    new TransactionDocumentEndpoint_Tenders_7Days_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_Tenders_7Days",
-                        Name = "TransactionDocument_Tenders_7Days",
+                        Id = "TransactionDocument_Tenders_7Days_ReceivedDate",
+                        Name = "TransactionDocument_Tenders_7Days_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
                             DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
@@ -2625,7 +2633,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_Tenders_Today", new TransactionDocumentEndpoint_Tenders_Today
+                    "TransactionDocument_Tenders_Today_ReceivedDate",
+                    new TransactionDocumentEndpoint_Tenders_Today_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
                         Id = "TransactionDocument_Tenders_Today",
@@ -2634,9 +2643,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2651,18 +2660,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_HistoricalFromDate", new TransactionDocumentEndpoint_Historical
+                    "TransactionDocument_HistoricalFromDate_ReceivedDate", new TransactionDocumentEndpoint_Historical_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_HistoricalFromDate",
-                        Name = "TransactionDocument_HistoricalFromDate",
+                        Id = "TransactionDocument_HistoricalFromDate_ReceivedDate",
+                        Name = "TransactionDocument_HistoricalFromDate_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2677,18 +2686,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_Today", new TransactionDocumentEndpoint_Today
+                    "TransactionDocument_Today_ReceivedDate",
+                    new TransactionDocumentEndpoint_Today_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_Today",
-                        Name = "TransactionDocument_Today",
+                        Id = "TransactionDocument_Today_ReceivedDate",
+                        Name = "TransactionDocument_Today_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2703,18 +2713,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_Yesterday", new TransactionDocumentEndpoint_Yesterday
+                    "TransactionDocument_Yesterday_ReceivedDate", new TransactionDocumentEndpoint_Yesterday_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_Yesterday",
-                        Name = "TransactionDocument_Yesterday",
+                        Id = "TransactionDocument_Yesterday_ReceivedDate",
+                        Name = "TransactionDocument_Yesterday_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
                             DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
@@ -2730,18 +2740,18 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_7Days", new TransactionDocumentEndpoint_7Days
+                    "TransactionDocument_7Days_ReceivedDate", new TransactionDocumentEndpoint_7Days_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_7Days",
-                        Name = "TransactionDocument_7Days",
+                        Id = "TransactionDocument_7Days_ReceivedDate",
+                        Name = "TransactionDocument_7Days_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
                             DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
@@ -2757,19 +2767,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_LoyaltyAccounts_HistoricalFromDate",
-                    new TransactionDocumentEndpoint_LoyaltyAccounts_Historical
+                    "TransactionDocument_LoyaltyAccounts_HistoricalFromDate_ReceivedDate",
+                    new TransactionDocumentEndpoint_LoyaltyAccounts_Historical_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_LoyaltyAccounts_HistoricalFromDate",
-                        Name = "TransactionDocument_LoyaltyAccounts_HistoricalFromDate",
+                        Id = "TransactionDocument_LoyaltyAccounts_HistoricalFromDate_ReceivedDate",
+                        Name = "TransactionDocument_LoyaltyAccounts_HistoricalFromDate_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2784,19 +2794,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_LoyaltyAccounts_Yesterday",
-                    new TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday
+                    "TransactionDocument_LoyaltyAccounts_Yesterday_ReceivedDate",
+                    new TransactionDocumentEndpoint_LoyaltyAccounts_Yesterday_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_LoyaltyAccounts_Yesterday",
-                        Name = "TransactionDocument_LoyaltyAccounts_Yesterday",
+                        Id = "TransactionDocument_LoyaltyAccounts_Yesterday_ReceivedDate",
+                        Name = "TransactionDocument_LoyaltyAccounts_Yesterday_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
                             DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
@@ -2812,19 +2822,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_LoyaltyAccounts_7Days",
-                    new TransactionDocumentEndpoint_LoyaltyAccounts_7Days
+                    "TransactionDocument_LoyaltyAccounts_7Days_ReceivedDate",
+                    new TransactionDocumentEndpoint_LoyaltyAccounts_7Days_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_LoyaltyAccounts_7Days",
-                        Name = "TransactionDocument_LoyaltyAccounts_7Days",
+                        Id = "TransactionDocument_LoyaltyAccounts_7Days_ReceivedDate",
+                        Name = "TransactionDocument_LoyaltyAccounts_7Days_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
                             DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
@@ -2840,19 +2850,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_LoyaltyAccounts_Today",
-                    new TransactionDocumentEndpoint_LoyaltyAccounts_Today
+                    "TransactionDocument_LoyaltyAccounts_Today_ReceivedDate",
+                    new TransactionDocumentEndpoint_LoyaltyAccounts_Today_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_LoyaltyAccounts_Today",
-                        Name = "TransactionDocument_LoyaltyAccounts_Today",
+                        Id = "TransactionDocument_LoyaltyAccounts_Today_ReceivedDate",
+                        Name = "TransactionDocument_LoyaltyAccounts_Today_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2867,18 +2877,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_ItemTaxes_Today", new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Today
+                    "TransactionDocument_ItemTaxes_Today_ReceivedDate",
+                    new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Today_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_ItemTaxes_Today",
-                        Name = "TransactionDocument_ItemTaxes_Today",
+                        Id = "TransactionDocument_ItemTaxes_Today_ReceivedDate",
+                        Name = "TransactionDocument_ItemTaxes_Today_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2893,18 +2904,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_ItemTaxes_Yesterday", new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Yesterday
+                    "TransactionDocument_ItemTaxes_Yesterday_ReceivedDate",
+                    new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Yesterday_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_ItemTaxes_Yesterday",
-                        Name = "TransactionDocument_ItemTaxes_Yesterday",
+                        Id = "TransactionDocument_ItemTaxes_Yesterday_ReceivedDate",
+                        Name = "TransactionDocument_ItemTaxes_Yesterday_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2919,18 +2931,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_ItemTaxes_7Days", new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_7Days
+                    "TransactionDocument_ItemTaxes_7Days_ReceivedDate",
+                    new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_7Days_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_ItemTaxes_7Days",
-                        Name = "TransactionDocument_ItemTaxes_7Days",
+                        Id = "TransactionDocument_ItemTaxes_7Days_ReceivedDate",
+                        Name = "TransactionDocument_ItemTaxes_7Days_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2945,19 +2958,19 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 },
                 {
-                    "TransactionDocument_ItemTaxes_HistoricalFromDate",
-                    new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Historical
+                    "TransactionDocument_ItemTaxes_HistoricalFromDate_ReceivedDate",
+                    new TransactionDocumentEndpoint_TransactionDocument_ItemTaxes_Historical_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_ItemTaxes_HistoricalFromDate",
-                        Name = "TransactionDocument_ItemTaxes_HistoricalFromDate",
+                        Id = "TransactionDocument_ItemTaxes_HistoricalFromDate_ReceivedDate",
+                        Name = "TransactionDocument_ItemTaxes_HistoricalFromDate_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"businessDay\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"businessDay\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
