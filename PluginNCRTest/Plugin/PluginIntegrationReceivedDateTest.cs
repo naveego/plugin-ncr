@@ -3,92 +3,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Naveego.Sdk.Plugins;
-using Newtonsoft.Json;
-using PluginNCR.API.Utility;
-using PluginNCR.Helper;
 using Xunit;
 using Record = Naveego.Sdk.Plugins.Record;
 
 namespace PluginNCRTest.Plugin
 {
-    public class PluginIntegrationTest
+    public class PluginIntegrationReceivedDateTest : PluginIntegrationTest
     {
-        protected Settings GetSettings(bool oAuth = false)
-        {
-            return new Settings()
-            {
-                ProvUsername = @"",
-                ProvPassword = @"",
-                NepApplicationKey = @"",
-                NepOrganization = @"",
-                NepCorrelationId = @"",
-                QueryStartDate = "2023-05-22",
-                QueryEndDate = "2023-05-23",
-                SiteIDs = "",
-                SecretKey = "",
-                AuthMethod = "",
-                SharedKey = "",
-                DegreeOfParallelism = ""
-            };
-        }
-
-        protected ConnectRequest GetConnectSettings(bool oAuth = false)
-        {
-            var settings = GetSettings(oAuth);
-
-            return new ConnectRequest
-            {
-                SettingsJson = JsonConvert.SerializeObject(settings)
-            };
-        }
-
-        protected Schema GetTestSchema(string endpointId = null, string id = "test", string name = "test")
-        {
-            Endpoint endpoint = endpointId == null? EndpointHelper.GetEndpointForId("TransactionDocument_Tenders_7Days")
-                : EndpointHelper.GetEndpointForId(endpointId);
-
-            return new Schema
-            {
-                Id = id,
-                Name = name,
-                PublisherMetaJson = JsonConvert.SerializeObject(endpoint),
-            };
-        }
-
         [Fact]
-        public async Task ConnectTest()
-        {
-            // setup
-            Server server = new Server
-            {
-                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
-                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
-            };
-            server.Start();
-
-            var port = server.Ports.First().BoundPort;
-
-            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
-            var client = new Publisher.PublisherClient(channel);
-
-            var request = GetConnectSettings();
-
-            // act
-            var response = client.Connect(request);
-
-            // assert
-            Assert.IsType<ConnectResponse>(response);
-            Assert.Equal("", response.SettingsError);
-            Assert.Equal("", response.ConnectionError);
-            Assert.Equal("", response.OauthError);
-
-            // cleanup
-            await channel.ShutdownAsync();
-            await server.ShutdownAsync();
-        }
-
-        [Fact]
-        public async Task DiscoverSchemasAllTest()
+        public async Task DiscoverSchemasAllReceivedTest()
         {
             // setup
             Server server = new Server
@@ -119,9 +42,9 @@ namespace PluginNCRTest.Plugin
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Equal(32, response.Schemas.Count);
 
-            var schema = response.Schemas[0];
-            Assert.Equal($"TransactionDocument_Tenders_HistoricalFromDate", schema.Id);
-            Assert.Equal("TransactionDocument_Tenders_HistoricalFromDate", schema.Name);
+            var schema = response.Schemas.FirstOrDefault(s => s.Id == "TransactionDocument_Tenders_HistoricalFromDate_ReceivedDate");
+            Assert.NotNull(schema);
+            Assert.Equal("TransactionDocument_Tenders_HistoricalFromDate_ReceivedDate", schema.Name);
             Assert.Equal($"", schema.Query);
             // // TESTING: Uncomment
             //Assert.Equal(10, schema.Sample.Count);
@@ -141,7 +64,7 @@ namespace PluginNCRTest.Plugin
         }
 
         [Fact]
-        public async Task DiscoverSchemasRefreshTest()
+        public async Task DiscoverSchemasRefreshReceivedTest()
         {
             // setup
             Server server = new Server
@@ -164,7 +87,7 @@ namespace PluginNCRTest.Plugin
                 SampleSize = 10,
                 ToRefresh =
                 {
-                    GetTestSchema("TransactionDocument_Yesterday")
+                    GetTestSchema("TransactionDocument_Yesterday_ReceivedDate")
                 }
             };
 
@@ -197,7 +120,7 @@ namespace PluginNCRTest.Plugin
         }
 
         [Fact]
-        public async Task ReadStreamTest()
+        public async Task ReadStreamReceivedTest()
         {
             // setup
             Server server = new Server
@@ -212,7 +135,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_Yesterday");
+            var schema = GetTestSchema("TransactionDocument_Yesterday_ReceivedDate");
 
             var connectRequest = GetConnectSettings();
 
@@ -262,7 +185,7 @@ namespace PluginNCRTest.Plugin
         }
 
         [Fact]
-        public async Task ReadStreamLimitTest()
+        public async Task ReadStreamLimitReceivedTest()
         {
             // setup
             Server server = new Server
@@ -277,7 +200,7 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_Yesterday");
+            var schema = GetTestSchema("TransactionDocument_Yesterday_ReceivedDate");
 
             var connectRequest = GetConnectSettings();
 

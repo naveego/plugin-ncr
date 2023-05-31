@@ -20,8 +20,10 @@ namespace PluginNCR.API.Utility
 
         static EndpointHelper()
         {
-             TransactionDocumentEndpointHelper.TransactionDocumentEndpoints.ToList().ForEach(x => Endpoints.TryAdd(x.Key, x.Value));
-
+            TransactionDocumentEndpointHelper.TransactionDocumentEndpoints.ToList()
+                .ForEach(x => Endpoints.TryAdd(x.Key, x.Value));
+            TransactionDocumentReceivedDateEndpointHelper.TransactionDocumentEndpoints.ToList()
+                .ForEach(x => Endpoints.TryAdd(x.Key, x.Value));
         }
 
         public static Dictionary<string, Endpoint> GetAllEndpoints()
