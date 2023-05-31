@@ -16,20 +16,20 @@ namespace PluginNCRTest.Plugin
         protected Settings GetSettings(bool oAuth = false)
         {
             return new Settings()
-                {
-                    ProvUsername = @"",
-                    ProvPassword = @"",
-                    NepApplicationKey = @"",
-                    NepOrganization = @"",
-                    NepCorrelationId = @"",
-                    QueryStartDate = "",
-                    QueryEndDate = "",
-                    SiteIDs = "",
-                    SecretKey = "",
-                    AuthMethod = "",
-                    SharedKey = "",
-                    DegreeOfParallelism = ""
-                };
+            {
+                ProvUsername = @"",
+                ProvPassword = @"",
+                NepApplicationKey = @"",
+                NepOrganization = @"",
+                NepCorrelationId = @"",
+                QueryStartDate = "2023-05-22",
+                QueryEndDate = "2023-05-22",
+                SiteIDs = "",
+                SecretKey = "",
+                AuthMethod = "",
+                SharedKey = "",
+                DegreeOfParallelism = ""
+            };
         }
 
         protected ConnectRequest GetConnectSettings(bool oAuth = false)
