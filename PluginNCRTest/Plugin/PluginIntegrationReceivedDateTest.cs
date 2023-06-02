@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Naveego.Sdk.Plugins;
+using Aunalytics.Sdk.Plugins;
 using Xunit;
-using Record = Naveego.Sdk.Plugins.Record;
+using Record = Aunalytics.Sdk.Plugins.Record;
 
 namespace PluginNCRTest.Plugin
 {

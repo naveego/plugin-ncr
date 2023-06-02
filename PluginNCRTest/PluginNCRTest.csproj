@@ -2,11 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
-
         <IsPackable>false</IsPackable>
-
         <RootNamespace>PluginHubspotTest</RootNamespace>
-
         <LangVersion>9</LangVersion>
     </PropertyGroup>
 
@@ -15,7 +12,7 @@
         <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.15.1" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.4.0" />
         <PackageReference Include="Moq" Version="4.13.1" />
-        <PackageReference Include="Naveego.Sdk" Version="1.2.2" />
+        <PackageReference Include="Aunalytics.Sdk" Version="1.3.0" />
         <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
         <PackageReference Include="RestSharp" Version="106.11.7" />
         <PackageReference Include="xunit" Version="2.4.0" />
