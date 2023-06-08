@@ -2637,8 +2637,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     new TransactionDocumentEndpoint_Tenders_Today_ReceivedDate
                     {
                         ShouldGetStaticSchema = true,
-                        Id = "TransactionDocument_Tenders_Today",
-                        Name = "TransactionDocument_Tenders_Today",
+                        Id = "TransactionDocument_Tenders_Today_ReceivedDate",
+                        Name = "TransactionDocument_Tenders_Today_ReceivedDate",
                         BasePath = "/transaction-document/2.0/transaction-documents/2.0",
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
