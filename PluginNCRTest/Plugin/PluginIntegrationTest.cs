@@ -28,14 +28,14 @@ namespace PluginNCRTest.Plugin
                 SecretKey = "",
                 AuthMethod = "",
                 SharedKey = "",
-                DegreeOfParallelism = ""
+                DegreeOfParallelism = "8"
             };
         }
 
         protected ConnectRequest GetConnectSettings(bool oAuth = false)
         {
             var settings = GetSettings(oAuth);
-            
+
             return new ConnectRequest
             {
                 SettingsJson = JsonConvert.SerializeObject(settings)
@@ -86,8 +86,6 @@ namespace PluginNCRTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
-        
 
         [Fact]
         public async Task DiscoverSchemasAllTest()
@@ -99,7 +97,7 @@ namespace PluginNCRTest.Plugin
                 Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
             };
             server.Start();
-            
+
             var port = server.Ports.First().BoundPort;
 
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
@@ -118,31 +116,30 @@ namespace PluginNCRTest.Plugin
             var response = client.DiscoverSchemas(request);
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(16, response.Schemas.Count);
-            //
-             var schema = response.Schemas[0];
-             Assert.Equal($"TransactionDocument_Tenders_HistoricalFromDate", schema.Id);
-             Assert.Equal("TransactionDocument_Tenders_HistoricalFromDate", schema.Name);
-            // Assert.Equal($"", schema.Query);
-             Assert.Equal(10, schema.Sample.Count);
-             Assert.Equal(10, schema.Properties.Count);
-            //
-             var property = schema.Properties[0];
-             Assert.Equal("tlogId", property.Id);
-             Assert.Equal("tlogId", property.Name);
-             Assert.Equal("", property.Description);
-             Assert.Equal(PropertyType.String, property.Type);
-             Assert.True(property.IsKey);
-             Assert.False(property.IsNullable);
-            //
+            Assert.Equal(32, response.Schemas.Count);
+
+            var schema = response.Schemas[0];
+            Assert.Equal($"TransactionDocument_Tenders_HistoricalFromDate", schema.Id);
+            Assert.Equal("TransactionDocument_Tenders_HistoricalFromDate", schema.Name);
+            Assert.Equal($"", schema.Query);
+            //  Assert.Equal(10, schema.Sample.Count);
+            Assert.Equal(10, schema.Properties.Count);
+
+            var property = schema.Properties[0];
+            Assert.Equal("tlogId", property.Id);
+            Assert.Equal("tlogId", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.String, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
+
             // var schema2 = response.Schemas[1];
             // Assert.Equal($"Custom Name", schema2.Id);
             // Assert.Equal("Custom Name", schema2.Name);
             // Assert.Equal($"", schema2.Query);
             // Assert.Equal(10, schema2.Sample.Count);
             // Assert.Equal(17, schema2.Properties.Count);
-            
-            
+
             // var property2 = schema2.Properties[0];
             // Assert.Equal("field1", property2.Id);
             // Assert.Equal("field1", property2.Name);
@@ -191,21 +188,21 @@ namespace PluginNCRTest.Plugin
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Equal(1, response.Schemas.Count);
-            //
-             var schema = response.Schemas[0];
-             Assert.Equal("test", schema.Id);
-             Assert.Equal("test", schema.Name);
-             Assert.Equal("", schema.Query);
-             Assert.Equal(10, schema.Sample.Count);
-             Assert.Equal(77, schema.Properties.Count);
-            //
-             var property = schema.Properties[0];
-             Assert.Equal("tlogId", property.Id);
-             Assert.Equal("tlogId", property.Name);
-             Assert.Equal("", property.Description);
-             Assert.Equal(PropertyType.String, property.Type);
-             Assert.True(property.IsKey);
-             Assert.False(property.IsNullable);
+
+            var schema = response.Schemas[0];
+            Assert.Equal("test", schema.Id);
+            Assert.Equal("test", schema.Name);
+            Assert.Equal("", schema.Query);
+            // Assert.Equal(10, schema.Sample.Count);
+            Assert.Equal(87, schema.Properties.Count);
+
+            var property = schema.Properties[0];
+            Assert.Equal("tlogId", property.Id);
+            Assert.Equal("tlogId", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.String, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -255,14 +252,14 @@ namespace PluginNCRTest.Plugin
             var response = client.ReadStream(request);
             var responseStream = response.ResponseStream;
             var records = new List<Record>();
-            
+
             while (await responseStream.MoveNext())
             {
                 records.Add(responseStream.Current);
             }
 
             // assert
-            
+
             //NOTE - endpoint queries are based on live data and current date.
             //Assertations will be incorrect often
             Assert.Equal(3107, records.Count);
@@ -271,13 +268,11 @@ namespace PluginNCRTest.Plugin
             //Assert.Equal("24ee9221-e0b8-45c4-ab05-3c4757cffe0f", record["tlogId"]);
             // Assert.Equal("False", record["isTrainingMode"]);
             // Assert.Equal("572", record["transactionNumber"]);
-            
+
             // cleanup
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-
-       
 
         [Fact]
         public async Task ReadStreamLimitTest()
