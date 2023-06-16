@@ -192,6 +192,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var incompletePageQueries = new List<Tuple<string, string>> { };
                 var incompleteTLogPaths = new List<string> { };
 
+                readQuery.ToDateWrapper.DateTime =
+                    DateTime.Parse(queryEndDate).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                 foreach (var site in initSites.ToList())
                 {
                     Logger.Debug($"Starting site: {site}");
@@ -201,14 +204,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.DateWrapper.DateTime =
+                        readQuery.FromDateWrapper.DateTime =
                             DateTime.Parse(queryStartDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
                         do //while hasMore
                         {
-                            
+
                             var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
 
@@ -218,9 +222,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             try
                             {
                                 Logger.Debug($"Reading site: {site}");
-                                response = await apiClient.PostAsync(
-                                    path
-                                    , json);
+                                response = await apiClient.PostAsync(path, json);
                             }
                             catch (Exception)
                             {
@@ -233,9 +235,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                            
+
                             var objectResponseWrapper = new ObjectResponseWrapper();
-                            
+
                             if (!pageIncomplete)
                             {
 
@@ -616,14 +618,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             Logger.Debug("Page upload completed");
                         } while (hasMore && (limit == 0 || (int) recordCount < limit));
                         Logger.Debug("Site upload completed");
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
-                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.FromDateWrapper.DateTime.Substring(0, 10)),
+                        DateTime.Parse(readQuery.ToDateWrapper.DateTime.Substring(0, 10))) < 0
+                        && (limit == 0 || (int) recordCount < limit));
                 }
-                
+
                 foreach (var incompletePath in incompleteTLogPaths)
                 {
                     var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -633,13 +636,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var incompletePageQuery in incompletePageQueries)
                 {
                     var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
                     }
                 }
-                
+
             }
 
             private async IAsyncEnumerable<Record> ReadIncompleteQuery(IApiClient apiClient, string tLogPath)
@@ -961,21 +964,21 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var retryCount = 0;
                 HttpResponseMessage pageResult = null;
                 var objectResponseWrapper = new ObjectResponseWrapper();
-                
+
                 var path = post.Item1;
                 var postBody = post.Item2;
-                
+
                 while (!pageIncomplete && retryCount < 20)
                 {
                     retryCount++;
                     try
                     {
                         pageResult = await apiClient.PostAsync(path, postBody);
-                    
+
                         objectResponseWrapper =
                             JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                 await pageResult.Content.ReadAsStringAsync());
-                        
+
                         if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                         {
                             pageIncomplete = true;
@@ -995,7 +998,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         Thread.Sleep(1000 * retryCount * retryCount);
                     }
                 }
-                    
+
                 foreach (var tLogMetaData in objectResponseWrapper.PageContent)
                 {
                     var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
@@ -1018,7 +1021,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
-                var queryEndDate = await apiClient.GetEndDate();
+                string queryEndDate;
+                if (DateTime.TryParse(await apiClient.GetEndDate(), out var dateTimeResult))
+                {
+                    queryEndDate = dateTimeResult.AddDays(1).ToString("yyyy-MM-dd");
+                }
+                else queryEndDate = await apiClient.GetEndDate();
 
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
@@ -1039,8 +1047,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
+                var queryDateToday = DateTime.Now.ToString("yyyy-MM-dd");
+
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
-                    queryDateYesterday, isDiscoverRead);
+                    queryDateToday, isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -1057,12 +1067,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
-                var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
-                                   "T00:00:00Z";
+                var queryStartDate = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
-
 
                 await foreach (var record in records)
                 {
@@ -1074,13 +1083,15 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
         private class TransactionDocumentEndpoint_Today_ReceivedDate
             : TransactionDocumentReceivedDateEndpoint
         {
-            public override async IAsyncEnumerable<Record>ReadRecordsAsync(IApiClient apiClient, Schema schema,
+            public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit,
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
                 var queryDateToday = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday,
+                var queryDateTomorrow = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateTomorrow,
                     isDiscoverRead);
 
                 await foreach (var record in records)
@@ -1181,17 +1192,20 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 var incompletePageQueries = new List<Tuple<string, string>> { };
                 var incompleteTLogPaths = new List<string> { };
-                    
+
+                readQuery.ToDateWrapper.DateTime =
+                    DateTime.Parse(queryEndDate).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                 foreach (var site in workingSiteList)
                 {
-
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.DateWrapper.DateTime =
+                        readQuery.FromDateWrapper.DateTime =
                             DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
@@ -1204,9 +1218,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             HttpResponseMessage response = null;
                             try
                             {
-                                response = await apiClient.PostAsync(
-                                    path
-                                    , json);
+                                response = await apiClient.PostAsync(path, json);
                             }
                             catch (Exception)
                             {
@@ -1243,7 +1255,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 currPage++;
                                 continue;
                             }
-                            
+
                             var pageContent = limit > 0
                                 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
@@ -1269,7 +1281,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                                 var thisTlogId = recordMap["tlogId"];
                                 var tlogPath = Constants.BaseApiUrl + BasePath + '/' + thisTlogId;
-                                
+
                                 HttpResponseMessage tlogResponse = null;
                                 try
                                 {
@@ -1332,7 +1344,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 Action = Record.Types.Action.Upsert,
                                                 DataJson = JsonConvert.SerializeObject(tlogTenderRecordMap)
                                             };
-                                            
+
                                         }
                                     }
                                 }
@@ -1349,13 +1361,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             }
 
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
-                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.FromDateWrapper.DateTime.Substring(0, 10)),
+                        DateTime.Parse(readQuery.ToDateWrapper.DateTime.Substring(0, 10))) < 0
+                        && (limit == 0 || (int) recordCount < limit));
                 }
                 foreach (var incompletePath in incompleteTLogPaths)
                 {
                     var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -1365,7 +1378,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var incompletePageQuery in incompletePageQueries)
                 {
                     var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -1452,21 +1465,21 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var retryCount = 0;
                 HttpResponseMessage pageResult = null;
                 var objectResponseWrapper = new ObjectResponseWrapper();
-                
+
                 var path = post.Item1;
                 var postBody = post.Item2;
-                
+
                 while (!pageIncomplete && retryCount < 20)
                 {
                     retryCount++;
                     try
                     {
                         pageResult = await apiClient.PostAsync(path, postBody);
-                    
+
                         objectResponseWrapper =
                             JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                 await pageResult.Content.ReadAsStringAsync());
-                        
+
                         if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                         {
                             pageIncomplete = true;
@@ -1486,7 +1499,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         Thread.Sleep(1000 * retryCount * retryCount);
                     }
                 }
-                    
+
                 foreach (var tLogMetaData in objectResponseWrapper.PageContent)
                 {
                     var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
@@ -1509,7 +1522,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
-                var queryEndDate = await apiClient.GetEndDate();
+                string queryEndDate;
+                if (DateTime.TryParse(await apiClient.GetEndDate(), out var dateTimeResult))
+                {
+                    queryEndDate = dateTimeResult.AddDays(1).ToString("yyyy-MM-dd");
+                }
+                else queryEndDate = await apiClient.GetEndDate();
 
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
@@ -1530,7 +1548,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryDateToday = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday,
+                var queryDateTomorrow = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateTomorrow,
                     isDiscoverRead);
 
                 await foreach (var record in records)
@@ -1548,10 +1568,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-
                 var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
+                var queryDateToday = DateTime.Now.ToString("yyyy-MM-dd");
+
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
-                    queryDateYesterday, isDiscoverRead);
+                    queryDateToday, isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -1568,9 +1589,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
-                var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
-                                   "T00:00:00Z";
+                var queryStartDate = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
 
@@ -1654,7 +1675,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
                 var incompletePageQueries = new List<Tuple<string, string>> { };
                 var incompleteTLogPaths = new List<string> { };
-                    
+
+                readQuery.ToDateWrapper.DateTime =
+                    DateTime.Parse(queryEndDate).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                 foreach (var site in workingSiteList)
                 {
 
@@ -1663,8 +1687,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     {
-                        readQuery.DateWrapper.DateTime =
+                        readQuery.FromDateWrapper.DateTime =
                             DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
@@ -1677,9 +1702,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             HttpResponseMessage response = null;
                             try
                             {
-                                response = await apiClient.PostAsync(
-                                    path
-                                    , json);
+                                response = await apiClient.PostAsync(path, json);
                             }
                             catch (Exception)
                             {
@@ -1710,7 +1733,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                                
+
                             if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
                             {
                                 currPage++;
@@ -1726,7 +1749,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             {
                                 var recordMap = new Dictionary<string, object>();
                                 var tlogIncomplete = false;
-                                    
+
                                 foreach (var objectProperty in objectResponse)
                                 {
                                     try
@@ -1803,7 +1826,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 DataJson = JsonConvert.SerializeObject(
                                                     tlogLoyaltyAccountRecordMap)
                                             };
-                                            
+
                                         }
                                     }
                                 }
@@ -1819,13 +1842,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 hasMore = true;
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
-                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.FromDateWrapper.DateTime.Substring(0, 10)),
+                        DateTime.Parse(readQuery.ToDateWrapper.DateTime.Substring(0, 10))) < 0
+                        && (limit == 0 || (int) recordCount < limit));
                 }
                 foreach (var incompletePath in incompleteTLogPaths)
                 {
                     var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -1835,7 +1859,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var incompletePageQuery in incompletePageQueries)
                 {
                     var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -1926,21 +1950,21 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var retryCount = 0;
                 HttpResponseMessage pageResult = null;
                 var objectResponseWrapper = new ObjectResponseWrapper();
-                
+
                 var path = post.Item1;
                 var postBody = post.Item2;
-                
+
                 while (!pageIncomplete && retryCount < 20)
                 {
                     retryCount++;
                     try
                     {
                         pageResult = await apiClient.PostAsync(path, postBody);
-                    
+
                         objectResponseWrapper =
                             JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                 await pageResult.Content.ReadAsStringAsync());
-                        
+
                         if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                         {
                             pageIncomplete = true;
@@ -1960,7 +1984,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         Thread.Sleep(1000 * retryCount * retryCount);
                     }
                 }
-                    
+
                 foreach (var tLogMetaData in objectResponseWrapper.PageContent)
                 {
                     var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
@@ -1983,7 +2007,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
-                var queryEndDate = await apiClient.GetEndDate();
+                string queryEndDate;
+                if (DateTime.TryParse(await apiClient.GetEndDate(), out var dateTimeResult))
+                {
+                    queryEndDate = dateTimeResult.AddDays(1).ToString("yyyy-MM-dd");
+                }
+                else queryEndDate = await apiClient.GetEndDate();
 
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
@@ -2004,7 +2033,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryDateToday = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday,
+                var queryDateTomorrow = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateTomorrow,
                     isDiscoverRead);
 
                 await foreach (var record in records)
@@ -2023,8 +2054,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
+                var queryDateToday = DateTime.Now.ToString("yyyy-MM-dd");
+
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
-                    queryDateYesterday, isDiscoverRead);
+                    queryDateToday, isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -2040,9 +2073,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
-                var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
-                                   "T00:00:00Z";
+                var queryStartDate = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
 
@@ -2139,6 +2172,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
 
+                readQuery.ToDateWrapper.DateTime =
+                    DateTime.Parse(queryEndDate).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                 foreach (var site in workingSiteList)
                 {
 
@@ -2147,8 +2183,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                     do //while queryDate != queryEndDate
                     { 
-                        readQuery.DateWrapper.DateTime =
+                        readQuery.FromDateWrapper.DateTime =
                             DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
 
@@ -2157,13 +2194,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                             var pageIncomplete = false;
                             readQuery.PageNumber = currPage;
                             var json = JsonConvert.SerializeObject(readQuery);
-                                
+
                             HttpResponseMessage response = null;
                             try
                             {
-                                response = await apiClient.PostAsync(
-                                    path
-                                    , json);
+                                response = await apiClient.PostAsync(path, json);
                             }
                             catch (Exception)
                             {
@@ -2194,13 +2229,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 incompletePageQueries.Add(new Tuple<string, string>(path, json));
                                 pageIncomplete = true;
                             }
-                            
+
                             if (pageIncomplete || objectResponseWrapper?.PageContent.Count == 0)
                             {
                                 currPage++;
                                 continue;
                             }
-                            
+
                             var pageContent = limit > 0
                                 ? objectResponseWrapper?.PageContent.Take(safeLimit - (int) recordCount)
                                 : objectResponseWrapper?.PageContent;
@@ -2291,7 +2326,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 Action = Record.Types.Action.Upsert,
                                                 DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
                                             };
-                                            
+
                                         }
                                     }
                                 }
@@ -2306,13 +2341,14 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                 hasMore = true;
                             }
                         } while (hasMore && (limit == 0 || recordCount < limit));
-                    } while (DateTime.Compare(DateTime.Parse(readQuery.DateWrapper.DateTime.Substring(0, 10)),
-                        DateTime.Parse(queryEndDate)) < 0 && (limit == 0 || (int) recordCount < limit));
+                    } while (DateTime.Compare(DateTime.Parse(readQuery.FromDateWrapper.DateTime.Substring(0, 10)),
+                        DateTime.Parse(readQuery.ToDateWrapper.DateTime.Substring(0, 10))) < 0
+                        && (limit == 0 || (int) recordCount < limit));
                 }
                 foreach (var incompletePath in incompleteTLogPaths)
                 {
                     var incompleteQueryResults = ReadIncompleteQuery(apiClient, incompletePath);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -2322,7 +2358,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 foreach (var incompletePageQuery in incompletePageQueries)
                 {
                     var incompleteQueryResults = ReadIncompletePage(apiClient, incompletePageQuery);
-                    
+
                     await foreach (var record in incompleteQueryResults)
                     {
                         yield return record;
@@ -2407,7 +2443,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                     DataJson = JsonConvert.SerializeObject(tLogTaxRecordMap)
                                 };
                             }
-                            
+
                         }
                     }
                 }
@@ -2418,21 +2454,21 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var retryCount = 0;
                 HttpResponseMessage pageResult = null;
                 var objectResponseWrapper = new ObjectResponseWrapper();
-                
+
                 var path = post.Item1;
                 var postBody = post.Item2;
-                
+
                 while (!pageIncomplete && retryCount < 20)
                 {
                     retryCount++;
                     try
                     {
                         pageResult = await apiClient.PostAsync(path, postBody);
-                    
+
                         objectResponseWrapper =
                             JsonConvert.DeserializeObject<ObjectResponseWrapper>(
                                 await pageResult.Content.ReadAsStringAsync());
-                        
+
                         if (objectResponseWrapper.TotalResults.IsNullOrEmpty())
                         {
                             pageIncomplete = true;
@@ -2452,7 +2488,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         Thread.Sleep(1000 * retryCount * retryCount);
                     }
                 }
-                    
+
                 foreach (var tLogMetaData in objectResponseWrapper.PageContent)
                 {
                     var tLogId = tLogMetaData["tlogId"].ToString() ?? "";
@@ -2475,7 +2511,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
-                var queryEndDate = await apiClient.GetEndDate();
+                string queryEndDate;
+                if (DateTime.TryParse(await apiClient.GetEndDate(), out var dateTimeResult))
+                {
+                    queryEndDate = dateTimeResult.AddDays(1).ToString("yyyy-MM-dd");
+                }
+                else queryEndDate = await apiClient.GetEndDate();
 
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
@@ -2496,7 +2537,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryDateToday = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
-                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateToday,
+                var queryDateTomorrow = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") + "T00:00:00Z";
+
+                var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateToday, queryDateTomorrow,
                     isDiscoverRead);
 
                 await foreach (var record in records)
@@ -2515,8 +2558,10 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryDateYesterday = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
+                var queryDateToday = DateTime.Now.ToString("yyyy-MM-dd");
+
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryDateYesterday,
-                    queryDateYesterday, isDiscoverRead);
+                    queryDateToday, isDiscoverRead);
 
                 await foreach (var record in records)
                 {
@@ -2532,9 +2577,9 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
             {
-                var queryStartDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd");
-                var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") +
-                                   "T00:00:00Z";
+                var queryStartDate = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                var queryEndDate = DateTime.Today.ToString("yyyy-MM-dd") + "T00:00:00Z";
+
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
 
@@ -2560,9 +2605,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2587,10 +2635,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
-                            DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2615,10 +2665,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
-                            DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2643,9 +2695,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2669,10 +2724,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
-                            "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
                             //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
@@ -2696,9 +2754,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2722,10 +2783,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
-                            DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2749,11 +2812,13 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
-                            DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
-                            "T00:00:00Z\",\"originalOffset\":0},\"siteInfoIds\":[\"2304\"],\"pageSize\":1000,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
                             //Note - this is defined as a GET as opposed to POST to appear as a read endpoint in UI
@@ -2777,9 +2842,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2804,10 +2872,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
-                            DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2832,10 +2902,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" +
-                            DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2860,9 +2932,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2887,9 +2962,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2914,9 +2992,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2941,9 +3022,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2968,9 +3052,12 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                         AllPath = "/find",
                         PropertiesPath = "/transaction-document/2.0/transaction-documents/2.0/find",
                         PropertiesQuery =
-                            "{\"receivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
+                            "{\"fromReceivedDateTimeUtc\":{\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"originalOffset\":0},\"pageSize\":10,\"pageNumber\":0}",
                         ReadQuery =
-                            "{\"receivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "{\"fromReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.ToString("yyyy-MM-dd") +
+                            "T00:00:00Z\",\"originalOffset\":0}," +
+                            "\"toReceivedDateTimeUtc\":{\"dateTime\": \"" + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") +
                             "T00:00:00Z\",\"originalOffset\":0},\"pageSize\":1000,\"pageNumber\":0}",
                         SupportedActions = new List<EndpointActions>
                         {
@@ -2985,6 +3072,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     }
                 }
             };
-        
+
     }
 }
