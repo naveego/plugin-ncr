@@ -5,6 +5,8 @@ using Grpc.Core;
 using Aunalytics.Sdk.Plugins;
 using Xunit;
 using Record = Aunalytics.Sdk.Plugins.Record;
+using Newtonsoft.Json;
+using System;
 
 namespace PluginNCRTest.Plugin
 {
@@ -185,7 +187,74 @@ namespace PluginNCRTest.Plugin
         }
 
         [Fact]
-        public async Task ReadStreamLimitReceivedTest()
+        public async Task ReadStreamLimitHistoricalTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var schema = GetTestSchema("TransactionDocument_HistoricalFromDate_ReceivedDate");
+
+            var connectRequest = GetConnectSettings();
+
+            var schemaRequest = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                ToRefresh = {schema}
+            };
+
+            var request = new ReadRequest()
+            {
+                DataVersions = new DataVersions
+                {
+                    JobId = "test"
+                },
+                JobId = "test",
+                Limit = 10
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var schemasResponse = client.DiscoverSchemas(schemaRequest);
+            request.Schema = schemasResponse.Schemas[0];
+
+            var response = client.ReadStream(request);
+            var responseStream = response.ResponseStream;
+            var records = new List<Record>();
+
+            while (await responseStream.MoveNext())
+            {
+                records.Add(responseStream.Current);
+            }
+
+            // assert
+            Assert.Equal(10, records.Count);
+
+            // Update with the settings in PluginIntegrationTest
+            string todayDateString = "06/08/2023";
+            foreach (var record in records)
+            {
+                var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
+                var receivedDateTimeUtc = data["receivedDateTimeUtc"].ToString();
+                Assert.Equal(receivedDateTimeUtc.Substring(0, 10), todayDateString);
+            }
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+    
+        [Fact]
+        public async Task ReadStreamLimitYesterdayTest()
         {
             // setup
             Server server = new Server
@@ -217,7 +286,7 @@ namespace PluginNCRTest.Plugin
                     JobId = "test"
                 },
                 JobId = "test",
-                Limit = 25
+                Limit = 10
             };
 
             // act
@@ -235,7 +304,149 @@ namespace PluginNCRTest.Plugin
             }
 
             // assert
-            Assert.Equal(25, records.Count);
+            Assert.Equal(10, records.Count);
+
+            string yesterdayDateString = DateTime.Today.AddDays(-1).ToString("MM/dd/yyyy");
+            foreach (var record in records)
+            {
+                var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
+                var receivedDateTimeUtc = data["receivedDateTimeUtc"].ToString();
+                Assert.Equal(receivedDateTimeUtc.Substring(0, 10), yesterdayDateString);
+            }
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+    
+        [Fact]
+        public async Task ReadStreamLimitTodayTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var schema = GetTestSchema("TransactionDocument_Today_ReceivedDate");
+
+            var connectRequest = GetConnectSettings();
+
+            var schemaRequest = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                ToRefresh = {schema}
+            };
+
+            var request = new ReadRequest()
+            {
+                DataVersions = new DataVersions
+                {
+                    JobId = "test"
+                },
+                JobId = "test",
+                Limit = 10
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var schemasResponse = client.DiscoverSchemas(schemaRequest);
+            request.Schema = schemasResponse.Schemas[0];
+
+            var response = client.ReadStream(request);
+            var responseStream = response.ResponseStream;
+            var records = new List<Record>();
+
+            while (await responseStream.MoveNext())
+            {
+                records.Add(responseStream.Current);
+            }
+
+            // assert
+            Assert.Equal(10, records.Count);
+
+            string todayDateString = DateTime.Today.ToString("MM/dd/yyyy");
+            foreach (var record in records)
+            {
+                var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
+                var receivedDateTimeUtc = data["receivedDateTimeUtc"].ToString();
+                Assert.Equal(receivedDateTimeUtc.Substring(0, 10), todayDateString);
+            }
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+
+        [Fact]
+        public async Task ReadStreamLimit7DaysTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginNCR.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var schema = GetTestSchema("TransactionDocument_7Days_ReceivedDate");
+
+            var connectRequest = GetConnectSettings();
+
+            var schemaRequest = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                ToRefresh = {schema}
+            };
+
+            var request = new ReadRequest()
+            {
+                DataVersions = new DataVersions
+                {
+                    JobId = "test"
+                },
+                JobId = "test",
+                Limit = 10
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var schemasResponse = client.DiscoverSchemas(schemaRequest);
+            request.Schema = schemasResponse.Schemas[0];
+
+            var response = client.ReadStream(request);
+            var responseStream = response.ResponseStream;
+            var records = new List<Record>();
+
+            while (await responseStream.MoveNext())
+            {
+                records.Add(responseStream.Current);
+            }
+
+            // assert
+            Assert.Equal(10, records.Count);
+
+            var startDate = DateTime.Today.AddDays(-7);
+            var endDate = DateTime.Today;
+            foreach (var record in records)
+            {
+                var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
+                var receivedDateTimeUtc = data["receivedDateTimeUtc"].ToString();
+                Assert.True(DateTime.TryParse(receivedDateTimeUtc, out var dateTime));
+                Assert.True(startDate <= dateTime && dateTime < endDate);
+            }
 
             // cleanup
             await channel.ShutdownAsync();

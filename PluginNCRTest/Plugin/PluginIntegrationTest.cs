@@ -17,13 +17,13 @@ namespace PluginNCRTest.Plugin
         {
             return new Settings()
             {
-                ProvUsername = @"",
-                ProvPassword = @"",
-                NepApplicationKey = @"",
-                NepOrganization = @"",
-                NepCorrelationId = @"",
-                QueryStartDate = "2023-05-22",
-                QueryEndDate = "2023-05-22",
+                ProvUsername = "",
+                ProvPassword = "",
+                NepApplicationKey = "",
+                NepOrganization = "",
+                NepCorrelationId = "",
+                QueryStartDate = "2023-06-08",
+                QueryEndDate = "2023-06-09",
                 SiteIDs = "",
                 SecretKey = "",
                 AuthMethod = "",

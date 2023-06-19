@@ -193,7 +193,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var incompleteTLogPaths = new List<string> { };
 
                 readQuery.ToDateWrapper.DateTime =
-                    DateTime.Parse(queryEndDate).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                    DateTime.Parse(queryEndDate.Substring(0, 10)).ToString("yyyy-MM-dd") + "T00:00:00Z";
 
                 foreach (var site in initSites.ToList())
                 {
