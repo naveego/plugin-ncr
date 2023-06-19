@@ -169,6 +169,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     yield return privateRecords.Dequeue();
                 }
             }
+
             public override async IAsyncEnumerable<Record> ReadRecordsAsync(IApiClient apiClient, Schema schema,
                 int limit, string startDate = "", string endDate = "",
                 bool isDiscoverRead = false)
@@ -338,7 +339,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                         tlogItemRecordMap["receiptId"] = tLogResponseWrapper.Tlog.ReceiptId ?? "";
                                         tlogItemRecordMap["touchPointGroup"] =
                                             tLogResponseWrapper.Tlog.TouchPointGroup ?? "";
-
 
                                         tlogItemRecordMap["closeDateTimeUtc"] =
                                             recordMap["closeDateTimeUtc"].ToString() ?? "";
@@ -1111,6 +1111,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "id",
                     "type",
+                    "receivedDateTimeUtc",
                     "usage",
                     "tenderAmount",
                     "tender_isVoided",
@@ -1328,6 +1329,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tlogTenderRecordMap["tlogId"] = recordMap["tlogId"] ?? "";
                                             tlogTenderRecordMap["type"] = tender.Type ?? "";
                                             tlogTenderRecordMap["usage"] = tender.Usage ?? "";
+                                            tlogTenderRecordMap["receivedDateTimeUtc"] =
+                                                recordMap["receivedDateTimeUtc"].ToString() ?? "";
                                             tlogTenderRecordMap["tenderAmount"] = tender.TenderAmount.Amount;
                                             tlogTenderRecordMap["tender_isVoided"] = tender.IsVoided;
                                             tlogTenderRecordMap["typeLabel"] = tender.TypeLabel ?? "";
@@ -1595,7 +1598,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
 
-
                 await foreach (var record in records)
                 {
                     yield return record;
@@ -1613,6 +1615,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "tlogId",
                     "loyaltyAccountRow",
                     "loyaltyAccountId",
+                    "receivedDateTimeUtc",
                     "pointsAwarded",
                     "pointsRedeemed",
                     "programType"
@@ -1681,7 +1684,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in workingSiteList)
                 {
-
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
 
@@ -1812,6 +1814,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                                 loyaltyAccount.Id ?? "";
                                             tlogLoyaltyAccountRecordMap["loyaltyAccountId"] =
                                                 loyaltyAccount.AccountId ?? "";
+                                            tlogLoyaltyAccountRecordMap["receivedDateTimeUtc"] =
+                                                recordMap["receivedDateTimeUtc"].ToString() ?? "";
                                             tlogLoyaltyAccountRecordMap["pointsAwarded"] =
                                                 loyaltyAccount.PointsAwarded ?? "";
                                             tlogLoyaltyAccountRecordMap["pointsRedeemed"] =
@@ -2079,7 +2083,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
 
-
                 await foreach (var record in records)
                 {
                     yield return record;
@@ -2099,6 +2102,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     "itemTaxId",
                     "itemTaxName",
                     "itemTaxType",
+                    "receivedDateTimeUtc",
                     "itemTaxableAmount",
                     "itemTaxAmount",
                     "temTaxIsRefund",
@@ -2177,7 +2181,6 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
 
                 foreach (var site in workingSiteList)
                 {
-
                     readQuery.SiteInfoIds = new List<string>() {site};
                     currDayOffset = 0;
 
@@ -2314,6 +2317,8 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                                             tLogTaxRecordMap["itemTaxId"] = tax.Id ?? "";
                                             tLogTaxRecordMap["itemTaxName"] = tax.Name ?? "";
                                             tLogTaxRecordMap["itemTaxType"] = tax.TaxType ?? "";
+                                            tLogTaxRecordMap["receivedDateTimeUtc"] =
+                                                recordMap["receivedDateTimeUtc"].ToString() ?? "";
                                             tLogTaxRecordMap["itemTaxableAmount"] = tax.TaxableAmount.Amount ?? "";
                                             tLogTaxRecordMap["itemTaxAmount"] = tax.Amount.Amount ?? "";
                                             tLogTaxRecordMap["itemTaxIsRefund"] = tax.IsRefund;
