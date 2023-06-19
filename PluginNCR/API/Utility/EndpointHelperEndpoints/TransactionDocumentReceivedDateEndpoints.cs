@@ -1021,12 +1021,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
-                string queryEndDate;
-                if (DateTime.TryParse(await apiClient.GetEndDate(), out var dateTimeResult))
+                var queryEndDate = await apiClient.GetEndDate();
+                if (DateTime.TryParse(queryEndDate.Substring(0, 10), out var dateTimeResult))
                 {
                     queryEndDate = dateTimeResult.AddDays(1).ToString("yyyy-MM-dd");
                 }
-                else queryEndDate = await apiClient.GetEndDate();
 
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
@@ -1195,7 +1194,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var incompleteTLogPaths = new List<string> { };
 
                 readQuery.ToDateWrapper.DateTime =
-                    DateTime.Parse(queryEndDate).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                    DateTime.Parse(queryEndDate.Substring(0, 10)).ToString("yyyy-MM-dd") + "T00:00:00Z";
 
                 foreach (var site in workingSiteList)
                 {
@@ -1205,7 +1204,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     do //while queryDate != queryEndDate
                     {
                         readQuery.FromDateWrapper.DateTime =
-                            DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                            DateTime.Parse(queryDate.Substring(0, 10)).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
 
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
@@ -1525,12 +1524,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
-                string queryEndDate;
-                if (DateTime.TryParse(await apiClient.GetEndDate(), out var dateTimeResult))
+                var queryEndDate = await apiClient.GetEndDate();
+                if (DateTime.TryParse(queryEndDate.Substring(0, 10), out var dateTimeResult))
                 {
                     queryEndDate = dateTimeResult.AddDays(1).ToString("yyyy-MM-dd");
                 }
-                else queryEndDate = await apiClient.GetEndDate();
 
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
@@ -1680,7 +1678,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 var incompleteTLogPaths = new List<string> { };
 
                 readQuery.ToDateWrapper.DateTime =
-                    DateTime.Parse(queryEndDate).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                    DateTime.Parse(queryEndDate.Substring(0, 10)).ToString("yyyy-MM-dd") + "T00:00:00Z";
 
                 foreach (var site in workingSiteList)
                 {
@@ -1690,7 +1688,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     do //while queryDate != queryEndDate
                     {
                         readQuery.FromDateWrapper.DateTime =
-                            DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                            DateTime.Parse(queryDate.Substring(0, 10)).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
 
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
@@ -2011,12 +2009,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
-                string queryEndDate;
-                if (DateTime.TryParse(await apiClient.GetEndDate(), out var dateTimeResult))
+                var queryEndDate = await apiClient.GetEndDate();
+                if (DateTime.TryParse(queryEndDate.Substring(0, 10), out var dateTimeResult))
                 {
                     queryEndDate = dateTimeResult.AddDays(1).ToString("yyyy-MM-dd");
                 }
-                else queryEndDate = await apiClient.GetEndDate();
 
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);
@@ -2177,7 +2174,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 readQuery.TransactionCategories = new List<string>() {"SALE_OR_RETURN"};
 
                 readQuery.ToDateWrapper.DateTime =
-                    DateTime.Parse(queryEndDate).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                    DateTime.Parse(queryEndDate.Substring(0, 10)).ToString("yyyy-MM-dd") + "T00:00:00Z";
 
                 foreach (var site in workingSiteList)
                 {
@@ -2187,7 +2184,7 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                     do //while queryDate != queryEndDate
                     { 
                         readQuery.FromDateWrapper.DateTime =
-                            DateTime.Parse(queryDate).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
+                            DateTime.Parse(queryDate.Substring(0, 10)).AddDays(currDayOffset).ToString("yyyy-MM-dd") + "T00:00:00Z";
 
                         currDayOffset = currDayOffset + 1;
                         currPage = 0;
@@ -2516,12 +2513,11 @@ namespace PluginNCR.API.Utility.EndpointHelperEndpoints
                 bool isDiscoverRead = false)
             {
                 var queryStartDate = await apiClient.GetStartDate();
-                string queryEndDate;
-                if (DateTime.TryParse(await apiClient.GetEndDate(), out var dateTimeResult))
+                var queryEndDate = await apiClient.GetEndDate();
+                if (DateTime.TryParse(queryEndDate.Substring(0, 10), out var dateTimeResult))
                 {
                     queryEndDate = dateTimeResult.AddDays(1).ToString("yyyy-MM-dd");
                 }
-                else queryEndDate = await apiClient.GetEndDate();
 
                 var records = base.ReadRecordsAsync(apiClient, schema, limit, queryStartDate, queryEndDate,
                     isDiscoverRead);

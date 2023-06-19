@@ -12,6 +12,13 @@ namespace PluginNCRTest.Plugin
 {
     public class PluginIntegrationReceivedDateTest : PluginIntegrationTest
     {
+        private IEnumerable<string> GetTargetEndpointIds(string endpointDateMode) => new string[] {
+            $"TransactionDocument_{endpointDateMode}_ReceivedDate",
+            $"TransactionDocument_Tenders_{endpointDateMode}_ReceivedDate",
+            $"TransactionDocument_LoyaltyAccounts_{endpointDateMode}_ReceivedDate",
+            $"TransactionDocument_ItemTaxes_{endpointDateMode}_ReceivedDate"
+        };
+
         [Fact]
         public async Task DiscoverSchemasAllReceivedTest()
         {
@@ -202,14 +209,11 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_HistoricalFromDate_ReceivedDate");
-
             var connectRequest = GetConnectSettings();
 
             var schemaRequest = new DiscoverSchemasRequest
             {
-                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
+                Mode = DiscoverSchemasRequest.Types.Mode.All
             };
 
             var request = new ReadRequest()
@@ -225,27 +229,33 @@ namespace PluginNCRTest.Plugin
             // act
             client.Connect(connectRequest);
             var schemasResponse = client.DiscoverSchemas(schemaRequest);
-            request.Schema = schemasResponse.Schemas[0];
 
-            var response = client.ReadStream(request);
-            var responseStream = response.ResponseStream;
+            var targetEndpoints = GetTargetEndpointIds("HistoricalFromDate");
+
             var records = new List<Record>();
-
-            while (await responseStream.MoveNext())
+            foreach (var endpoint in targetEndpoints)
             {
-                records.Add(responseStream.Current);
+                request.Schema = schemasResponse.Schemas.First(
+                    s => s.Id == endpoint);
+
+                var response = client.ReadStream(request);
+                var responseStream = response.ResponseStream;
+
+                while (await responseStream.MoveNext())
+                {
+                    records.Add(responseStream.Current);
+                }
             }
 
             // assert
-            Assert.Equal(10, records.Count);
+            string targetDateString = DateTime.Parse(GetSettings().QueryStartDate).ToString("MM/dd/yyyy");
+            Assert.Equal(40, records.Count);
 
-            // Update with the settings in PluginIntegrationTest
-            string todayDateString = "06/08/2023";
             foreach (var record in records)
             {
                 var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
                 var receivedDateTimeUtc = data["receivedDateTimeUtc"].ToString();
-                Assert.Equal(receivedDateTimeUtc.Substring(0, 10), todayDateString);
+                Assert.Equal(receivedDateTimeUtc.Substring(0, 10), targetDateString);
             }
 
             // cleanup
@@ -269,14 +279,11 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_Yesterday_ReceivedDate");
-
             var connectRequest = GetConnectSettings();
 
             var schemaRequest = new DiscoverSchemasRequest
             {
-                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
+                Mode = DiscoverSchemasRequest.Types.Mode.All
             };
 
             var request = new ReadRequest()
@@ -292,21 +299,27 @@ namespace PluginNCRTest.Plugin
             // act
             client.Connect(connectRequest);
             var schemasResponse = client.DiscoverSchemas(schemaRequest);
-            request.Schema = schemasResponse.Schemas[0];
 
-            var response = client.ReadStream(request);
-            var responseStream = response.ResponseStream;
+            var targetEndpoints = GetTargetEndpointIds("Yesterday");
+
             var records = new List<Record>();
-
-            while (await responseStream.MoveNext())
+            foreach (var endpoint in targetEndpoints)
             {
-                records.Add(responseStream.Current);
+                request.Schema = schemasResponse.Schemas.First(s => s.Id == endpoint);
+
+                var response = client.ReadStream(request);
+                var responseStream = response.ResponseStream;
+
+                while (await responseStream.MoveNext())
+                {
+                    records.Add(responseStream.Current);
+                }
             }
 
             // assert
-            Assert.Equal(10, records.Count);
-
             string yesterdayDateString = DateTime.Today.AddDays(-1).ToString("MM/dd/yyyy");
+            Assert.Equal(40, records.Count);
+
             foreach (var record in records)
             {
                 var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
@@ -335,14 +348,11 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_Today_ReceivedDate");
-
             var connectRequest = GetConnectSettings();
 
             var schemaRequest = new DiscoverSchemasRequest
             {
-                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
+                Mode = DiscoverSchemasRequest.Types.Mode.All
             };
 
             var request = new ReadRequest()
@@ -358,21 +368,27 @@ namespace PluginNCRTest.Plugin
             // act
             client.Connect(connectRequest);
             var schemasResponse = client.DiscoverSchemas(schemaRequest);
-            request.Schema = schemasResponse.Schemas[0];
 
-            var response = client.ReadStream(request);
-            var responseStream = response.ResponseStream;
+            var targetEndpoints = GetTargetEndpointIds("Today");
+
             var records = new List<Record>();
-
-            while (await responseStream.MoveNext())
+            foreach (var endpoint in targetEndpoints)
             {
-                records.Add(responseStream.Current);
+                request.Schema = schemasResponse.Schemas.First(s => s.Id == endpoint);
+
+                var response = client.ReadStream(request);
+                var responseStream = response.ResponseStream;
+
+                while (await responseStream.MoveNext())
+                {
+                    records.Add(responseStream.Current);
+                }
             }
 
             // assert
-            Assert.Equal(10, records.Count);
-
             string todayDateString = DateTime.Today.ToString("MM/dd/yyyy");
+            Assert.Equal(40, records.Count);
+
             foreach (var record in records)
             {
                 var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(record.DataJson);
@@ -401,14 +417,11 @@ namespace PluginNCRTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("TransactionDocument_7Days_ReceivedDate");
-
             var connectRequest = GetConnectSettings();
 
             var schemaRequest = new DiscoverSchemasRequest
             {
-                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
+                Mode = DiscoverSchemasRequest.Types.Mode.All
             };
 
             var request = new ReadRequest()
@@ -424,19 +437,25 @@ namespace PluginNCRTest.Plugin
             // act
             client.Connect(connectRequest);
             var schemasResponse = client.DiscoverSchemas(schemaRequest);
-            request.Schema = schemasResponse.Schemas[0];
 
-            var response = client.ReadStream(request);
-            var responseStream = response.ResponseStream;
+            var targetEndpoints = GetTargetEndpointIds("7Days");
+
             var records = new List<Record>();
-
-            while (await responseStream.MoveNext())
+            foreach (var endpoint in targetEndpoints)
             {
-                records.Add(responseStream.Current);
+                request.Schema = schemasResponse.Schemas.First(s => s.Id == endpoint);
+
+                var response = client.ReadStream(request);
+                var responseStream = response.ResponseStream;
+
+                while (await responseStream.MoveNext())
+                {
+                    records.Add(responseStream.Current);
+                }
             }
 
             // assert
-            Assert.Equal(10, records.Count);
+            Assert.Equal(40, records.Count);
 
             var startDate = DateTime.Today.AddDays(-7);
             var endDate = DateTime.Today;
