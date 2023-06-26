@@ -25,7 +25,7 @@ namespace PluginNCR.Helper
         /// <exception cref="Exception"></exception>
         public void Validate()
         {
-            if(AuthMethod == "Credentials") //use credentials
+            if (AuthMethod == "Credentials") //use credentials
             {
                 if (String.IsNullOrEmpty(ProvUsername))
                 {
@@ -121,7 +121,7 @@ namespace PluginNCR.Helper
                     throw new Exception("degree of parallelism must be a positive integer value");
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 throw new Exception("unable to parse given degree of parallelism. This should be a single number greater than zero");
             }

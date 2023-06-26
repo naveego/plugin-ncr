@@ -4,7 +4,7 @@
   "description": "Plugin for integrating data with NCR",
   "apiVersion": "2",
   "versionDescription": "Version 1",
-  "version": "1.0.0",
+  "version": "1.7.9",
   "iconFile": "icon.jpg",
   "executable": "PluginNCR",
   "kind": "publisher",

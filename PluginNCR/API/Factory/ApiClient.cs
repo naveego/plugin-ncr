@@ -1,21 +1,16 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-using Naveego.Sdk.Logging;
+using Aunalytics.Sdk.Logging;
 using Newtonsoft.Json;
 using PluginNCR.API.Utility;
 using PluginNCR.Helper;
-using RestSharp;
 
 namespace PluginNCR.API.Factory
 {

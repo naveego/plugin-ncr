@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Naveego.Sdk.Plugins;
+using Aunalytics.Sdk.Plugins;
 using PluginNCR.API.Factory;
 using PluginNCR.API.Utility;
 

@@ -1,19 +1,15 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using System.Web;
 using Grpc.Core;
-using Naveego.Sdk.Logging;
-using Naveego.Sdk.Plugins;
+using Aunalytics.Sdk.Logging;
+using Aunalytics.Sdk.Plugins;
 using Newtonsoft.Json;
 using PluginNCR.API.Discover;
 using PluginNCR.API.Factory;
 using PluginNCR.API.Read;
-using PluginNCR.DataContracts;
 using PluginNCR.Helper;
 
 namespace PluginNCR.Plugin

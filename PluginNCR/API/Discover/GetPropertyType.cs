@@ -1,4 +1,4 @@
-using Naveego.Sdk.Plugins;
+using Aunalytics.Sdk.Plugins;
 
 namespace PluginNCR.API.Discover
 {
